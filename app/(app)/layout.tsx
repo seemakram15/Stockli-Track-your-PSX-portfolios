@@ -13,6 +13,7 @@ import { UserMenu } from "@/components/shell/user-menu";
 import { DemoBanner } from "@/components/shell/demo-banner";
 import { DataDelayBadge } from "@/components/status-badges";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
+import { RoutePrefetcher } from "@/components/shell/route-prefetcher";
 
 export default async function AppLayout({
   children,
@@ -68,6 +69,8 @@ export default async function AppLayout({
             demo={isDemoMode}
           />
         </header>
+
+        <RoutePrefetcher />
 
         {isDemoMode && <DemoBanner />}
 

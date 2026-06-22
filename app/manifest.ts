@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: `${APP_NAME} - ${APP_TAGLINE}`,
     short_name: APP_NAME,
     description:
-      "Track PSX portfolios, live-ish prices, profit/loss, watchlists, alerts, and market performance.",
+      "Track portfolios, live P/L, watchlists, alerts, market performance, and sector movement across PSX today with more markets planned.",
     start_url: "/dashboard?source=pwa",
     scope: "/",
     display: "standalone",
@@ -46,7 +46,7 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Market",
         short_name: "Market",
-        description: "Open live PSX market overview.",
+        description: "Open the market overview.",
         url: "/market?source=pwa-shortcut",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
