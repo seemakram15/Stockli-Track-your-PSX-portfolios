@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ExternalLink, Target } from "lucide-react";
-import { getMarketStrategyData, type StrategyFundRow } from "@/lib/services/market-strategy";
+import { getMarketStrategyData } from "@/lib/services/market-strategy";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { DataDelayBadge } from "@/components/status-badges";
+import { MarketStrategyBoard } from "@/components/market/market-strategy-board";
 import {
   formatDateTime,
   formatNumber,
@@ -74,55 +74,8 @@ export default async function MarketStrategyPage() {
         />
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader className="border-b border-border bg-muted/20">
-          <CardTitle>Estimated fund returns</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="grid lg:grid-cols-2">
-            <StrategyColumn title="Islamic funds" rows={data.islamic} />
-            <StrategyColumn title="Conventional funds" rows={data.conventional} />
-          </div>
-        </CardContent>
-      </Card>
+      <MarketStrategyBoard data={data} />
     </div>
-  );
-}
-
-function StrategyColumn({ title, rows }: { title: string; rows: StrategyFundRow[] }) {
-  return (
-    <section className="border-b border-border lg:border-b-0 lg:border-r lg:last:border-r-0">
-      <div className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
-        <h2 className="text-sm font-bold uppercase tracking-wide">{title}</h2>
-      </div>
-      <div className="divide-y divide-border">
-        {rows.map((row) => (
-          <div
-            key={`${row.fundId ?? row.name}-${row.classFilter}`}
-            className={cn("grid grid-cols-[1fr_auto] gap-4 px-4 py-2.5", rowTint(row.estimatedReturn))}
-          >
-            <div className="min-w-0">
-              {row.fundId ? (
-                <Link href={`/market/mutual-funds/${row.fundId}`} className="font-medium hover:underline">
-                  {row.name}
-                </Link>
-              ) : (
-                <p className="font-medium">{row.name}</p>
-              )}
-              <p className="truncate text-xs opacity-80">
-                {row.amc} · {row.type} · {formatPercent(row.returnPct)}
-              </p>
-            </div>
-            <p className="font-bold tabular-nums">
-              {formatPKR(row.estimatedReturn, { sign: true })}
-            </p>
-          </div>
-        ))}
-        {rows.length === 0 && (
-          <p className="px-4 py-8 text-sm text-muted-foreground">No stock funds are available in this class.</p>
-        )}
-      </div>
-    </section>
   );
 }
 
@@ -148,13 +101,4 @@ function Metric({
       </CardContent>
     </Card>
   );
-}
-
-function rowTint(value: number | null) {
-  if (value == null) return "bg-muted/20";
-  if (value >= 300) return "bg-emerald-600 text-white";
-  if (value >= 0) return "bg-emerald-100 text-emerald-950";
-  if (value <= -300) return "bg-red-600 text-white";
-  if (value <= -100) return "bg-amber-100 text-amber-950";
-  return "bg-sky-100 text-sky-950";
 }

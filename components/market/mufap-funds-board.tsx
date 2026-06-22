@@ -28,7 +28,9 @@ import {
   formatPKR,
   plColorClass,
 } from "@/lib/format";
+import { identifyAmcBrand } from "@/lib/amc-brands";
 import { cn } from "@/lib/utils";
+import { AmcBrandMark } from "@/components/market/amc-brand-mark";
 import type { FundClassFilter, MufapFund, MufapFundsData } from "@/lib/services/mufap";
 
 type SortKey =
@@ -74,6 +76,23 @@ export function MufapFundsBoard({
   const [type, setType] = React.useState("all");
   const [sortKey, setSortKey] = React.useState<SortKey>("d1");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+
+  const amcOptions = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    const logos = new Map<string, string>();
+    for (const fund of data.funds) {
+      counts.set(fund.amc, (counts.get(fund.amc) ?? 0) + 1);
+      if (fund.amcLogoUrl && !logos.has(fund.amc)) logos.set(fund.amc, fund.amcLogoUrl);
+    }
+    return data.amcs
+      .map((item) => ({
+        value: item,
+        brand: identifyAmcBrand(item),
+        count: counts.get(item) ?? 0,
+        logoUrl: logos.get(item) ?? null,
+      }))
+      .sort((a, b) => a.brand.shortName.localeCompare(b.brand.shortName));
+  }, [data.amcs, data.funds]);
 
   const rows = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -129,9 +148,9 @@ export function MufapFundsBoard({
         />
       </div>
 
-      <Card>
-        <CardHeader className="gap-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <Card className="overflow-hidden">
+        <CardHeader className="gap-5 border-b border-border bg-gradient-to-br from-card via-card to-primary/5">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <CardTitle>{title}</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -152,7 +171,7 @@ export function MufapFundsBoard({
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {!etfMode && (
               <div className="flex flex-wrap gap-2">
                 {CLASS_FILTERS.map((item) => (
@@ -183,7 +202,7 @@ export function MufapFundsBoard({
               ))}
             </div>
 
-            <div className="grid gap-2 lg:grid-cols-[1.5fr_1fr_1fr]">
+            <div className="grid gap-2 xl:grid-cols-[minmax(260px,1.6fr)_minmax(170px,0.7fr)_minmax(170px,0.7fr)]">
               <label className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -199,9 +218,9 @@ export function MufapFundsBoard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All AMCs</SelectItem>
-                  {data.amcs.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
+                  {amcOptions.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.brand.shortName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -221,21 +240,51 @@ export function MufapFundsBoard({
               </Select>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-              {data.amcs.slice(0, 10).map((item) => (
+            <div className="grid max-h-72 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
+              <button
+                type="button"
+                onClick={() => setAmc("all")}
+                className={cn(
+                  "flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-colors",
+                  amc === "all"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background/80 hover:bg-accent"
+                )}
+              >
+                <span className="truncate">All AMCs</span>
+                <span className="rounded-full bg-background/20 px-2 py-0.5 text-xs tabular-nums">
+                  {data.funds.length}
+                </span>
+              </button>
+              {amcOptions.map((item) => (
                 <button
                   type="button"
-                  key={item}
-                  onClick={() => setAmc(item)}
+                  key={item.value}
+                  onClick={() => setAmc(item.value)}
                   className={cn(
-                    "flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-                    amc === item
+                    "flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-colors",
+                    amc === item.value
                       ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background hover:bg-accent"
+                      : "border-border bg-background/80 hover:bg-accent"
                   )}
                 >
-                  <AmcIcon label={item} selected={amc === item} />
-                  <span className="truncate">{shortLabel(item)}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <AmcBrandMark
+                      label={item.value}
+                      selected={amc === item.value}
+                      size="sm"
+                      logoUrl={item.logoUrl}
+                    />
+                    <span className="truncate">{item.brand.shortName}</span>
+                  </span>
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-xs tabular-nums",
+                      amc === item.value ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {item.count}
+                  </span>
                 </button>
               ))}
             </div>
@@ -262,7 +311,9 @@ export function MufapFundsBoard({
                 {rows.map((fund) => (
                   <TableRow key={`${fund.fundId ?? fund.name}-${fund.type}`}>
                     <TableCell>
-                      <div>
+                      <div className="flex min-w-[280px] items-start gap-3">
+                        <AmcBrandMark label={fund.amc} size="md" logoUrl={fund.amcLogoUrl} />
+                        <div className="min-w-0">
                         {fund.fundId ? (
                           <Link
                             href={`/${etfMode ? "market/etfs" : "market/mutual-funds"}/${fund.fundId}`}
@@ -274,11 +325,15 @@ export function MufapFundsBoard({
                           <p className="font-semibold">{fund.name}</p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          {fund.validityDate ?? "—"} · {fund.riskProfile ?? "Risk N/A"}
+                          {fund.amcShort} · {fund.validityDate ?? "—"} · {fund.riskProfile ?? "Risk N/A"}
                         </p>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-56 truncate">{fund.amc}</TableCell>
+                    <TableCell className="max-w-56">
+                      <span className="font-medium">{fund.amcShort}</span>
+                      <p className="truncate text-xs text-muted-foreground">{fund.amc}</p>
+                    </TableCell>
                     <TableCell>{fund.type}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatNumber(fund.nav, 4)}</TableCell>
                     <ReturnCell value={fund.d1} />
@@ -377,36 +432,10 @@ function numericValue(fund: MufapFund, key: SortKey) {
   return 0;
 }
 
-function shortLabel(value: string) {
-  return value
-    .replace(/Asset Management Company Limited|Asset Management Limited|Investment Management Limited|Investments Limited|Fund Management Limited|Fund Managers Limited|Limited/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function strategyMatches(fund: MufapFund, strategy: StrategyFilter) {
   const haystack = `${fund.name} ${fund.type} ${fund.category} ${fund.sector}`.toLowerCase();
   if (strategy === "stock") return /\b(stock|equity|index|sector)\b/.test(haystack);
   if (strategy === "money-market") return haystack.includes("money market") || haystack.includes("cash");
   if (strategy === "income") return haystack.includes("income") || haystack.includes("sovereign");
   return haystack.includes("asset allocation") || haystack.includes("balanced") || haystack.includes("allocation");
-}
-
-function AmcIcon({ label, selected }: { label: string; selected: boolean }) {
-  const initials = shortLabel(label)
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-  return (
-    <span
-      className={cn(
-        "inline-flex size-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold",
-        selected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary"
-      )}
-    >
-      {initials || "AMC"}
-    </span>
-  );
 }
