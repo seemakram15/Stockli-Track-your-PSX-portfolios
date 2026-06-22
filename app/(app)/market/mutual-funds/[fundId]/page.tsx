@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Building2, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { getMufapFundById } from "@/lib/services/mufap";
 import { PageHeader } from "@/components/page-header";
 import { SmartBackLink } from "@/components/smart-back-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AmcBrandMark } from "@/components/market/amc-brand-mark";
 import {
   formatNumber,
   formatPercent,
@@ -72,7 +73,7 @@ export default async function MutualFundDetailPage({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AmcMark label={fund.amcShort || fund.amc} />
+              <AmcBrandMark label={fund.amc} size="lg" logoUrl={fund.amcLogoUrl} />
               Profile
             </CardTitle>
           </CardHeader>
@@ -194,19 +195,5 @@ function Info({ label, value }: { label: string; value: string }) {
       <span className="text-muted-foreground">{label}</span>
       <span className="text-right font-medium">{value}</span>
     </div>
-  );
-}
-
-function AmcMark({ label }: { label: string }) {
-  const initials = label
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-  return (
-    <span className="inline-flex size-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-      {initials || <Building2 className="size-4" />}
-    </span>
   );
 }

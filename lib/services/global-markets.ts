@@ -83,6 +83,7 @@ const UNIVERSES: Record<Exclude<MarketUniverse, "crypto">, { title: string; desc
     items: [
       ["^NSEI", "NIFTY 50", "Index"],
       ["^BSESN", "SENSEX", "Index"],
+      ["^NSEBANK", "NIFTY Bank", "Index"],
       ["RELIANCE.NS", "Reliance Industries", "Stock"],
       ["HDFCBANK.NS", "HDFC Bank", "Stock"],
       ["ICICIBANK.NS", "ICICI Bank", "Stock"],

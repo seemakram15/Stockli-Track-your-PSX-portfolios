@@ -27,9 +27,11 @@ interface IndexConfig {
   title: string;
   description: string;
   sourceUrl: string;
+  sourceLabel?: string;
   country: string;
   exchange: string;
   symbolSuffix?: string;
+  staticConstituents?: GlobalIndexConstituent[];
 }
 
 const INDEX_CONFIGS: Record<string, IndexConfig> = {
@@ -70,6 +72,28 @@ const INDEX_CONFIGS: Record<string, IndexConfig> = {
     exchange: "BSE",
     symbolSuffix: ".BO",
   },
+  "^NSEBANK": {
+    title: "NIFTY Bank constituents",
+    description: "Indian banking stocks tracked by the NIFTY Bank index.",
+    sourceUrl: "https://www.niftyindices.com/indices/equity/sectoral-indices/nifty-bank",
+    sourceLabel: "NSE Indices constituent list",
+    country: "India",
+    exchange: "NSE",
+    staticConstituents: [
+      bankNifty("AUBANK.NS", "AU Small Finance Bank"),
+      bankNifty("AXISBANK.NS", "Axis Bank"),
+      bankNifty("BANDHANBNK.NS", "Bandhan Bank"),
+      bankNifty("BANKBARODA.NS", "Bank of Baroda"),
+      bankNifty("FEDERALBNK.NS", "Federal Bank"),
+      bankNifty("HDFCBANK.NS", "HDFC Bank"),
+      bankNifty("ICICIBANK.NS", "ICICI Bank"),
+      bankNifty("IDFCFIRSTB.NS", "IDFC First Bank"),
+      bankNifty("INDUSINDBK.NS", "IndusInd Bank"),
+      bankNifty("KOTAKBANK.NS", "Kotak Mahindra Bank"),
+      bankNifty("PNB.NS", "Punjab National Bank"),
+      bankNifty("SBIN.NS", "State Bank of India"),
+    ],
+  },
 };
 
 export function hasIndexConstituentSource(symbol: string) {
@@ -100,15 +124,14 @@ export async function getGlobalIndexConstituents(
     };
   }
 
-  const html = await fetchHtml(config.sourceUrl);
-  const constituents = parseConstituentTable(html, config);
+  const constituents = config.staticConstituents ?? parseConstituentTable(await fetchHtml(config.sourceUrl), config);
 
   return {
     market,
     symbol,
     title: config.title,
     description: config.description,
-    sourceLabel: "Wikipedia index constituent table",
+    sourceLabel: config.sourceLabel ?? "Wikipedia index constituent table",
     sourceUrl: config.sourceUrl,
     updatedAt: new Date().toISOString(),
     constituents,
@@ -215,8 +238,20 @@ function friendlyIndexTitle(symbol: string) {
     "^NDX": "Nasdaq 100 constituents",
     "^NSEI": "NIFTY 50 constituents",
     "^BSESN": "SENSEX constituents",
+    "^NSEBANK": "NIFTY Bank constituents",
   };
   return map[symbol] ?? `${symbol.replace(/^\^/, "")} constituents`;
+}
+
+function bankNifty(symbol: string, name: string): GlobalIndexConstituent {
+  return {
+    symbol,
+    name,
+    sector: "Financial Services",
+    industry: "Banks",
+    exchange: "NSE",
+    country: "India",
+  };
 }
 
 function nullable(value: string) {

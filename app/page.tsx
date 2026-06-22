@@ -31,7 +31,7 @@ import { isDemoMode } from "@/lib/config";
 import { APP_NAME } from "@/lib/constants";
 
 const MARKET_SIGNALS = [
-  { label: "Market coverage", value: "PSX now", note: "More exchanges next" },
+  { label: "Market coverage", value: "Multi-market", note: "PSX, US, India, crypto and more" },
   { label: "Portfolio pulse", value: "Live P/L", note: "Positions, sectors, calendars" },
   { label: "Installable", value: "iOS + Android", note: "Works like an app" },
 ];
@@ -76,14 +76,16 @@ const WORKFLOW = [
 ];
 
 const MARKET_RAILS = [
-  "PSX",
-  "Stocks",
-  "Sectors",
+  "Pakistan market",
+  "US indices",
+  "India indices",
+  "World view",
+  "Mutual funds",
+  "ETFs",
+  "Commodities",
+  "Crypto",
   "Watchlists",
   "Alerts",
-  "Portfolios",
-  "P/L calendars",
-  "More markets soon",
 ];
 
 export default function Home() {
@@ -150,7 +152,7 @@ export default function Home() {
           <div className="max-w-4xl">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-emerald-50 backdrop-blur-md">
               <span className="size-1.5 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(110,231,183,0.9)]" />
-              PSX-ready today. Built for every market you will add next.
+              One portfolio workspace for markets, funds, crypto and commodities.
             </div>
             <h1 className="text-balance text-5xl font-semibold leading-[0.94] tracking-normal sm:text-7xl lg:text-8xl">
               {APP_NAME}
@@ -235,12 +237,12 @@ export default function Home() {
               One workspace, many markets
             </div>
             <h2 className="mt-4 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
-              Built for PSX portfolios now, structured for global expansion.
+              Built for Pakistan today, ready for every market you add next.
             </h2>
             <p className="mt-4 text-base leading-7 text-muted-foreground">
               Stockli keeps market data, portfolio math and security concerns separated
-              so the app can grow from PSX into additional exchanges without changing
-              the way investors use it day to day.
+              so investors can move between local stocks, global indices, funds and
+              digital assets without learning a different workflow each time.
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-border bg-card p-4">
@@ -314,8 +316,8 @@ export default function Home() {
               </div>
               <h2 className="text-3xl font-semibold tracking-normal">Ready when the market opens.</h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">
-                Start with your PSX holdings today. Keep the same dashboard as Stockli
-                grows into a broader, all-market portfolio tracker.
+                Start with the markets you already follow. Keep the same dashboard as
+                Stockli grows into a broader all-market portfolio tracker.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">

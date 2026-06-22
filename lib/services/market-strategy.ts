@@ -6,6 +6,7 @@ export interface StrategyFundRow {
   fundId: string | null;
   name: string;
   amc: string;
+  amcShort: string;
   type: string;
   classFilter: MufapFund["classFilter"];
   returnPct: number | null;
@@ -74,7 +75,8 @@ function toStrategyRow(fund: MufapFund): StrategyFundRow {
   return {
     fundId: fund.fundId,
     name: fund.name,
-    amc: fund.amcShort || fund.amc,
+    amc: fund.amc,
+    amcShort: fund.amcShort || fund.amc,
     type: fund.type,
     classFilter: fund.classFilter,
     returnPct: fund.d1,

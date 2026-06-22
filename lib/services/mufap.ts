@@ -1,5 +1,6 @@
 import "server-only";
 import { parse } from "node-html-parser";
+import { identifyAmcBrand, shortAmcName } from "@/lib/amc-brands";
 
 const MUFAP_BASE = "https://www.mufap.com.pk";
 const INVESTMENT_AMOUNT = 100_000;
@@ -69,9 +70,13 @@ export async function getMufapFunds({
   includeEtfs?: boolean;
 } = {}): Promise<MufapFundsData> {
   const performancePath = `/Industry/IndustryStatDaily?tab=${includeEtfs ? "2" : "1"}`;
-  const performanceHtml = await fetchMufap(performancePath);
+  const [performanceHtml, directoryHtml] = await Promise.all([
+    fetchMufap(performancePath),
+    fetchMufap("/FundProfile/FundDirectory").catch(() => ""),
+  ]);
+  const directory = directoryHtml ? parseFundDirectory(directoryHtml) : emptyDirectory();
 
-  const funds = parsePerformance(performanceHtml)
+  const funds = parsePerformance(performanceHtml, directory)
     .filter((fund) =>
       includeEtfs
         ? fund.sector.toLowerCase().includes("exchange traded")
@@ -123,7 +128,23 @@ async function fetchMufap(path: string) {
   return res.text();
 }
 
-function parsePerformance(html: string) {
+interface FundDirectoryEntry {
+  fundId: string | null;
+  name: string;
+  amc: string;
+  category: string | null;
+  nav: number | null;
+  offerPrice: number | null;
+  riskProfile: string | null;
+  logoUrl: string | null;
+}
+
+interface FundDirectory {
+  byFundId: Map<string, FundDirectoryEntry>;
+  byName: Map<string, FundDirectoryEntry>;
+}
+
+function parsePerformance(html: string, directory: FundDirectory) {
   const root = parse(html);
   const rows = root.querySelectorAll("#table_id tbody tr");
 
@@ -142,7 +163,9 @@ function parsePerformance(html: string) {
       const category = clean(cells[1].text);
       const type = cleanType(category);
       const d1 = toNum(cells[9].text);
-      const amc = inferAmc(name);
+      const directoryEntry = lookupDirectoryEntry(directory, fundId, name);
+      const brand = identifyAmcBrand(directoryEntry?.amc ?? name);
+      const amc = directoryEntry?.amc ?? brand.fullName;
 
       return {
         fundId,
@@ -166,9 +189,9 @@ function parsePerformance(html: string) {
         y2: toNum(cells[16].text),
         y3: toNum(cells[17].text),
         amc,
-        amcShort: shortAmc(amc),
-        offerPrice: null,
-        riskProfile: null,
+        amcShort: shortAmcName(amc),
+        offerPrice: directoryEntry?.offerPrice ?? null,
+        riskProfile: directoryEntry?.riskProfile ?? null,
         classFilter: classifyFund(sector, category, name),
         profileUrl: fundId ? `${MUFAP_BASE}/FundProfile/FundDetail?FundID=${fundId}` : null,
         profitOn100k: d1 == null ? null : (INVESTMENT_AMOUNT * d1) / 100,
@@ -176,10 +199,56 @@ function parsePerformance(html: string) {
         topHoldings: [],
         holdingsNote: null,
         detailDate: null,
-        amcLogoUrl: null,
+        amcLogoUrl: directoryEntry?.logoUrl ?? null,
       };
     })
     .filter(Boolean) as MufapFund[];
+}
+
+function parseFundDirectory(html: string): FundDirectory {
+  const root = parse(html);
+  const byFundId = new Map<string, FundDirectoryEntry>();
+  const byName = new Map<string, FundDirectoryEntry>();
+
+  for (const row of root.querySelectorAll("#table_id tbody tr")) {
+    const cells = row.querySelectorAll("td");
+    const name = clean(row.querySelector("h3.card-title")?.text ?? "");
+    if (!name) continue;
+
+    const link = row.querySelector("a[href*='FundID=']");
+    const fundId = getFundId(link?.getAttribute("href") ?? "");
+    const hiddenAmc = clean(cells[2]?.text ?? "");
+    const visibleAmc = clean(row.querySelector(".card-title + div span")?.text ?? "");
+    const amc = hiddenAmc || visibleAmc;
+    if (!amc) continue;
+
+    const logoSrc = row.querySelector("img")?.getAttribute("src") ?? "";
+    const entry: FundDirectoryEntry = {
+      fundId,
+      name,
+      amc,
+      category: nullableText(cells[3]?.text ?? ""),
+      nav: toNum(row.querySelector("#netval")?.text),
+      offerPrice: toNum(row.querySelector("#unitPrice")?.text),
+      riskProfile: nullableText(row.querySelector("[class^='risk-']")?.text ?? ""),
+      logoUrl: logoUrl(logoSrc),
+    };
+
+    if (fundId) byFundId.set(fundId, entry);
+    byName.set(normalizeFundName(name), entry);
+  }
+
+  return { byFundId, byName };
+}
+
+function emptyDirectory(): FundDirectory {
+  return { byFundId: new Map(), byName: new Map() };
+}
+
+function lookupDirectoryEntry(directory: FundDirectory, fundId: string | null, name: string) {
+  return (fundId ? directory.byFundId.get(fundId) : null) ??
+    directory.byName.get(normalizeFundName(name)) ??
+    null;
 }
 
 async function fetchMufapFundDetail(fundId: string): Promise<Partial<MufapFund>> {
@@ -268,30 +337,6 @@ function classifyFund(sector: string, category: string, name: string): FundClass
   return "conventional";
 }
 
-function inferAmc(name: string) {
-  const first = name.split(/\s+/)[0] ?? "";
-  const known: Record<string, string> = {
-    ABL: "ABL Asset Management Company Limited",
-    Alfalah: "Alfalah Investments Limited",
-    Alhamra: "MCB Investment Management Limited",
-    Atlas: "Atlas Asset Management Limited",
-    HBL: "HBL Asset Management Limited",
-    JS: "JS Investments Limited",
-    Meezan: "Al Meezan Investment Management Limited",
-    NBP: "NBP Fund Management Limited",
-    NIT: "National Investment Trust Limited",
-    UBL: "UBL Fund Managers Limited",
-  };
-  return known[first] ?? (first || "Other AMC");
-}
-
-function shortAmc(amc: string) {
-  return amc
-    .replace(/Asset Management Company Limited|Asset Management Limited|Investment Management Limited|Investments Limited|Fund Management Limited|Fund Managers Limited|Limited/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function cleanType(value: string) {
   return clean(value)
     .replace(/\((Annualized|Absolute)\s+Return\s*\)/gi, "")
@@ -328,6 +373,10 @@ function logoUrl(value: unknown) {
   if (!text) return null;
   if (/^https?:\/\//i.test(text)) return text;
   return `${MUFAP_BASE}/${text.replace(/^\/+/, "")}`;
+}
+
+function normalizeFundName(value: string) {
+  return clean(value).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ");
 }
 
 function firstDayOfMonth() {
