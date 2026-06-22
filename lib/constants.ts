@@ -1,7 +1,7 @@
 /** App-wide constants. */
 
 export const APP_NAME = "Stockli";
-export const APP_TAGLINE = "Track your PSX portfolio";
+export const APP_TAGLINE = "Track every market portfolio";
 
 /** Price cache TTL in seconds (matches the open-source PSX ecosystem ~15 min). */
 export const PRICE_CACHE_TTL_SECONDS = 15 * 60;

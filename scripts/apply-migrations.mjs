@@ -34,7 +34,7 @@ if (!databaseUrl) {
 }
 
 const client = new Client({
-  connectionString: databaseUrl,
+  connectionString: normalizeConnectionString(databaseUrl),
   ssl: shouldUseSsl(databaseUrl) ? { rejectUnauthorized: false } : false,
 });
 
@@ -141,4 +141,17 @@ function loadDotEnvLocal() {
 
 function shouldUseSsl(url) {
   return !/localhost|127\.0\.0\.1|sslmode=disable/i.test(url);
+}
+
+function normalizeConnectionString(url) {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.delete("sslmode");
+    parsed.searchParams.delete("sslrootcert");
+    parsed.searchParams.delete("sslcert");
+    parsed.searchParams.delete("sslkey");
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }

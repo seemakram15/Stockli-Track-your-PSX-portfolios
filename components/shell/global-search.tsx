@@ -72,6 +72,14 @@ export function GlobalSearch({ className }: { className?: string }) {
     }
   }, [open]);
 
+  React.useEffect(() => {
+    if (!open || results.length === 0) return;
+    const timeoutIds = results.slice(0, 5).map((result, index) =>
+      window.setTimeout(() => router.prefetch(`/stock/${result.symbol}`), index * 80)
+    );
+    return () => timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+  }, [open, results, router]);
+
   function go(symbol: string) {
     setOpen(false);
     router.push(`/stock/${symbol}`);

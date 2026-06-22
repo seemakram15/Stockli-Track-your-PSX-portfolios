@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     template: `%s · ${APP_NAME}`,
   },
   description:
-    "A free, serverless portfolio tracker for the Pakistan Stock Exchange (PSX). Live-ish prices, P/L, daily gain/loss calendar, watchlists and alerts.",
+    "An installable portfolio command center for PSX today and more markets next. Track live P/L, daily gain/loss calendars, watchlists, alerts, sectors and market performance.",
   formatDetection: {
     telephone: false,
   },
@@ -53,8 +53,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f9fafb" },
-    { media: "(prefers-color-scheme: dark)", color: "#0e1726" },
+    { media: "(prefers-color-scheme: light)", color: "#f7fbf8" },
+    { media: "(prefers-color-scheme: dark)", color: "#06120f" },
   ],
 };
 
