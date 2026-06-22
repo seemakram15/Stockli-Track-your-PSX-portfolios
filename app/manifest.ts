@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: `${APP_NAME} - ${APP_TAGLINE}`,
     short_name: APP_NAME,
     description:
-      "Track portfolios, live P/L, watchlists, alerts, market performance, and sector movement across PSX today with more markets planned.",
+      "Track portfolios, live P/L, watchlists, alerts, market performance, funds, crypto, commodities, and global market movement in one installable app.",
     start_url: "/dashboard?source=pwa",
     scope: "/",
     display: "standalone",

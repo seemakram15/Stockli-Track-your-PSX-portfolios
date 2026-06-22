@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: `%s · ${APP_NAME}`,
   },
   description:
-    "An installable portfolio command center for PSX today and more markets next. Track live P/L, daily gain/loss calendars, watchlists, alerts, sectors and market performance.",
+    "An installable all-market portfolio command center. Track live P/L, daily gain/loss calendars, watchlists, alerts, sectors, funds, crypto and global market performance.",
   formatDetection: {
     telephone: false,
   },

@@ -156,37 +156,84 @@ function MarketNavItems({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  const activeGroups = React.useMemo(() => {
+    const groups: Record<string, boolean> = {};
+    for (const item of MARKET_NAV_ITEMS) {
+      if ("children" in item) {
+        groups[item.label] = item.children.some(
+          (child) => pathname === child.href || pathname.startsWith(child.href + "/")
+        );
+      }
+    }
+    return groups;
+  }, [pathname]);
+  const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>(activeGroups);
+
+  React.useEffect(() => {
+    setOpenGroups((current) => {
+      const next = { ...current };
+      for (const [label, active] of Object.entries(activeGroups)) {
+        if (active) next[label] = true;
+      }
+      return next;
+    });
+  }, [activeGroups]);
+
   return (
     <>
       {MARKET_NAV_ITEMS.map((item) => {
         const ParentIcon = ICONS[item.icon];
         if ("children" in item) {
-          const childActive = item.children.some(
-            (child) => pathname === child.href || pathname.startsWith(child.href + "/")
-          );
+          const childActive = Boolean(activeGroups[item.label]);
+          const isOpen = openGroups[item.label] ?? childActive;
           return (
             <div key={item.label} className="space-y-1">
-              <div
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                onClick={() =>
+                  setOpenGroups((current) => ({
+                    ...current,
+                    [item.label]: !(current[item.label] ?? childActive),
+                  }))
+                }
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide",
-                  childActive ? "text-sidebar-foreground" : "text-muted-foreground"
+                  "group flex w-full min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
+                  childActive
+                    ? "bg-sidebar-accent/70 text-sidebar-accent-foreground"
+                    : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
-                {ParentIcon && <ParentIcon className="size-3.5" />}
-                {item.label}
-              </div>
-              <div className="space-y-1 pl-3">
-                {item.children.map((child) => (
-                  <MarketNavLink
-                    key={child.href}
-                    href={child.href}
-                    label={child.label}
-                    icon={child.icon}
-                    pathname={pathname}
-                    onNavigate={onNavigate}
+                {ParentIcon && (
+                  <ParentIcon
+                    className={cn(
+                      "size-4 shrink-0",
+                      childActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                    )}
                   />
-                ))}
-              </div>
+                )}
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 text-muted-foreground transition-transform",
+                    isOpen && "rotate-180"
+                  )}
+                />
+              </button>
+              {isOpen && (
+                <div className="space-y-1 pl-3">
+                  {item.children.map((child) => (
+                    <MarketNavLink
+                      key={child.href}
+                      href={child.href}
+                      label={child.label}
+                      icon={child.icon}
+                      pathname={pathname}
+                      onNavigate={onNavigate}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           );
         }
