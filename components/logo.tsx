@@ -1,11 +1,6 @@
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 
-/**
- * Stockli wordmark + glyph. The glyph is ascending bars with an upward arrow,
- * in the brand green→blue gradient. Rendered as inline SVG so it stays crisp
- * and theme-independent at any size.
- */
 export function Logo({
   className,
   showText = true,
@@ -15,9 +10,9 @@ export function Logo({
 }) {
   return (
     <span className={cn("flex items-center gap-2.5 font-semibold", className)}>
-      <StockliGlyph className="size-7" />
+      <StockliGlyph className="size-8" />
       {showText && (
-        <span className="text-lg leading-none tracking-tight">{APP_NAME}</span>
+        <span className="text-lg leading-none tracking-normal">{APP_NAME}</span>
       )}
     </span>
   );
@@ -25,40 +20,68 @@ export function Logo({
 
 export function StockliGlyph({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" className={className} aria-hidden>
+    <svg viewBox="0 0 40 40" fill="none" className={className} aria-hidden>
       <defs>
         <linearGradient
-          id="stockli-grad"
-          x1="3"
-          y1="29"
-          x2="29"
-          y2="5"
+          id="stockli-mark-gradient"
+          x1="7"
+          y1="33"
+          x2="33"
+          y2="7"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stopColor="#22c55e" />
-          <stop offset="0.55" stopColor="#16b3c6" />
-          <stop offset="1" stopColor="#2563eb" />
+          <stop stopColor="#7dd3fc" />
+          <stop offset="0.45" stopColor="#34d399" />
+          <stop offset="1" stopColor="#facc15" />
+        </linearGradient>
+        <linearGradient
+          id="stockli-mark-surface"
+          x1="4"
+          y1="36"
+          x2="36"
+          y2="4"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#06120f" />
+          <stop offset="1" stopColor="#12352d" />
         </linearGradient>
       </defs>
-      {/* ascending bars */}
-      <rect x="4" y="18" width="5" height="10" rx="1.4" fill="url(#stockli-grad)" opacity="0.38" />
-      <rect x="13" y="13" width="5" height="15" rx="1.4" fill="url(#stockli-grad)" opacity="0.6" />
-      <rect x="22" y="8" width="5" height="20" rx="1.4" fill="url(#stockli-grad)" opacity="0.82" />
-      {/* upward trend arrow */}
-      <path
-        d="M4 23 L13 15 L19 19 L28 8.5"
-        stroke="url(#stockli-grad)"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      <rect x="2.5" y="2.5" width="35" height="35" rx="10" fill="url(#stockli-mark-surface)" />
+      <rect
+        x="3.25"
+        y="3.25"
+        width="33.5"
+        height="33.5"
+        rx="9.25"
+        stroke="white"
+        strokeOpacity="0.16"
+        strokeWidth="1.5"
       />
       <path
-        d="M22.5 8.5 H28 V14"
-        stroke="url(#stockli-grad)"
-        strokeWidth="2.6"
+        d="M13 25.1c2.7 2.1 9.5 2.1 12-.3 2.3-2.2.7-4.5-5-5.3-5.4-.8-7.1-3.2-4.7-5.6 2.4-2.5 8.6-2.5 11.7-.5"
+        stroke="url(#stockli-mark-gradient)"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M11.5 27.5 17 22l4.6 3.5L29 14"
+        stroke="url(#stockli-mark-gradient)"
+        strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
+        opacity="0.9"
       />
+      <path
+        d="M24.2 14H29v4.8"
+        stroke="url(#stockli-mark-gradient)"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.9"
+      />
+      <circle cx="11.5" cy="27.5" r="2.1" fill="#7dd3fc" />
+      <circle cx="21.6" cy="25.5" r="2.1" fill="#34d399" />
+      <circle cx="29" cy="14" r="2.1" fill="#facc15" />
     </svg>
   );
 }
