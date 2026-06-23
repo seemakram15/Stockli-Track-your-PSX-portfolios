@@ -1,18 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDownUp, ExternalLink, RefreshCw, Search } from "lucide-react";
+import {
+  ArrowDownUp,
+  BadgePercent,
+  BarChart3,
+  Coins,
+  ExternalLink,
+  LineChart,
+  PieChart,
+  RefreshCw,
+  Search,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -52,12 +56,12 @@ const CLASS_FILTERS: Array<{ value: FundClassFilter; label: string }> = [
   { value: "pension", label: "Pension funds" },
 ];
 
-const STRATEGY_FILTERS: Array<{ value: StrategyFilter; label: string }> = [
-  { value: "all", label: "All strategies" },
-  { value: "stock", label: "Stock funds" },
-  { value: "money-market", label: "Money market" },
-  { value: "income", label: "Income" },
-  { value: "allocation", label: "Asset allocation" },
+const STRATEGY_FILTERS: Array<{ value: StrategyFilter; label: string; icon: LucideIcon }> = [
+  { value: "all", label: "All", icon: BadgePercent },
+  { value: "stock", label: "Stock funds", icon: BarChart3 },
+  { value: "money-market", label: "Money market", icon: Coins },
+  { value: "income", label: "Income", icon: LineChart },
+  { value: "allocation", label: "Asset allocation", icon: PieChart },
 ];
 
 export function MufapFundsBoard({
@@ -73,7 +77,6 @@ export function MufapFundsBoard({
   const [fundClass, setFundClass] = React.useState<FundClassFilter>("all");
   const [strategy, setStrategy] = React.useState<StrategyFilter>("all");
   const [amc, setAmc] = React.useState("all");
-  const [type, setType] = React.useState("all");
   const [sortKey, setSortKey] = React.useState<SortKey>("d1");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
 
@@ -106,11 +109,10 @@ export function MufapFundsBoard({
         const matchesClass = fundClass === "all" || fund.classFilter === fundClass;
         const matchesStrategy = strategy === "all" || strategyMatches(fund, strategy);
         const matchesAmc = amc === "all" || fund.amc === amc;
-        const matchesType = type === "all" || fund.type === type;
-        return matchesQuery && matchesClass && matchesStrategy && matchesAmc && matchesType;
+        return matchesQuery && matchesClass && matchesStrategy && matchesAmc;
       })
       .sort((a, b) => compareFunds(a, b, sortKey, sortDir));
-  }, [amc, data.funds, fundClass, query, sortDir, sortKey, strategy, type]);
+  }, [amc, data.funds, fundClass, query, sortDir, sortKey, strategy]);
 
   const summary = React.useMemo(() => {
     const visible = rows.filter((fund) => fund.d1 != null);
@@ -172,37 +174,7 @@ export function MufapFundsBoard({
           </div>
 
           <div className="space-y-4">
-            {!etfMode && (
-              <div className="flex flex-wrap gap-2">
-                {CLASS_FILTERS.map((item) => (
-                  <Button
-                    key={item.value}
-                    type="button"
-                    variant={fundClass === item.value ? "default" : "outline"}
-                    onClick={() => setFundClass(item.value)}
-                    size="sm"
-                  >
-                    {item.label}
-                  </Button>
-                ))}
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              {STRATEGY_FILTERS.map((item) => (
-                <Button
-                  key={item.value}
-                  type="button"
-                  variant={strategy === item.value ? "secondary" : "outline"}
-                  onClick={() => setStrategy(item.value)}
-                  size="sm"
-                >
-                  {item.label}
-                </Button>
-              ))}
-            </div>
-
-            <div className="grid gap-2 xl:grid-cols-[minmax(260px,1.6fr)_minmax(170px,0.7fr)_minmax(170px,0.7fr)]">
+            <div className="grid gap-2 xl:grid-cols-[minmax(260px,1fr)_auto]">
               <label className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -212,81 +184,87 @@ export function MufapFundsBoard({
                   className="pl-9"
                 />
               </label>
-              <Select value={amc} onValueChange={setAmc}>
-                <SelectTrigger>
-                  <SelectValue placeholder="AMC" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All AMCs</SelectItem>
-                  {amcOptions.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.brand.shortName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
-                  {data.types.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setQuery("");
+                  setAmc("all");
+                  setFundClass("all");
+                  setStrategy("all");
+                }}
+              >
+                Clear filters
+              </Button>
             </div>
 
-            <div className="grid max-h-72 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
-              <button
-                type="button"
-                onClick={() => setAmc("all")}
-                className={cn(
-                  "flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-colors",
-                  amc === "all"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background/80 hover:bg-accent"
-                )}
-              >
-                <span className="truncate">All AMCs</span>
-                <span className="rounded-full bg-background/20 px-2 py-0.5 text-xs tabular-nums">
-                  {data.funds.length}
-                </span>
-              </button>
-              {amcOptions.map((item) => (
-                <button
-                  type="button"
-                  key={item.value}
-                  onClick={() => setAmc(item.value)}
-                  className={cn(
-                    "flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-colors",
-                    amc === item.value
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background/80 hover:bg-accent"
-                  )}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <AmcBrandMark
-                      label={item.value}
-                      selected={amc === item.value}
-                      size="sm"
-                      logoUrl={item.logoUrl}
+            <div className="rounded-2xl border border-border bg-background p-4 shadow-sm">
+              <FilterGroup label="AMC">
+                <div className="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
+                  <FilterPill
+                    active={amc === "all"}
+                    onClick={() => setAmc("all")}
+                    label="All"
+                    count={data.funds.length}
+                  />
+                  {amcOptions.map((item) => (
+                    <FilterPill
+                      key={item.value}
+                      active={amc === item.value}
+                      onClick={() => setAmc(item.value)}
+                      label={item.brand.shortName}
+                      count={item.count}
+                      icon={
+                        <AmcBrandMark
+                          label={item.value}
+                          selected={amc === item.value}
+                          size="sm"
+                          logoUrl={item.logoUrl}
+                        />
+                      }
                     />
-                    <span className="truncate">{item.brand.shortName}</span>
-                  </span>
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-xs tabular-nums",
-                      amc === item.value ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {item.count}
-                  </span>
-                </button>
-              ))}
+                  ))}
+                </div>
+              </FilterGroup>
+
+              {!etfMode && (
+                <FilterGroup label="Fund class">
+                  <div className="flex flex-wrap gap-2">
+                    {CLASS_FILTERS.map((item) => (
+                      <FilterPill
+                        key={item.value}
+                        active={fundClass === item.value}
+                        onClick={() => setFundClass(item.value)}
+                        label={item.label}
+                      />
+                    ))}
+                  </div>
+                </FilterGroup>
+              )}
+
+              <FilterGroup label="Type" isLast>
+                <div className="flex flex-wrap gap-2">
+                  {STRATEGY_FILTERS.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <FilterPill
+                        key={item.value}
+                        active={strategy === item.value}
+                        onClick={() => setStrategy(item.value)}
+                        label={item.label}
+                        icon={
+                          <Icon
+                            className={cn(
+                              "size-4",
+                              strategy === item.value ? "text-primary-foreground" : "text-muted-foreground"
+                            )}
+                          />
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </FilterGroup>
             </div>
           </div>
         </CardHeader>
@@ -358,6 +336,72 @@ export function MufapFundsBoard({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function FilterGroup({
+  label,
+  children,
+  isLast = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  isLast?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid gap-3 py-3 md:grid-cols-[92px_minmax(0,1fr)] md:items-start",
+        !isLast && "border-b border-border"
+      )}
+    >
+      <p className="pt-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function FilterPill({
+  active,
+  onClick,
+  label,
+  icon,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  icon?: React.ReactNode;
+  count?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex h-11 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 text-sm font-semibold shadow-sm transition-colors",
+        active
+          ? "border-[#2554d9] bg-[#2554d9] text-white"
+          : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent"
+      )}
+    >
+      <span className="flex min-w-0 items-center gap-2">
+        {icon}
+        <span className="truncate">{label}</span>
+      </span>
+      {typeof count === "number" ? (
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-xs tabular-nums",
+            active ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+          )}
+        >
+          {count}
+        </span>
+      ) : null}
+    </button>
   );
 }
 
