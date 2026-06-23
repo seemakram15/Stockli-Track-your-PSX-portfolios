@@ -22,14 +22,85 @@ export function HoldingsTable({
   showPortfolio = false,
   portfolioNames,
   rowActions,
+  compact = false,
 }: {
   holdings: HoldingWithMetrics[];
   showPortfolio?: boolean;
   portfolioNames?: Record<string, string>;
   /** When set, renders per-row trade/remove actions. */
   rowActions?: { demo?: boolean };
+  /** Compact view for dashboard summaries. Portfolio pages keep the full detail table. */
+  compact?: boolean;
 }) {
   const { liveHoldings: rows } = useLiveHoldings(holdings);
+
+  if (compact) {
+    return (
+      <>
+        <div className="space-y-3 p-3 sm:hidden">
+          {rows.map((h) => (
+            <div key={h.id} className="rounded-xl border border-border bg-card p-3">
+              <div className="flex items-start justify-between gap-3">
+                <Link href={`/stock/${h.symbol}`} className="min-w-0">
+                  <span className="font-semibold">{h.symbol}</span>
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                    {h.ticker?.company_name ?? h.ticker?.sector ?? ""}
+                  </span>
+                  {showPortfolio && (
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      {portfolioNames?.[h.portfolio_id] ?? "Portfolio"}
+                    </span>
+                  )}
+                </Link>
+                <div className="shrink-0 text-right">
+                  <p className="font-medium tabular-nums">{formatPKR(h.livePrice)}</p>
+                  <DailyPLValue value={h.dayChange} pct={h.dayChangePct} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto scrollbar-thin sm:block">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Symbol</TableHead>
+                {showPortfolio && <TableHead>Portfolio</TableHead>}
+                <TableHead className="text-right">Last</TableHead>
+                <TableHead className="text-right">Day P/L</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((h) => (
+                <TableRow key={h.id} className="group">
+                  <TableCell>
+                    <Link href={`/stock/${h.symbol}`} className="flex flex-col">
+                      <span className="font-semibold group-hover:text-primary">{h.symbol}</span>
+                      <span className="max-w-64 truncate text-xs text-muted-foreground">
+                        {h.ticker?.company_name ?? h.ticker?.sector ?? ""}
+                      </span>
+                    </Link>
+                  </TableCell>
+                  {showPortfolio && (
+                    <TableCell className="text-muted-foreground">
+                      {portfolioNames?.[h.portfolio_id] ?? "—"}
+                    </TableCell>
+                  )}
+                  <TableCell className="text-right tabular-nums">
+                    {formatPKR(h.livePrice)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DailyPLValue value={h.dayChange} pct={h.dayChangePct} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

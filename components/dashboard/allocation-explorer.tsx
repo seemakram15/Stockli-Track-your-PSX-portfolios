@@ -98,16 +98,24 @@ export function AllocationExplorer({
 
               <SummaryGrid summary={summary} />
 
-              <div className="grid gap-4 lg:grid-cols-5">
-                <div className="rounded-xl border border-border p-4 lg:col-span-2">
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <PieChart className="size-4 text-primary" />
+                    <p className="font-semibold">
+                      {mode === "sector" ? "Sector allocation" : "Holding allocation"}
+                    </p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{selectedName}</p>
+                </div>
+                <div className="mx-auto max-w-5xl">
                   <AllocationChart
                     data={chartData}
                     maxSlices={mode === "holding" ? Math.max(12, chartData.length) : 8}
                     showSliceLabels={mode === "holding"}
+                    variant="expanded"
+                    legendVariant={mode === "holding" ? "holdingPairs" : "default"}
                   />
-                </div>
-                <div className="rounded-xl border border-border p-4 lg:col-span-3">
-                  <AllocationBreakdown data={chartData} />
                 </div>
               </div>
 
@@ -144,6 +152,7 @@ export function AllocationExplorer({
               data={holdingData}
               maxSlices={Math.max(12, holdingData.length)}
               showSliceLabels
+              legendVariant="holdingPairs"
             />
           </TabsContent>
         </Tabs>
@@ -258,39 +267,6 @@ function SummaryCard({
         {value}
       </p>
       {sub && <p className={`text-xs tabular-nums ${plColorClass(tone)}`}>{sub}</p>}
-    </div>
-  );
-}
-
-function AllocationBreakdown({
-  data,
-}: {
-  data: ReturnType<typeof allocationBySector>;
-}) {
-  if (data.length === 0) {
-    return (
-      <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
-        No allocation data
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <PieChart className="size-4 text-primary" />
-        <p className="font-semibold">Breakdown</p>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {data.map((slice) => (
-          <div key={slice.label} className="rounded-lg border border-border bg-muted/15 p-3">
-            <p className="truncate text-sm font-medium">{slice.label}</p>
-            <p className="mt-1 font-semibold tabular-nums">{formatPKR(slice.value)}</p>
-            <p className="text-xs tabular-nums text-muted-foreground">
-              {formatPercent(slice.pct).replace("+", "")} of selected portfolio
-            </p>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
