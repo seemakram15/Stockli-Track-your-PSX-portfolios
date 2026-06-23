@@ -3,6 +3,7 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { AllocationSlice } from "@/lib/types";
 import { formatPKRCompact, formatPercent } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 const COLORS = [
   "var(--chart-1)",
@@ -16,12 +17,16 @@ interface AllocationChartProps {
   data: AllocationSlice[];
   maxSlices?: number;
   showSliceLabels?: boolean;
+  variant?: "default" | "expanded";
+  legendVariant?: "default" | "holdingPairs";
 }
 
 export function AllocationChart({
   data,
   maxSlices = 6,
   showSliceLabels = false,
+  variant = "default",
+  legendVariant = "default",
 }: AllocationChartProps) {
   if (data.length === 0) {
     return (
@@ -46,9 +51,22 @@ export function AllocationChart({
         ]
       : top;
 
+  const expanded = variant === "expanded";
+  const holdingPairs = legendVariant === "holdingPairs";
+
   return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row">
-      <div className="h-56 w-full min-w-0 sm:h-52 sm:w-52 sm:shrink-0">
+    <div
+      className={cn(
+        "grid items-center gap-4",
+        expanded ? "lg:grid-cols-[minmax(18rem,0.9fr)_minmax(18rem,1.1fr)]" : "grid-cols-1"
+      )}
+    >
+      <div
+        className={cn(
+          "w-full min-w-0",
+          expanded ? "h-72 sm:h-80 lg:h-[22rem]" : "h-56 sm:h-64"
+        )}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -71,16 +89,42 @@ export function AllocationChart({
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <ul className="grid flex-1 grid-cols-1 gap-1.5 text-sm sm:grid-cols-2">
+      <ul
+        className={cn(
+          "grid min-w-0",
+          holdingPairs
+            ? "grid-cols-2 gap-x-4 gap-y-2 text-xs sm:text-sm"
+            : cn(
+                "grid-cols-1 gap-2 text-sm",
+                expanded ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-1"
+              )
+        )}
+      >
         {slices.map((s, i) => (
-          <li key={s.label} className="flex items-center gap-2">
+          <li
+            key={`${s.label}-${i}`}
+            className={cn(
+              "grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2",
+              expanded && !holdingPairs && "rounded-xl border border-border bg-muted/15 p-3"
+            )}
+          >
             <span
               className="size-2.5 shrink-0 rounded-sm"
               style={{ backgroundColor: COLORS[i % COLORS.length] }}
             />
-            <span className="truncate">{s.label}</span>
-            <span className="ml-auto tabular-nums text-muted-foreground">
+            <span
+              className={cn(
+                "min-w-0 font-medium leading-tight",
+                holdingPairs ? "truncate" : "break-words"
+              )}
+            >
+              {s.label}
+            </span>
+            <span className="text-right tabular-nums text-muted-foreground">
               {formatPercent(s.pct).replace("+", "")}
+              {expanded && !holdingPairs && (
+                <span className="block text-xs">{formatPKRCompact(s.value)}</span>
+              )}
             </span>
           </li>
         ))}

@@ -79,8 +79,10 @@ export function PriceChart({
     (async () => {
       const lwc = await import("lightweight-charts");
       if (disposed) return;
+      const width = Math.max(1, Math.floor(el.clientWidth));
       const chart = lwc.createChart(el, {
-        autoSize: true,
+        width,
+        height,
         layout: {
           background: { type: lwc.ColorType.Solid, color: "transparent" },
           textColor: c.text,
@@ -92,6 +94,15 @@ export function PriceChart({
         timeScale: { borderColor: c.border, timeVisible: intradayView },
         crosshair: { mode: lwc.CrosshairMode.Normal },
       });
+      const resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        chart.applyOptions({
+          width: Math.max(1, Math.floor(entry.contentRect.width)),
+          height,
+        });
+      });
+      resizeObserver.observe(el);
 
       if (intradayView) {
         const series = chart.addSeries(lwc.AreaSeries, {
@@ -134,14 +145,17 @@ export function PriceChart({
       }
 
       chart.timeScale().fitContent();
-      cleanup = () => chart.remove();
+      cleanup = () => {
+        resizeObserver.disconnect();
+        chart.remove();
+      };
     })();
 
     return () => {
       disposed = true;
       cleanup();
     };
-  }, [mounted, resolvedTheme, type, range, candles, intraday, hasIntraday]);
+  }, [mounted, resolvedTheme, type, range, candles, intraday, hasIntraday, height]);
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
