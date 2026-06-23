@@ -20,8 +20,8 @@ export function AllocationBars({
 
   return (
     <div className="space-y-3">
-      {shown.map((item) => (
-        <div key={item.label} className="space-y-1.5">
+      {shown.map((item, index) => (
+        <div key={`${item.label}-${index}`} className="space-y-1.5">
           <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-start sm:justify-between sm:gap-3">
             <span className="min-w-0 flex-1 truncate font-medium" title={item.label}>
               {item.label}

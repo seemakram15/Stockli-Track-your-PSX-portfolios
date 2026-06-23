@@ -91,7 +91,12 @@ export default async function DashboardPage() {
               </Button>
             </CardHeader>
             <CardContent className="px-0 sm:px-2">
-              <HoldingsTable holdings={holdings} showPortfolio portfolioNames={portfolioNames} />
+              <HoldingsTable
+                holdings={holdings}
+                showPortfolio
+                portfolioNames={portfolioNames}
+                compact
+              />
             </CardContent>
           </Card>
         </>
