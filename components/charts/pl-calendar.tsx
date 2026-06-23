@@ -249,13 +249,13 @@ function DayCell({
   maxAbs: number;
   hasPosition: boolean;
 }) {
-  if (!cell) return <div className="aspect-square" />;
+  if (!cell) return <div className="min-h-[4.75rem] sm:aspect-square" />;
   const day = Number(cell.date.slice(8, 10));
   const hasData = !("empty" in cell);
 
   if (!hasData) {
     return (
-      <div className="flex aspect-square flex-col rounded-md border border-border/60 bg-muted/20 p-1 sm:rounded-lg sm:p-2">
+      <div className="flex min-h-[4.75rem] flex-col rounded-md border border-border/60 bg-muted/20 p-1 sm:aspect-square sm:rounded-lg sm:p-2">
         <span className="text-xs font-medium text-muted-foreground/50">{day}</span>
       </div>
     );
@@ -273,7 +273,7 @@ function DayCell({
   return (
     <div
       className={cn(
-        "group relative flex aspect-square flex-col rounded-md border p-1 transition-colors sm:rounded-lg sm:p-2",
+        "group relative flex min-h-[4.75rem] flex-col rounded-md border p-1 transition-colors sm:aspect-square sm:rounded-lg sm:p-2",
         up
           ? "border-gain/45"
           : down
@@ -286,12 +286,12 @@ function DayCell({
       <span className={cn("text-[11px] font-medium sm:text-xs", active ? "text-foreground/75" : "text-muted-foreground")}>
         {day}
       </span>
-      <span className="mt-auto flex flex-col leading-tight">
+      <span className="mt-auto flex min-w-0 flex-col leading-tight">
         {hasPosition ? (
           <>
             <span
               className={cn(
-                "w-fit max-w-full truncate rounded px-1 py-0.5 text-[9px] font-bold tabular-nums sm:text-xs",
+                "w-full max-w-full whitespace-normal break-all rounded px-0.5 py-0.5 text-center text-[8px] font-bold leading-[1.08] tabular-nums sm:w-fit sm:px-1 sm:text-xs",
                 active
                   ? "bg-background/85 text-foreground shadow-sm ring-1 ring-foreground/10"
                   : "text-muted-foreground"
@@ -303,7 +303,7 @@ function DayCell({
         ) : (
           <span
             className={cn(
-              "w-fit max-w-full truncate rounded px-1 py-0.5 text-[10px] font-semibold tabular-nums sm:text-xs",
+              "w-full max-w-full whitespace-normal break-all rounded px-0.5 py-0.5 text-center text-[9px] font-semibold leading-[1.08] tabular-nums sm:w-fit sm:px-1 sm:text-xs",
               active
                 ? "bg-background/85 text-foreground shadow-sm ring-1 ring-foreground/10"
                 : up
