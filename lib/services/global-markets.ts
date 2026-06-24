@@ -164,6 +164,10 @@ export function getGlobalMarketMeta(universe: MarketUniverse) {
   return { title: meta.title, description: meta.description };
 }
 
+export function getGlobalMarketInstruments(universe: Exclude<MarketUniverse, "crypto">) {
+  return UNIVERSES[universe].items;
+}
+
 export async function getGlobalMarketData(universe: MarketUniverse): Promise<GlobalMarketData> {
   const cached = await getStaleCached({
     key: `global-market:${universe}`,

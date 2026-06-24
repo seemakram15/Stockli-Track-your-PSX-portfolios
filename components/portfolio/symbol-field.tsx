@@ -43,7 +43,7 @@ export function SymbolField({
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&scope=stocks`, { signal: ctrl.signal });
         const data = await res.json();
         setResults(data.results ?? []);
       } catch {
