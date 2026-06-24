@@ -20,6 +20,7 @@ export interface MarketWatchRow {
   change: number;
   changePct: number;
   volume: number | null;
+  capturedAt?: string;
 }
 
 /** A point-in-time quote for one symbol (what the UI consumes). */

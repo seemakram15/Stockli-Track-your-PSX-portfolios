@@ -27,8 +27,8 @@ export async function GET(request: Request) {
       { quotes, market: marketStatus() },
       {
         headers: {
-          // Let the CDN serve a slightly stale copy while revalidating.
-          "Cache-Control": "s-maxage=60, stale-while-revalidate=300",
+          // SWR already polls this endpoint; avoid CDN/browser stale quote copies.
+          "Cache-Control": "no-store, max-age=0",
         },
       }
     );
