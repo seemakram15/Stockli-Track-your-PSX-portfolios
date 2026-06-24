@@ -1,27 +1,38 @@
 "use client";
 
+import * as React from "react";
 import {
-  Area,
+  CartesianGrid,
   ComposedChart,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import type { PerfPoint } from "@/lib/services/performance";
-import { formatPKR, formatPKRCompact, formatDate } from "@/lib/format";
+import type {
+  PerformanceResult,
+  PerfPoint,
+  PerfSeries,
+} from "@/lib/services/performance";
+import { formatDate, formatPercent, plColorClass } from "@/lib/format";
 
 export function PerformanceChart({
   data,
-  showBenchmark = true,
-  height = 280,
+  height = 300,
 }: {
-  data: PerfPoint[];
-  showBenchmark?: boolean;
+  data: PerformanceResult;
   height?: number;
 }) {
-  if (data.length === 0) {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  const points = data.points;
+  const series = data.series.filter((item) =>
+    points.some((point) => numeric(point[item.dailyKey]) != null)
+  );
+
+  if (points.length === 0 || series.length === 0) {
     return (
       <div className="flex items-center justify-center text-sm text-muted-foreground" style={{ height }}>
         No performance data yet
@@ -29,53 +40,80 @@ export function PerformanceChart({
     );
   }
 
+  if (!mounted) {
+    return (
+      <div>
+        <div
+          className="rounded-xl bg-muted/25"
+          style={{ height }}
+          aria-hidden
+        />
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          {series.map((item) => (
+            <span key={item.key} className="inline-flex items-center gap-1.5">
+              <span
+                className="size-2.5 rounded-full"
+                style={{ background: item.color }}
+              />
+              {item.name}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <ComposedChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-        <defs>
-          <linearGradient id="pfFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
-            <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <XAxis
-          dataKey="date"
-          tickFormatter={(d) => formatDate(d).replace(/ \d{4}$/, "")}
-          minTickGap={40}
-          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          tickFormatter={(v) => formatPKRCompact(v).replace("Rs ", "")}
-          width={52}
-          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-          axisLine={false}
-          tickLine={false}
-          domain={["auto", "auto"]}
-        />
-        <Tooltip content={<PerfTooltip showBenchmark={showBenchmark} />} />
-        <Area
-          type="monotone"
-          dataKey="value"
-          name="Portfolio"
-          stroke="var(--chart-1)"
-          strokeWidth={2}
-          fill="url(#pfFill)"
-        />
-        {showBenchmark && (
-          <Line
-            type="monotone"
-            dataKey="benchmark"
-            name="KSE-100 (rebased)"
-            stroke="var(--chart-2)"
-            strokeWidth={1.5}
-            strokeDasharray="4 3"
-            dot={false}
+    <div>
+      <ResponsiveContainer width="100%" height={height}>
+        <ComposedChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+          <XAxis
+            dataKey="date"
+            tickFormatter={(d) => formatDate(String(d)).replace(/ \d{4}$/, "")}
+            minTickGap={36}
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            axisLine={false}
+            tickLine={false}
           />
-        )}
-      </ComposedChart>
-    </ResponsiveContainer>
+          <YAxis
+            tickFormatter={(v) => formatPercent(Number(v), 0)}
+            width={48}
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            axisLine={false}
+            tickLine={false}
+            domain={["auto", "auto"]}
+          />
+          <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeOpacity={0.35} />
+          <Tooltip content={<PerfTooltip series={series} />} />
+          {series.map((item) => (
+            <Line
+              key={item.key}
+              type="monotone"
+              dataKey={item.dailyKey}
+              name={item.name}
+              stroke={item.color}
+              strokeWidth={item.kind === "benchmark" ? 1.8 : 2.4}
+              strokeDasharray={item.kind === "benchmark" ? "5 4" : undefined}
+              dot={false}
+              activeDot={{ r: 4 }}
+              connectNulls
+            />
+          ))}
+        </ComposedChart>
+      </ResponsiveContainer>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+        {series.map((item) => (
+          <span key={item.key} className="inline-flex items-center gap-1.5">
+            <span
+              className="size-2.5 rounded-full"
+              style={{ background: item.color }}
+            />
+            {item.name}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -83,29 +121,42 @@ function PerfTooltip({
   active,
   payload,
   label,
-  showBenchmark,
+  series,
 }: {
   active?: boolean;
-  payload?: { dataKey: string; value: number }[];
+  payload?: { payload: PerfPoint }[];
   label?: string;
-  showBenchmark?: boolean;
+  series: PerfSeries[];
 }) {
   if (!active || !payload?.length) return null;
-  const value = payload.find((p) => p.dataKey === "value")?.value;
-  const bench = payload.find((p) => p.dataKey === "benchmark")?.value;
+  const point = payload[0]?.payload;
+  if (!point) return null;
+
   return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-md">
-      <p className="mb-1 font-medium">{formatDate(label)}</p>
-      <p className="flex items-center gap-2">
-        <span className="size-2 rounded-sm" style={{ background: "var(--chart-1)" }} />
-        Portfolio <span className="ml-auto tabular-nums">{formatPKR(value)}</span>
-      </p>
-      {showBenchmark && bench != null && (
-        <p className="flex items-center gap-2">
-          <span className="size-2 rounded-sm" style={{ background: "var(--chart-2)" }} />
-          KSE-100 <span className="ml-auto tabular-nums">{formatPKR(bench)}</span>
-        </p>
-      )}
+    <div className="min-w-64 rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-md">
+      <p className="mb-2 font-medium">{formatDate(label)}</p>
+      <div className="space-y-1.5">
+        {series.map((item) => {
+          const dailyValue = numeric(point[item.dailyKey]);
+          if (dailyValue == null) return null;
+          return (
+            <div key={item.key} className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+              <span
+                className="size-2.5 rounded-full"
+                style={{ background: item.color }}
+              />
+              <span className="min-w-0 truncate">{item.name}</span>
+              <span className={`font-semibold tabular-nums ${plColorClass(dailyValue)}`}>
+                {formatPercent(dailyValue)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
+}
+
+function numeric(value: PerfPoint[string]): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }

@@ -27,7 +27,7 @@ export function LiveSummaryCards({
   );
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
       <StatCard
         label={valueLabel}
         value={formatPKR(summary.totalValue)}
@@ -39,18 +39,18 @@ export function LiveSummaryCards({
         }
       />
       <StatCard
-        label="Total P/L"
-        value={formatPKR(summary.totalPL, { sign: true })}
-        tone={summary.totalPL > 0 ? "gain" : summary.totalPL < 0 ? "loss" : "default"}
-        icon={<TrendingUp className="size-4" />}
-        sub={<ChangeBadge pct={summary.totalPLPct} variant="pill" />}
-      />
-      <StatCard
         label="Day's P/L"
         value={formatPKR(summary.dayPL, { sign: true })}
         tone={summary.dayPL > 0 ? "gain" : summary.dayPL < 0 ? "loss" : "default"}
         icon={<CalendarClock className="size-4" />}
         sub={<ChangeBadge pct={summary.dayPLPct} variant="pill" />}
+      />
+      <StatCard
+        label="Total P/L"
+        value={formatPKR(summary.totalPL, { sign: true })}
+        tone={summary.totalPL > 0 ? "gain" : summary.totalPL < 0 ? "loss" : "default"}
+        icon={<TrendingUp className="size-4" />}
+        sub={<ChangeBadge pct={summary.totalPLPct} variant="pill" />}
       />
       <StatCard
         label="Invested"

@@ -67,7 +67,7 @@ export function HoldingsTable({
               <TableRow className="hover:bg-transparent">
                 <TableHead>Symbol</TableHead>
                 {showPortfolio && <TableHead>Portfolio</TableHead>}
-                <TableHead className="text-right">Last</TableHead>
+                <TableHead className="text-right">Current</TableHead>
                 <TableHead className="text-right">Day P/L</TableHead>
               </TableRow>
             </TableHeader>
@@ -131,7 +131,7 @@ export function HoldingsTable({
 
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <MobileMetric label="Qty" value={formatNumber(h.quantity, 0)} />
-              <MobileMetric label="Last" value={formatPKR(h.livePrice)} align="right" />
+              <MobileMetric label="Current" value={formatPKR(h.livePrice)} align="right" />
               <MobileMetric label="Market value" value={formatPKR(h.marketValue)} />
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Unreal. P/L</p>
@@ -158,7 +158,7 @@ export function HoldingsTable({
             {showPortfolio && <TableHead className="hidden md:table-cell">Portfolio</TableHead>}
             <TableHead className="text-right">Qty</TableHead>
             <TableHead className="hidden text-right sm:table-cell">Avg Cost</TableHead>
-            <TableHead className="text-right">Last</TableHead>
+            <TableHead className="text-right">Current</TableHead>
             <TableHead className="text-right">Day P/L</TableHead>
             <TableHead className="text-right">Mkt Value</TableHead>
             <TableHead className="text-right">Unreal. P/L</TableHead>

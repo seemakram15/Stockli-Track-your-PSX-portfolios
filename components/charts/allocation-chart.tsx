@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { AllocationSlice } from "@/lib/types";
 import { formatPKRCompact, formatPercent } from "@/lib/format";
@@ -19,6 +20,7 @@ interface AllocationChartProps {
   showSliceLabels?: boolean;
   variant?: "default" | "expanded";
   legendVariant?: "default" | "holdingPairs";
+  centerContent?: React.ReactNode;
 }
 
 export function AllocationChart({
@@ -27,7 +29,11 @@ export function AllocationChart({
   showSliceLabels = false,
   variant = "default",
   legendVariant = "default",
+  centerContent,
 }: AllocationChartProps) {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
   if (data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
@@ -53,6 +59,7 @@ export function AllocationChart({
 
   const expanded = variant === "expanded";
   const holdingPairs = legendVariant === "holdingPairs";
+  const chartHeightClass = expanded ? "h-72 sm:h-80 lg:h-[22rem]" : "h-56 sm:h-64";
 
   return (
     <div
@@ -63,31 +70,40 @@ export function AllocationChart({
     >
       <div
         className={cn(
-          "w-full min-w-0",
-          expanded ? "h-72 sm:h-80 lg:h-[22rem]" : "h-56 sm:h-64"
+          "relative w-full min-w-0",
+          chartHeightClass
         )}
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={slices}
-              dataKey="value"
-              nameKey="label"
-              innerRadius="42%"
-              outerRadius="76%"
-              paddingAngle={2}
-              stroke="var(--card)"
-              strokeWidth={2}
-              label={showSliceLabels ? renderSliceLabel : false}
-              labelLine={false}
-            >
-              {slices.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip content={<AllocationTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
+        {mounted ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={slices}
+                dataKey="value"
+                nameKey="label"
+                innerRadius="42%"
+                outerRadius="76%"
+                paddingAngle={2}
+                stroke="var(--card)"
+                strokeWidth={2}
+                label={showSliceLabels ? renderSliceLabel : false}
+                labelLine={false}
+              >
+                {slices.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={<AllocationTooltip />} />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full w-full rounded-full bg-muted/30" aria-hidden />
+        )}
+        {centerContent && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center">
+            {centerContent}
+          </div>
+        )}
       </div>
       <ul
         className={cn(

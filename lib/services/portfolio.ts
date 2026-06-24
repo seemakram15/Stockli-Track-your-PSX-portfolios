@@ -9,6 +9,8 @@ import {
   computeHoldingMetrics,
   computeRealizedPL,
   computeSummary,
+  deriveHoldingCostStates,
+  holdingCostKey,
 } from "@/lib/services/metrics";
 import {
   DEMO_ALERTS,
@@ -173,16 +175,25 @@ export async function getTransactionsForSymbol(symbol: string): Promise<Transact
 
 /** Enrich raw holdings with tickers + quotes + metrics. */
 export async function enrichHoldings(
-  holdings: Holding[]
+  holdings: Holding[],
+  transactions?: Transaction[]
 ): Promise<HoldingWithMetrics[]> {
   if (holdings.length === 0) return [];
-  const symbols = holdings.map((h) => h.symbol);
+  const costStates = transactions ? deriveHoldingCostStates(transactions) : null;
+  const costAdjustedHoldings = holdings.map((holding) => {
+    const state = costStates?.get(holdingCostKey(holding.portfolio_id, holding.symbol));
+    if (!state || state.quantity <= 0 || !Number.isFinite(state.avgBuyPrice)) {
+      return holding;
+    }
+    return { ...holding, avg_buy_price: state.avgBuyPrice };
+  });
+  const symbols = costAdjustedHoldings.map((h) => h.symbol);
   const [tickerMap, quoteMap, historicalPLMap] = await Promise.all([
     getTickerMap(symbols),
     getQuotes(symbols),
-    getHistoricalPLBaseMap(holdings),
+    getHistoricalPLBaseMap(costAdjustedHoldings),
   ]);
-  return holdings.map((h) =>
+  return costAdjustedHoldings.map((h) =>
     computeHoldingMetrics(
       h,
       tickerMap.get(h.symbol.toUpperCase()) ?? null,
@@ -236,7 +247,7 @@ export async function getPortfolioView(id: string): Promise<PortfolioWithMetrics
     getHoldings(id),
     getTransactions(id),
   ]);
-  const enriched = await enrichHoldings(holdings);
+  const enriched = await enrichHoldings(holdings, transactions);
   const realized = computeRealizedPL(transactions);
   return {
     ...portfolio,
@@ -252,6 +263,7 @@ export interface DashboardData {
   summary: ReturnType<typeof computeSummary>;
   sectorAllocation: ReturnType<typeof allocationBySector>;
   holdingAllocation: ReturnType<typeof allocationByHolding>;
+  transactions: Transaction[];
   topGainers: HoldingWithMetrics[];
   topLosers: HoldingWithMetrics[];
 }
@@ -263,7 +275,7 @@ export async function getDashboard(): Promise<DashboardData> {
     getHoldingsForPortfolioIds(portfolios.map((p) => p.id)),
     getTransactions(),
   ]);
-  const enriched = await enrichHoldings(holdings);
+  const enriched = await enrichHoldings(holdings, transactions);
   const realized = computeRealizedPL(transactions);
   const byDay = [...enriched].sort((a, b) => b.dayChange - a.dayChange);
 
@@ -273,6 +285,7 @@ export async function getDashboard(): Promise<DashboardData> {
     summary: computeSummary(enriched, realized),
     sectorAllocation: allocationBySector(enriched),
     holdingAllocation: allocationByHolding(enriched),
+    transactions,
     topGainers: byDay.filter((h) => h.dayChange > 0).slice(0, 3),
     topLosers: byDay.filter((h) => h.dayChange < 0).reverse().slice(0, 3),
   };

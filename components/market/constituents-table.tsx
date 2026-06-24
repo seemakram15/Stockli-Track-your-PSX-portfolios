@@ -124,7 +124,7 @@ export function ConstituentsTable({
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <SortHead label="Symbol" k="symbol" sort={sort} onSort={toggle} />
-              <SortHead label="Last" k="current" sort={sort} onSort={toggle} align="right" />
+              <SortHead label="Current" k="current" sort={sort} onSort={toggle} align="right" />
               <SortHead label="Change" k="changePct" sort={sort} onSort={toggle} align="right" />
               <SortHead label="Weight" k="weight" sort={sort} onSort={toggle} align="right" />
               <SortHead label="Volume" k="volume" sort={sort} onSort={toggle} align="right" />

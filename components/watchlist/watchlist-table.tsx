@@ -67,7 +67,7 @@ export function WatchlistTable({
                 <RemoveWatchItem symbol={it.symbol} demo={demo} />
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                <MobileMetric label="Last" value={formatPKR(price)} />
+                <MobileMetric label="Current" value={formatPKR(price)} />
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground">Change</p>
                   <ChangeBadge pct={q?.changePct} className="justify-end" />
@@ -86,7 +86,7 @@ export function WatchlistTable({
             <TableRow className="hover:bg-transparent">
               <TableHead>Symbol</TableHead>
               <TableHead className="hidden md:table-cell">Sector</TableHead>
-              <TableHead className="text-right">Last</TableHead>
+              <TableHead className="text-right">Current</TableHead>
               <TableHead className="text-right">Change</TableHead>
               <TableHead className="hidden text-right sm:table-cell">Volume</TableHead>
               <TableHead className="w-10" />
