@@ -22,7 +22,7 @@ export function StatCard({ label, value, sub, icon, tone = "default", className 
       </div>
       <p
         className={cn(
-          "mt-2 text-xl font-semibold tracking-tight tabular-nums sm:text-2xl",
+          "mt-2 text-lg font-semibold tracking-tight tabular-nums sm:text-2xl",
           tone === "gain" && "text-gain",
           tone === "loss" && "text-loss"
         )}
