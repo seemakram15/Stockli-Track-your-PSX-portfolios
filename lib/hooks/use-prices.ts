@@ -20,6 +20,9 @@ const fetcher = (url: string): Promise<PricesResponse> =>
  * the first paint has data and there's no flash.
  */
 export function usePrices(symbols: string[], initial?: Quote[]) {
+  const [hydrated, setHydrated] = React.useState(false);
+  React.useEffect(() => setHydrated(true), []);
+
   const key =
     symbols.length > 0
       ? `/api/prices?symbols=${Array.from(new Set(symbols.map((s) => s.toUpperCase()))).sort().join(",")}`
@@ -37,12 +40,13 @@ export function usePrices(symbols: string[], initial?: Quote[]) {
     keepPreviousData: true,
     fallbackData,
   });
+  const displayData = hydrated ? data : fallbackData;
 
   const quotes = React.useMemo(() => {
     const m = new Map<string, Quote>();
-    for (const q of data?.quotes ?? []) m.set(q.symbol.toUpperCase(), q);
+    for (const q of displayData?.quotes ?? []) m.set(q.symbol.toUpperCase(), q);
     return m;
-  }, [data]);
+  }, [displayData]);
 
-  return { quotes, market: data?.market, isLoading };
+  return { quotes, market: displayData?.market, isLoading };
 }

@@ -50,7 +50,7 @@ export default async function StockPage({
   ]);
   const { ticker, quote, candles, intraday, holdings } = detail;
 
-  const positionRows = await enrichHoldings(holdings);
+  const positionRows = await enrichHoldings(holdings, symbolTxns);
   const totalQty = positionRows.reduce((a, h) => a + h.quantity, 0);
   const hasPosition = totalQty > 0;
   const costBasis = positionRows.reduce((a, h) => a + h.costBasis, 0);

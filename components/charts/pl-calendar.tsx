@@ -27,10 +27,12 @@ export function PLCalendar({
   data,
   hasPosition,
   livePositions = [],
+  showSummaryPL = true,
 }: {
   data: CalendarDay[];
   hasPosition: boolean;
   livePositions?: { symbol: string; quantity: number; initial?: Quote | null }[];
+  showSummaryPL?: boolean;
 }) {
   const { liveData, positionSummary } = useLiveCalendarData(data, livePositions, hasPosition);
   const byDate = React.useMemo(() => {
@@ -131,7 +133,7 @@ export function PLCalendar({
               </>
             )}
           </span>
-          {hasPosition && (
+          {hasPosition && showSummaryPL && (
             <span
               className={cn(
                 "font-semibold tabular-nums",

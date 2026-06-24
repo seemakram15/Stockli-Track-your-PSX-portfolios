@@ -102,13 +102,85 @@ function adjustedUnrealizedPL(
   return rawUnrealizedPL;
 }
 
-/** Realized P/L from SELL transactions (uses avg cost recorded on the row). */
+/** Realized P/L from SELL transactions using moving-average cost basis. */
 export function computeRealizedPL(transactions: Transaction[]): number {
   return sum(
-    transactions
-      .filter((t) => t.type === "SELL")
-      .map((t) => t.quantity * t.price - t.fees)
+    Array.from(deriveHoldingCostStates(transactions).values()).map((s) => s.realizedPL)
   );
+}
+
+export interface HoldingCostState {
+  quantity: number;
+  avgBuyPrice: number;
+  realizedPL: number;
+}
+
+export function holdingCostKey(portfolioId: string, symbol: string) {
+  return `${portfolioId}:${symbol.toUpperCase()}`;
+}
+
+/** Rebuild moving-average cost basis from immutable trade history. */
+export function deriveHoldingCostStates(transactions: Transaction[]) {
+  const states = new Map<string, HoldingCostState>();
+
+  for (const transaction of [...transactions].sort(compareTransactionsAsc)) {
+    const key = holdingCostKey(transaction.portfolio_id, transaction.symbol);
+    const state =
+      states.get(key) ??
+      ({
+        quantity: 0,
+        avgBuyPrice: 0,
+        realizedPL: 0,
+      } satisfies HoldingCostState);
+
+    applyCostTransaction(state, transaction);
+    states.set(key, state);
+  }
+
+  return states;
+}
+
+function applyCostTransaction(state: HoldingCostState, transaction: Transaction) {
+  const quantity = Number(transaction.quantity ?? 0);
+  const price = Number(transaction.price ?? 0);
+  const fees = Number(transaction.fees ?? 0);
+
+  if (transaction.type === "BUY" || transaction.type === "ADD") {
+    const nextQty = state.quantity + quantity;
+    if (nextQty <= 0) {
+      state.quantity = 0;
+      state.avgBuyPrice = 0;
+      return;
+    }
+    const currentCost = state.quantity * state.avgBuyPrice;
+    const addedCost = quantity * price + fees;
+    state.quantity = nextQty;
+    state.avgBuyPrice = (currentCost + addedCost) / nextQty;
+    return;
+  }
+
+  if (transaction.type === "SELL") {
+    const sellQty = Math.min(quantity, Math.max(0, state.quantity));
+    if (sellQty > 0) {
+      state.realizedPL += sellQty * (price - state.avgBuyPrice) - fees;
+      state.quantity = Math.max(0, state.quantity - sellQty);
+      if (state.quantity === 0) state.avgBuyPrice = 0;
+      return;
+    }
+    state.realizedPL -= fees;
+    return;
+  }
+
+  if (transaction.type === "REMOVE") {
+    state.quantity = 0;
+    state.avgBuyPrice = 0;
+  }
+}
+
+function compareTransactionsAsc(a: Transaction, b: Transaction) {
+  const byDate = a.transacted_at.localeCompare(b.transacted_at);
+  if (byDate !== 0) return byDate;
+  return a.created_at.localeCompare(b.created_at);
 }
 
 /** Allocation slices by sector. */
@@ -126,7 +198,7 @@ export function allocationBySector(holdings: HoldingWithMetrics[]): AllocationSl
 export function allocationByHolding(holdings: HoldingWithMetrics[]): AllocationSlice[] {
   const total = sum(holdings.map((h) => h.marketValue));
   const map = new Map<string, number>();
-  for (const h of holdings) map.set(h.symbol, h.marketValue);
+  for (const h of holdings) map.set(h.symbol, (map.get(h.symbol) ?? 0) + h.marketValue);
   return toSlices(map, total);
 }
 

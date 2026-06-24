@@ -115,7 +115,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   await assertSuperadmin();
 
   if (isDemoMode) {
-    const enriched = await enrichHoldings(DEMO_HOLDINGS);
+    const enriched = await enrichHoldings(DEMO_HOLDINGS, DEMO_TRANSACTIONS);
     return {
       userCount: 1,
       portfolioCount: DEMO_PORTFOLIOS.length,
@@ -159,7 +159,7 @@ export async function getUserOverview(userId: string): Promise<UserOverview | nu
   await assertSuperadmin();
 
   if (isDemoMode) {
-    const enriched = await enrichHoldings(DEMO_HOLDINGS);
+    const enriched = await enrichHoldings(DEMO_HOLDINGS, DEMO_TRANSACTIONS);
     return {
       profile: {
         id: DEMO_USER.id,
@@ -205,8 +205,8 @@ export async function getUserOverview(userId: string): Promise<UserOverview | nu
     admin.from("alerts").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
   ]);
 
-  const enriched = await enrichHoldings((holdingsRes.data as never) ?? []);
   const transactions = (txRes.data as Transaction[] | null) ?? [];
+  const enriched = await enrichHoldings((holdingsRes.data as never) ?? [], transactions);
 
   const wlIds = ((wlRes.data as { id: string }[] | null) ?? []).map((w) => w.id);
   let watchlistSymbols: string[] = [];
