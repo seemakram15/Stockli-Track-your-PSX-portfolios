@@ -1,5 +1,6 @@
 import "server-only";
 import { isDemoMode } from "@/lib/config";
+import { PSX_TIMEZONE } from "@/lib/constants";
 import { getEodCandlesCached } from "@/lib/services/history";
 import { createClient } from "@/lib/supabase/server";
 import type { DailyPL, Holding, Transaction } from "@/lib/types";
@@ -221,12 +222,24 @@ async function getPersistedCalendarDays(
   if (symbol) query = query.eq("symbol", symbol.toUpperCase());
 
   const { data } = await query;
+  const today = todayInPkt();
   return aggregatePersistedRows(
     (data as Pick<
       DailyPL,
       "portfolio_id" | "symbol" | "date" | "open_value" | "close_value" | "day_pl" | "day_pl_pct"
     >[] | null) ?? []
-  );
+  ).filter((day) => day.date < today);
+}
+
+function todayInPkt(): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: PSX_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 function aggregatePersistedRows(

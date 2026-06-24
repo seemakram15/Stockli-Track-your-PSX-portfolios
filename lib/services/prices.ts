@@ -14,16 +14,18 @@ import { sectorName } from "@/lib/psx/sectors";
  *
  *   getQuotes(symbols)  reads the Upstash cache; on miss it runs ONE batched
  *                       /market-watch scrape (not per-symbol), warms the cache
- *                       (15-min TTL) and persists snapshots to Supabase.
+ *                       and persists snapshots to Supabase.
  *
  * This keeps us within Vercel Hobby + Upstash free limits and matches the
  * spec's "one batched scrape" guidance.
  */
 
-const priceKey = (symbol: string) => `psx:price:${symbol.toUpperCase()}`;
-const MARKET_WATCH_KEY = "psx:marketwatch";
+const PRICE_CACHE_VERSION = "v2";
+const priceKey = (symbol: string) =>
+  `psx:price:${PRICE_CACHE_VERSION}:${symbol.toUpperCase()}`;
+const MARKET_WATCH_KEY = `psx:marketwatch:${PRICE_CACHE_VERSION}`;
 
-export function marketWatchRowToQuote(row: MarketWatchRow): Quote {
+export function marketWatchRowToQuote(row: MarketWatchRow, capturedAt = row.capturedAt): Quote {
   return {
     symbol: row.symbol.toUpperCase(),
     price: row.current,
@@ -34,8 +36,24 @@ export function marketWatchRowToQuote(row: MarketWatchRow): Quote {
     change: row.change,
     changePct: row.changePct,
     volume: row.volume,
-    capturedAt: new Date().toISOString(),
+    capturedAt: capturedAt ?? new Date().toISOString(),
   };
+}
+
+function isFreshTimestamp(value: string | undefined): boolean {
+  if (!value) return false;
+  const capturedAt = Date.parse(value);
+  if (!Number.isFinite(capturedAt)) return false;
+  const ageMs = Date.now() - capturedAt;
+  return ageMs >= -5_000 && ageMs <= PRICE_CACHE_TTL_SECONDS * 1000 + 10_000;
+}
+
+function isFreshQuote(quote: Quote): boolean {
+  return isFreshTimestamp(quote.capturedAt);
+}
+
+function areFreshMarketRows(rows: MarketWatchRow[]): boolean {
+  return rows.length > 0 && rows.every((row) => isFreshTimestamp(row.capturedAt));
 }
 
 async function readCache(symbols: string[]): Promise<Map<string, Quote>> {
@@ -46,8 +64,11 @@ async function readCache(symbols: string[]): Promise<Map<string, Quote>> {
   const redisMisses: string[] = [];
   for (const symbol of symbols) {
     const cached = getMemoryCache<Quote>(priceKey(symbol));
-    if (cached) found.set(symbol.toUpperCase(), cached);
-    else redisMisses.push(symbol);
+    if (cached && isFreshQuote(cached)) {
+      found.set(symbol.toUpperCase(), cached);
+    } else {
+      redisMisses.push(symbol);
+    }
   }
 
   if (!redis || redisMisses.length === 0) return found;
@@ -55,7 +76,7 @@ async function readCache(symbols: string[]): Promise<Map<string, Quote>> {
     const keys = redisMisses.map(priceKey);
     const values = await redis.mget<(Quote | null)[]>(...keys);
     values.forEach((v, i) => {
-      if (!v || typeof v !== "object") return;
+      if (!v || typeof v !== "object" || !isFreshQuote(v)) return;
       const symbol = redisMisses[i].toUpperCase();
       found.set(symbol, v);
       setMemoryCache(priceKey(symbol), v, PRICE_CACHE_TTL_SECONDS);
@@ -112,19 +133,21 @@ async function persistSnapshots(quotes: Quote[]): Promise<void> {
 /** Scrape the live market watch and warm every cache + persist snapshots. */
 async function scrapeAndStore(): Promise<MarketWatchRow[]> {
   const rows = await psx.getMarketWatch();
-  const quotes = rows.map(marketWatchRowToQuote);
+  const capturedAt = new Date().toISOString();
+  const stampedRows = rows.map((row) => ({ ...row, capturedAt }));
+  const quotes = stampedRows.map((row) => marketWatchRowToQuote(row));
   const redis = getRedis();
-  setMemoryCache(MARKET_WATCH_KEY, rows, PRICE_CACHE_TTL_SECONDS);
+  setMemoryCache(MARKET_WATCH_KEY, stampedRows, PRICE_CACHE_TTL_SECONDS);
   await Promise.all([
     writeCache(quotes),
     persistSnapshots(quotes),
     redis
       ? redis
-          .set(MARKET_WATCH_KEY, rows, { ex: PRICE_CACHE_TTL_SECONDS })
+          .set(MARKET_WATCH_KEY, stampedRows, { ex: PRICE_CACHE_TTL_SECONDS })
           .catch(() => undefined)
       : Promise.resolve(),
   ]);
-  return rows;
+  return stampedRows;
 }
 
 /**
@@ -145,7 +168,7 @@ export async function getMarketRows(): Promise<MarketWatchRow[]> {
     MARKET_WATCH_KEY,
     PRICE_CACHE_TTL_SECONDS,
     loadMarketRows,
-    (rows) => rows.length > 0
+    areFreshMarketRows
   );
 }
 
@@ -154,7 +177,7 @@ async function loadMarketRows(): Promise<MarketWatchRow[]> {
   if (redis) {
     try {
       const cached = await redis.get<MarketWatchRow[]>(MARKET_WATCH_KEY);
-      if (cached && cached.length) {
+      if (cached && areFreshMarketRows(cached)) {
         setMemoryCache(MARKET_WATCH_KEY, cached, PRICE_CACHE_TTL_SECONDS);
         return cached;
       }
@@ -163,16 +186,14 @@ async function loadMarketRows(): Promise<MarketWatchRow[]> {
     }
   }
 
-  const snapshots = await readLatestSnapshotRows();
-  if (snapshots.length) {
-    if (redis) {
-      redis.set(MARKET_WATCH_KEY, snapshots, { ex: PRICE_CACHE_TTL_SECONDS }).catch(() => undefined);
-    }
-    await writeCache(snapshots.map(marketWatchRowToQuote));
-    return snapshots;
+  try {
+    return await scrapeAndStore();
+  } catch (err) {
+    console.warn("[prices] live market-watch scrape failed, using latest snapshot fallback:", err);
   }
 
-  return scrapeAndStore();
+  const snapshots = await readLatestSnapshotRows();
+  return snapshots;
 }
 
 /** Get quotes for the given symbols, using cache first then a batched refresh. */
@@ -184,7 +205,7 @@ export async function getQuotes(symbols: string[]): Promise<Map<string, Quote>> 
   const misses = wanted.filter((s) => !cached.has(s));
   if (misses.length === 0) return cached;
 
-  // Any miss reads one full snapshot (memory → Redis → DB snapshot → live scrape)
+  // Any miss reads one full snapshot (memory → Redis → live scrape → DB fallback)
   // that covers all symbols at once.
   const rows = await getMarketRows();
   const fresh = new Map(rows.map((r) => [r.symbol.toUpperCase(), marketWatchRowToQuote(r)]));
@@ -206,7 +227,7 @@ export async function getQuote(symbol: string): Promise<Quote | null> {
 /** All quotes from the latest market snapshot (cache-first). */
 export async function getAllQuotes(): Promise<Quote[]> {
   const rows = await getMarketRows();
-  return rows.map(marketWatchRowToQuote);
+  return rows.map((row) => marketWatchRowToQuote(row));
 }
 
 async function readLatestSnapshotRows(): Promise<MarketWatchRow[]> {
@@ -255,6 +276,7 @@ async function readLatestSnapshotRows(): Promise<MarketWatchRow[]> {
         change: Number(snapshot.change) || 0,
         changePct: Number(snapshot.change_pct) || 0,
         volume: numberOrNull(snapshot.volume),
+        capturedAt: snapshot.captured_at,
       };
     });
   } catch (err) {

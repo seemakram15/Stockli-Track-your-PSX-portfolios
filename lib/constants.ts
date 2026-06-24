@@ -3,8 +3,8 @@
 export const APP_NAME = "Stockli";
 export const APP_TAGLINE = "Track every market portfolio";
 
-/** Price cache TTL in seconds (matches the open-source PSX ecosystem ~15 min). */
-export const PRICE_CACHE_TTL_SECONDS = 15 * 60;
+/** Price cache TTL in seconds. Keep holdings close to market-watch freshness. */
+export const PRICE_CACHE_TTL_SECONDS = 60;
 
 /** Client-side SWR poll interval (ms). Live-ish, backed by the server cache. */
 export const CLIENT_REFRESH_MS = 30_000;
