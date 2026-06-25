@@ -29,6 +29,22 @@ import {
 import { cn } from "@/lib/utils";
 import { MARKET_NAV_ITEMS, NAV_ITEMS } from "@/lib/constants";
 
+const TOOL_NAV_ITEMS = [
+  {
+    href: "/analysis/fundamentals",
+    label: "Fundamentals & Comparison",
+    icon: "FileText",
+  },
+] as const;
+
+const EXPLORE_NAV_ITEMS = [
+  {
+    href: "/youtubers",
+    label: "Youtuber Videos",
+    icon: "PlaySquare",
+  },
+] as const;
+
 const ICONS: Record<string, LucideIcon> = {
   BadgePercent,
   Bitcoin,
@@ -79,14 +95,15 @@ export function NavLinks({
     if (marketActive) setMarketOpen(true);
   }, [marketActive]);
 
-  // The Admin link is appended only for superadmins — normal users never see it.
-  const items = showAdmin
-    ? [...NAV_ITEMS, { href: "/admin", label: "Admin", icon: "ShieldCheck" } as const]
-    : NAV_ITEMS;
+  const toolsActive = pathname === "/analysis/fundamentals" || pathname.startsWith("/analysis/");
+  const exploreActive = pathname.startsWith("/youtubers") || pathname.startsWith("/admin");
+  const exploreItems = showAdmin
+    ? [...EXPLORE_NAV_ITEMS, { href: "/admin", label: "Admin", icon: "ShieldCheck" } as const]
+    : EXPLORE_NAV_ITEMS;
 
   return (
     <nav className="flex flex-col gap-1">
-      {items.map((item) => {
+      {NAV_ITEMS.map((item) => {
         if (item.href === "/market") {
           const Icon = ICONS[item.icon];
           return (
@@ -128,6 +145,35 @@ export function NavLinks({
             </div>
           );
         }
+
+        if (item.href === "/analysis/fundamentals") {
+          return (
+            <MobileNavGroup
+              key={item.href}
+              label={item.label}
+              icon={item.icon}
+              active={toolsActive}
+              pathname={pathname}
+              items={TOOL_NAV_ITEMS}
+              onNavigate={onNavigate}
+            />
+          );
+        }
+
+        if (item.href === "/youtubers") {
+          return (
+            <MobileNavGroup
+              key={item.href}
+              label={item.label}
+              icon={item.icon}
+              active={exploreActive}
+              pathname={pathname}
+              items={exploreItems}
+              onNavigate={onNavigate}
+            />
+          );
+        }
+
         const Icon = ICONS[item.icon];
         const active =
           pathname === item.href || pathname.startsWith(item.href + "/");
@@ -151,6 +197,75 @@ export function NavLinks({
         );
       })}
     </nav>
+  );
+}
+
+function MobileNavGroup({
+  label,
+  icon,
+  active,
+  pathname,
+  items,
+  onNavigate,
+}: {
+  label: string;
+  icon: string;
+  active: boolean;
+  pathname: string;
+  items: ReadonlyArray<{ href: string; label: string; icon: string }>;
+  onNavigate?: () => void;
+}) {
+  const [open, setOpen] = React.useState(active);
+  const Icon = ICONS[icon];
+
+  React.useEffect(() => {
+    if (active) setOpen(true);
+  }, [active]);
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className={cn(
+          "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
+          active
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+        )}
+      >
+        {Icon && (
+          <Icon
+            className={cn(
+              "size-4 shrink-0",
+              active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+            )}
+          />
+        )}
+        <span className="min-w-0 flex-1">{label}</span>
+        <ChevronDown
+          className={cn(
+            "size-4 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+      {open && (
+        <div className="space-y-1 pl-4">
+          {items.map((item) => (
+            <MarketNavLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              icon={item.icon}
+              pathname={pathname}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
