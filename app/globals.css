@@ -163,6 +163,17 @@
 }
 
 @layer utilities {
+  @keyframes stockli-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .animate-stockli-marquee {
+    animation: stockli-marquee 24s linear infinite;
+  }
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
@@ -178,5 +189,11 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: var(--border);
     border-radius: 9999px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-stockli-marquee {
+    animation: none;
   }
 }
