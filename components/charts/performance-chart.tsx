@@ -26,7 +26,11 @@ export function PerformanceChart({
   height?: number;
 }) {
   const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const points = data.points;
   const series = data.series.filter((item) =>
     points.some((point) => numeric(point[item.dailyKey]) != null)
@@ -41,26 +45,7 @@ export function PerformanceChart({
   }
 
   if (!mounted) {
-    return (
-      <div>
-        <div
-          className="rounded-xl bg-muted/25"
-          style={{ height }}
-          aria-hidden
-        />
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
-          {series.map((item) => (
-            <span key={item.key} className="inline-flex items-center gap-1.5">
-              <span
-                className="size-2.5 rounded-full"
-                style={{ background: item.color }}
-              />
-              {item.name}
-            </span>
-          ))}
-        </div>
-      </div>
-    );
+    return <div className="rounded-xl bg-muted/10" style={{ height }} />;
   }
 
   return (
@@ -69,8 +54,8 @@ export function PerformanceChart({
         <ComposedChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
           <XAxis
-            dataKey="date"
-            tickFormatter={(d) => formatDate(String(d)).replace(/ \d{4}$/, "")}
+            dataKey="label"
+            tickFormatter={(d) => formatAxisLabel(String(d))}
             minTickGap={36}
             tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
             axisLine={false}
@@ -95,6 +80,7 @@ export function PerformanceChart({
               stroke={item.color}
               strokeWidth={item.kind === "benchmark" ? 1.8 : 2.4}
               strokeDasharray={item.kind === "benchmark" ? "5 4" : undefined}
+              isAnimationActive={false}
               dot={points.length <= 7 ? { r: 3, strokeWidth: 1.5 } : false}
               activeDot={{ r: 4 }}
               connectNulls
@@ -131,10 +117,15 @@ function PerfTooltip({
   if (!active || !payload?.length) return null;
   const point = payload[0]?.payload;
   if (!point) return null;
+  const heading = typeof point.tooltipLabel === "string"
+    ? point.tooltipLabel
+    : typeof point.label === "string"
+      ? point.label
+      : formatAxisLabel(label);
 
   return (
     <div className="min-w-64 rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-md">
-      <p className="mb-2 font-medium">{formatDate(label)}</p>
+      <p className="mb-2 font-medium">{heading}</p>
       <div className="space-y-1.5">
         {series.map((item) => {
           const dailyValue = numeric(point[item.dailyKey]);
@@ -159,4 +150,12 @@ function PerfTooltip({
 
 function numeric(value: PerfPoint[string]): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function formatAxisLabel(value: string | undefined) {
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return formatDate(value).replace(/ \d{4}$/, "");
+  }
+  return value;
 }
