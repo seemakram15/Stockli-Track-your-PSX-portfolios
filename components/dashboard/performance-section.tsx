@@ -18,7 +18,7 @@ export async function PerformanceSection({
   portfolios: PortfolioPerformanceInput[];
   holdings: HoldingWithMetrics[];
 }) {
-  const performance = await getPortfolioPerformance(portfolios, 120);
+  const performance = await getPortfolioPerformance(portfolios);
   return (
     <Card className="lg:col-span-2">
       <CardHeader className="flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:justify-between">

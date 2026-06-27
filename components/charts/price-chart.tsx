@@ -62,13 +62,11 @@ export function PriceChart({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [type, setType] = React.useState<ChartType>(defaultType);
   const [range, setRange] = React.useState<Range>(defaultRange);
-  const [mounted, setMounted] = React.useState(false);
 
   const hasIntraday = (intraday?.length ?? 0) > 1;
-  React.useEffect(() => setMounted(true), []);
 
   React.useEffect(() => {
-    if (!mounted || !containerRef.current) return;
+    if (!containerRef.current) return;
     const el = containerRef.current;
     const dark = resolvedTheme !== "light";
     const c = palette(dark);
@@ -155,7 +153,7 @@ export function PriceChart({
       disposed = true;
       cleanup();
     };
-  }, [mounted, resolvedTheme, type, range, candles, intraday, hasIntraday, height]);
+  }, [resolvedTheme, type, range, candles, intraday, hasIntraday, height]);
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
