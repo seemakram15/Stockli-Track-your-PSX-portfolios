@@ -16,6 +16,7 @@ export type CachedRecord<T> = {
 const DB_NAME = "stockli-public-cache";
 const STORE_NAME = "resources";
 const DB_VERSION = 1;
+const MEMORY_CACHE = new Map<string, CachedRecord<unknown>>();
 
 async function fetchResource<T>(url: string): Promise<T> {
   const response = await fetch(url, {
@@ -43,23 +44,30 @@ export function usePersistentResource<T>({
   keepPreviousData?: boolean;
   legacyCacheKeys?: string[];
 }) {
-  const [cached, setCached] = React.useState<CachedRecord<T> | null>(null);
-  const [cacheReady, setCacheReady] = React.useState(false);
+  const [cached, setCached] = React.useState<CachedRecord<T> | null>(() =>
+    readMemoryCached<T>(cacheKey, legacyCacheKeys)
+  );
+  const [cacheReady, setCacheReady] = React.useState(() =>
+    Boolean(readMemoryCached<T>(cacheKey, legacyCacheKeys))
+  );
   const [, setClockTick] = React.useState(0);
   const hasPauseRule = Boolean(pauseWhen);
 
   React.useEffect(() => {
     let cancelled = false;
-    setCached(null);
-    setCacheReady(false);
+    const memoryRecord = readMemoryCached<T>(cacheKey, legacyCacheKeys);
+    setCached(memoryRecord);
+    setCacheReady(Boolean(memoryRecord));
     legacyCacheKeys.forEach((key) => {
       if (key && key !== cacheKey) {
+        MEMORY_CACHE.delete(key);
         deleteCached(key).catch(() => undefined);
       }
     });
     readCached<T>(cacheKey)
       .then((record) => {
-        if (!cancelled) setCached(record);
+        if (record) writeMemoryCached(record);
+        if (!cancelled) setCached(record ?? memoryRecord);
       })
       .finally(() => {
         if (!cancelled) setCacheReady(true);
@@ -100,6 +108,7 @@ export function usePersistentResource<T>({
   React.useEffect(() => {
     if (!swr.data) return;
     const record = makeCachedRecord(cacheKey, swr.data);
+    writeMemoryCached(record);
     setCached(record);
     writeCached(record).catch(() => undefined);
   }, [cacheKey, swr.data]);
@@ -107,6 +116,7 @@ export function usePersistentResource<T>({
   const refreshNow = React.useCallback(async () => {
     const value = await fetchResource<T>(url);
     const record = makeCachedRecord(cacheKey, value);
+    writeMemoryCached(record);
     setCached(record);
     await Promise.all([
       writeCached(record).catch(() => undefined),
@@ -115,14 +125,14 @@ export function usePersistentResource<T>({
     return value;
   }, [cacheKey, swr, url]);
 
-  const data = swr.data ?? cachedValue;
+  const data = swr.data ?? cachedValue ?? rawCachedValue;
 
   return {
     data,
     error: swr.error as Error | undefined,
     isLoading: !data && (!cacheReady || swr.isLoading),
     isRefreshing: Boolean(data && swr.isValidating),
-    isFromDeviceCache: Boolean(!swr.data && usableCached?.value),
+    isFromDeviceCache: Boolean(!swr.data && rawCachedValue),
     cachedAt: usableCached?.savedAt ?? null,
     lastCachedAt: activeCached?.savedAt ?? null,
     mutate: swr.mutate,
@@ -140,6 +150,7 @@ export async function writePersistentResourceCache<T>(
 }
 
 export async function deletePersistentResourceCache(cacheKey: string): Promise<void> {
+  MEMORY_CACHE.delete(cacheKey);
   await deleteCached(cacheKey);
 }
 
@@ -208,4 +219,21 @@ async function deleteCached(key: string): Promise<void> {
   } finally {
     db.close();
   }
+}
+
+function readMemoryCached<T>(
+  cacheKey: string,
+  legacyCacheKeys: string[]
+): CachedRecord<T> | null {
+  const direct = MEMORY_CACHE.get(cacheKey) as CachedRecord<T> | undefined;
+  if (direct) return direct;
+  for (const key of legacyCacheKeys) {
+    const legacy = MEMORY_CACHE.get(key) as CachedRecord<T> | undefined;
+    if (legacy) return { ...legacy, key: cacheKey };
+  }
+  return null;
+}
+
+function writeMemoryCached<T>(record: CachedRecord<T>) {
+  MEMORY_CACHE.set(record.key, record as CachedRecord<unknown>);
 }

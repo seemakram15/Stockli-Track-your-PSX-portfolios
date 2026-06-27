@@ -6,7 +6,9 @@ import { KSE100_SYMBOL, PSX_TIMEZONE } from "@/lib/constants";
 
 export interface PerfPoint {
   date: string; // YYYY-MM-DD
-  [key: string]: number | string | null;
+  label?: string;
+  tooltipLabel?: string;
+  [key: string]: number | string | null | undefined;
 }
 
 export interface PerfSeries {
@@ -34,7 +36,7 @@ export interface PortfolioPerformanceInput {
 }
 
 /**
- * Build return curves over the last `days` trading days. The chart compares
+ * Build return curves across the available EOD history. The chart compares
  * KSE-100 return with each current portfolio's simulated return using today's
  * holdings. Historical days use EOD closes; the latest day uses live quotes.
  *
@@ -43,7 +45,7 @@ export interface PortfolioPerformanceInput {
  */
 export async function getPortfolioPerformance(
   portfolios: PortfolioPerformanceInput[],
-  days = 120
+  days?: number | null
 ): Promise<PerformanceResult> {
   const activePortfolios = portfolios.filter((p) => p.positions.length > 0);
   if (activePortfolios.length === 0) return { points: [], series: [] };
@@ -79,7 +81,10 @@ export async function getPortfolioPerformance(
   for (const { byDate } of seriesList) for (const d of byDate.keys()) dateSet.add(d);
   for (const d of benchByDate.keys()) dateSet.add(d);
   const allDates = Array.from(dateSet).sort();
-  const dates = allDates.slice(-days);
+  const dates =
+    typeof days === "number" && Number.isFinite(days) && days > 0
+      ? allDates.slice(-days)
+      : allDates;
 
   const portfolioSeries = activePortfolios.map((portfolio, index) => ({
     key: seriesKey(portfolio.id),
@@ -120,7 +125,7 @@ export async function getPortfolioPerformance(
       if (close != null) lastClose.set(sym, close);
     }
     benchLast = benchByDate.get(date) ?? benchLast;
-    const point: PerfPoint = { date };
+    const point: PerfPoint = { date, label: date, tooltipLabel: date };
 
     if (benchLast > 0) {
       if (benchStart === 0) benchStart = benchLast;

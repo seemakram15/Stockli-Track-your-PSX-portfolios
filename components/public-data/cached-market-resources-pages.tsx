@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { shouldRefreshPsxData } from "@/lib/psx/market-hours";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -102,7 +103,7 @@ export function CachedUsefulLinksPage() {
           ))}
         </div>
       ) : isLoading ? (
-        <PageLoadingState message="Loading useful links..." />
+        <UsefulLinksLoadingGrid />
       ) : (
         <EmptyState
           icon={<Link2 className="size-6" />}
@@ -110,6 +111,40 @@ export function CachedUsefulLinksPage() {
           description={error?.message ?? "Try another search term."}
         />
       )}
+    </div>
+  );
+}
+
+function UsefulLinksLoadingGrid() {
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      {Array.from({ length: 4 }).map((_, groupIndex) => (
+        <Card key={groupIndex} className="overflow-hidden">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-5 rounded-full" />
+              <Skeleton className="h-6 w-40" />
+            </div>
+            <Skeleton className="h-4 w-4/5" />
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, linkIndex) => (
+              <div
+                key={linkIndex}
+                className="min-h-28 rounded-xl border border-border bg-background p-4"
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="mt-3 h-4 w-full" />
+                <Skeleton className="mt-2 h-4 w-5/6" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

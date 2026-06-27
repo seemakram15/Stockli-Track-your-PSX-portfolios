@@ -37,19 +37,53 @@ import {
 import { shouldRefreshPsxData } from "@/lib/psx/market-hours";
 import { formatPKR, formatPercent, plColorClass } from "@/lib/format";
 import type { PortfolioCommandPageData } from "@/lib/services/portfolio-command-page";
+import type { PerfPoint, PerformanceResult } from "@/lib/services/performance";
 import type { HoldingWithMetrics } from "@/lib/types";
 
 const PORTFOLIO_COMMAND_URL = "/api/private/portfolio-command";
-type PerformanceRange = "1D" | "1W" | "1M" | "3M";
-const PERFORMANCE_RANGES: Array<{
-  value: PerformanceRange;
+type PerformanceGranularity = "1D" | "DAY" | "MONTH" | "YEAR";
+type PerformanceWindow = "1M" | "3M" | "1Y" | "3Y" | "5Y" | "10Y" | "ALL";
+
+const PERFORMANCE_GRANULARITIES: Array<{
+  value: PerformanceGranularity;
   label: string;
 }> = [
   { value: "1D", label: "1D" },
-  { value: "1W", label: "1W" },
-  { value: "1M", label: "1M" },
-  { value: "3M", label: "3M" },
+  { value: "DAY", label: "Days" },
+  { value: "MONTH", label: "Months" },
+  { value: "YEAR", label: "Years" },
 ];
+
+const PERFORMANCE_WINDOWS: Record<Exclude<PerformanceGranularity, "1D">, Array<{
+  value: PerformanceWindow;
+  label: string;
+}>> = {
+  DAY: [
+    { value: "1M", label: "1M" },
+    { value: "3M", label: "3M" },
+    { value: "1Y", label: "1Y" },
+    { value: "5Y", label: "5Y" },
+    { value: "ALL", label: "All" },
+  ],
+  MONTH: [
+    { value: "1Y", label: "1Y" },
+    { value: "3Y", label: "3Y" },
+    { value: "5Y", label: "5Y" },
+    { value: "10Y", label: "10Y" },
+    { value: "ALL", label: "All" },
+  ],
+  YEAR: [
+    { value: "5Y", label: "5Y" },
+    { value: "10Y", label: "10Y" },
+    { value: "ALL", label: "All" },
+  ],
+};
+
+const DEFAULT_WINDOW_BY_GRANULARITY: Record<Exclude<PerformanceGranularity, "1D">, PerformanceWindow> = {
+  DAY: "3M",
+  MONTH: "1Y",
+  YEAR: "ALL",
+};
 
 export function CachedPortfolioCommandPage({
   userId,
@@ -361,9 +395,24 @@ function PerformanceCard({
   data: PortfolioCommandPageData["performance"];
   holdings: HoldingWithMetrics[];
 }) {
-  const [range, setRange] = React.useState<PerformanceRange>("3M");
+  const [granularity, setGranularity] = React.useState<PerformanceGranularity>("DAY");
+  const [window, setWindow] = React.useState<PerformanceWindow>("3M");
   const [expanded, setExpanded] = React.useState(false);
-  const filteredData = React.useMemo(() => filterPerformanceData(data, range), [data, range]);
+
+  React.useEffect(() => {
+    if (granularity === "1D") return;
+    const allowed = PERFORMANCE_WINDOWS[granularity].map((item) => item.value);
+    if (!allowed.includes(window)) {
+      setWindow(DEFAULT_WINDOW_BY_GRANULARITY[granularity]);
+    }
+  }, [granularity, window]);
+
+  const filteredData = React.useMemo(
+    () => buildPerformanceView(data, granularity, window),
+    [data, granularity, window]
+  );
+  const rangeOptions = granularity === "1D" ? [] : PERFORMANCE_WINDOWS[granularity];
+  const viewDescription = getPerformanceViewDescription(granularity, filteredData.points);
 
   if (!data) return <PerformanceSkeleton />;
 
@@ -373,18 +422,18 @@ function PerformanceCard({
         <div>
           <CardTitle>Your Portfolios vs KSE-100 returns</CardTitle>
           <p className="mt-1 text-xs text-muted-foreground">
-            Compare each day&apos;s KSE-100 return with every Portfolio&apos;s daily return.
+            {viewDescription}
           </p>
         </div>
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-          <div className="grid grid-cols-4 rounded-xl bg-muted p-1">
-            {PERFORMANCE_RANGES.map((option) => (
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+          <div className="grid w-full grid-cols-4 rounded-xl bg-muted p-1 sm:w-auto">
+            {PERFORMANCE_GRANULARITIES.map((option) => (
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setRange(option.value)}
+                onClick={() => setGranularity(option.value)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  range === option.value
+                  granularity === option.value
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
@@ -393,15 +442,39 @@ function PerformanceCard({
               </button>
             ))}
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            aria-label={expanded ? "Shrink returns chart" : "Stretch returns chart"}
-            onClick={() => setExpanded((value) => !value)}
-          >
-            {expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
-          </Button>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+            {rangeOptions.length ? (
+              <div className="grid auto-cols-fr grid-flow-col rounded-xl bg-muted p-1">
+                {rangeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setWindow(option.value)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                      window === option.value
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                Latest session
+              </div>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label={expanded ? "Shrink returns chart" : "Stretch returns chart"}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -412,38 +485,175 @@ function PerformanceCard({
   );
 }
 
-function filterPerformanceData(
-  data: PortfolioCommandPageData["performance"],
-  range: PerformanceRange
-): PortfolioCommandPageData["performance"] {
+function buildPerformanceView(
+  data: PerformanceResult,
+  granularity: PerformanceGranularity,
+  window: PerformanceWindow
+): PerformanceResult {
   if (!data || data.points.length <= 1) return data;
-  if (range === "1D") {
-    return { ...data, points: data.points.slice(-1) };
+
+  if (granularity === "1D") {
+    return {
+      ...data,
+      points: data.points.slice(-1).map((point) => ({
+        ...point,
+        label: point.label ?? "Latest session",
+        tooltipLabel: point.tooltipLabel ?? formatPointLabel(point.date),
+      })),
+    };
   }
 
-  const latest = parseChartDate(data.points[data.points.length - 1]?.date);
-  if (!latest) {
-    const fallback = range === "1W" ? 7 : range === "1M" ? 30 : 90;
-    return { ...data, points: data.points.slice(-fallback) };
+  if (granularity === "DAY") {
+    return {
+      ...data,
+      points: filterPointsByWindow(
+        data.points.map((point) => ({
+          ...point,
+          label: formatDayAxisLabel(point.date),
+          tooltipLabel: formatPointLabel(point.date),
+        })),
+        window
+      ),
+    };
   }
 
-  const cutoff = new Date(latest);
-  if (range === "1W") cutoff.setDate(cutoff.getDate() - 7);
-  if (range === "1M") cutoff.setMonth(cutoff.getMonth() - 1);
-  if (range === "3M") cutoff.setMonth(cutoff.getMonth() - 3);
-
-  const points = data.points.filter((point) => {
-    const date = parseChartDate(point.date);
-    return date ? date >= cutoff : false;
-  });
-
-  return { ...data, points: points.length ? points : data.points.slice(-1) };
+  const aggregated = aggregatePerformancePoints(data, granularity === "MONTH" ? "month" : "year");
+  return {
+    ...data,
+    points: filterPointsByWindow(aggregated, window),
+  };
 }
 
 function parseChartDate(value: unknown) {
   if (typeof value !== "string") return null;
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function filterPointsByWindow(points: PerfPoint[], window: PerformanceWindow) {
+  if (window === "ALL" || points.length <= 1) return points;
+  const latest = parseChartDate(points[points.length - 1]?.date);
+  if (!latest) return points;
+
+  const cutoff = new Date(latest);
+  if (window === "1M") cutoff.setMonth(cutoff.getMonth() - 1);
+  if (window === "3M") cutoff.setMonth(cutoff.getMonth() - 3);
+  if (window === "1Y") cutoff.setFullYear(cutoff.getFullYear() - 1);
+  if (window === "3Y") cutoff.setFullYear(cutoff.getFullYear() - 3);
+  if (window === "5Y") cutoff.setFullYear(cutoff.getFullYear() - 5);
+  if (window === "10Y") cutoff.setFullYear(cutoff.getFullYear() - 10);
+
+  const filtered = points.filter((point) => {
+    const date = parseChartDate(point.date);
+    return date ? date >= cutoff : false;
+  });
+  return filtered.length ? filtered : points.slice(-1);
+}
+
+function aggregatePerformancePoints(
+  data: PerformanceResult,
+  mode: "month" | "year"
+) {
+  const groups = new Map<string, PerfPoint>();
+
+  for (const point of data.points) {
+    const key = mode === "month" ? point.date.slice(0, 7) : point.date.slice(0, 4);
+    groups.set(key, point);
+  }
+
+  const entries = Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  let previousPoint: PerfPoint | null = null;
+
+  return entries
+    .map(([key, point]) => {
+      const row: PerfPoint = {
+        date: point.date,
+        label: mode === "month" ? formatMonthAxisLabel(key) : key,
+        tooltipLabel: mode === "month" ? formatMonthTooltipLabel(key) : key,
+      };
+
+      for (const series of data.series) {
+        const endCumulative = numericValue(point[series.key]);
+        const previousCumulative = previousPoint ? numericValue(previousPoint[series.key]) : 0;
+        row[series.key] = endCumulative;
+        row[series.dailyKey] =
+          endCumulative == null
+            ? null
+            : periodReturnFromCumulative(endCumulative, previousCumulative ?? 0);
+      }
+
+      previousPoint = point;
+      return row;
+    })
+    .filter((point) =>
+      data.series.some((series) => numericValue(point[series.dailyKey]) != null)
+    );
+}
+
+function numericValue(value: PerfPoint[string]): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function periodReturnFromCumulative(end: number, start: number) {
+  return round2((((1 + end / 100) / (1 + start / 100)) - 1) * 100);
+}
+
+function round2(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function formatDayAxisLabel(date: string) {
+  const parsed = parseChartDate(date);
+  if (!parsed) return date;
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+  }).format(parsed);
+}
+
+function formatMonthAxisLabel(period: string) {
+  const parsed = new Date(`${period}-01T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return period;
+  return new Intl.DateTimeFormat("en-GB", {
+    month: "short",
+    year: "2-digit",
+  }).format(parsed);
+}
+
+function formatMonthTooltipLabel(period: string) {
+  const parsed = new Date(`${period}-01T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return period;
+  return new Intl.DateTimeFormat("en-GB", {
+    month: "long",
+    year: "numeric",
+  }).format(parsed);
+}
+
+function formatPointLabel(date: string) {
+  const parsed = parseChartDate(date);
+  if (!parsed) return date;
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(parsed);
+}
+
+function getPerformanceViewDescription(
+  granularity: PerformanceGranularity,
+  points: PerfPoint[]
+) {
+  const start = points[0]?.tooltipLabel ?? points[0]?.label ?? null;
+  const end = points[points.length - 1]?.tooltipLabel ?? points[points.length - 1]?.label ?? null;
+
+  if (granularity === "1D") {
+    return "Compare the latest trading session return for KSE-100 and every Portfolio.";
+  }
+
+  const unit =
+    granularity === "DAY" ? "daily" : granularity === "MONTH" ? "monthly" : "yearly";
+  const span = start && end ? ` Showing ${start} to ${end}.` : "";
+  return `Compare ${unit} KSE-100 return with every Portfolio's ${unit} return.${span}`;
 }
 
 function PerformanceSkeleton() {

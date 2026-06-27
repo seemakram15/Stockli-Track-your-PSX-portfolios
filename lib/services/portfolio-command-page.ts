@@ -39,7 +39,7 @@ export async function getPortfolioCommandPageData(): Promise<PortfolioCommandPag
 
   const [calendar, performance] = await Promise.all([
     holdings.length ? getPortfolioCalendar(holdings, dashboard.transactions) : null,
-    getPortfolioPerformance(performancePortfolios, 120),
+    getPortfolioPerformance(performancePortfolios),
   ]);
 
   const { headlineTicker, tickerItems } = buildTickerStripItems(
