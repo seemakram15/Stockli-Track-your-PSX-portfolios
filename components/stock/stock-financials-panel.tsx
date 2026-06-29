@@ -4,8 +4,10 @@ import * as React from "react";
 import {
   BarChart3,
   ChartColumn,
+  CheckCircle2,
   ChevronDown,
   ChevronsUpDown,
+  Clock3,
   Database,
   LineChart as LineChartIcon,
   Loader2,
@@ -104,7 +106,7 @@ export function StockFinancialsPanel({
       if (needsWarning) {
         toast.warning(
           payload.warning ??
-            `Updated ${normalizedSymbol} using cached fundamentals because AskAnalyst did not return fresh statement rows.`
+            `Updated ${normalizedSymbol} using cached fundamentals because the source did not return fresh statement rows.`
         );
       } else {
         toast.success(`Fetched latest fundamentals for ${normalizedSymbol}.`);
@@ -185,6 +187,7 @@ export function StockFinancialsPanel({
           />
         ) : (
           <Tabs defaultValue="overview" className="gap-5">
+            <SectionAvailability availability={data.availability} />
             <div className="-mx-4 overflow-x-auto px-4 py-3 sm:-mx-6 sm:px-6">
               <TabsList className="grid h-auto min-w-[760px] grid-cols-6 gap-2 rounded-none bg-transparent p-0 shadow-none">
                 {TAB_ORDER.map((tab) => (
@@ -212,6 +215,94 @@ export function StockFinancialsPanel({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function SectionAvailability({
+  availability,
+}: {
+  availability: StockFinancialsData["availability"];
+}) {
+  if (!availability) return null;
+
+  const available = availability.availableTabs;
+  const missing = availability.missingTabs;
+  const hasMissing = missing.length > 0;
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border p-3 text-sm",
+        hasMissing ? "border-amber-300/70 bg-amber-50/60" : "border-primary/20 bg-primary/5"
+      )}
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-2">
+          <span
+            className={cn(
+              "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full",
+              hasMissing ? "bg-amber-100 text-amber-700" : "bg-primary/10 text-primary"
+            )}
+          >
+            {hasMissing ? <Clock3 className="size-4" /> : <CheckCircle2 className="size-4" />}
+          </span>
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground">
+              {hasMissing ? "Fundamentals are still preparing" : "All fundamentals are cached"}
+            </p>
+            <p className="text-muted-foreground">
+              {availability.message ??
+                (hasMissing
+                  ? "Some sections are still being prepared and will appear as soon as the cache completes."
+                  : "All required financial sections are cached.")}
+            </p>
+          </div>
+        </div>
+        {availability.queued ? (
+          <Badge variant="secondary" className="w-fit rounded-full">
+            Retry queued
+            {availability.attempts ? ` · ${availability.attempts} tries` : ""}
+          </Badge>
+        ) : null}
+      </div>
+      <div className="mt-3 grid gap-2 lg:grid-cols-2">
+        <SectionPills label="Available" tabs={available} tone="ok" />
+        <SectionPills label="Preparing" tabs={missing} tone="pending" />
+      </div>
+    </div>
+  );
+}
+
+function SectionPills({
+  label,
+  tabs,
+  tone,
+}: {
+  label: string;
+  tabs: StockFinancialTabId[];
+  tone: "ok" | "pending";
+}) {
+  return (
+    <div className="rounded-xl border bg-background/70 p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {tabs.length ? (
+          tabs.map((tabId) => (
+            <Badge
+              key={tabId}
+              variant={tone === "ok" ? "default" : "secondary"}
+              className={cn("rounded-full", tone === "ok" && "bg-primary text-primary-foreground")}
+            >
+              {TAB_ORDER.find((tab) => tab.id === tabId)?.label ?? tabId}
+            </Badge>
+          ))
+        ) : (
+          <span className="text-sm text-muted-foreground">None</span>
+        )}
+      </div>
+    </div>
   );
 }
 

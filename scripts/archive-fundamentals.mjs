@@ -13,6 +13,8 @@ const baseUrl = (
 ).replace(/\/+$/, "");
 const cronSecret = process.env.CRON_SECRET;
 const batchLimit = Number(process.env.FUNDAMENTALS_ARCHIVE_LIMIT || 25);
+const retryIncomplete = process.env.FUNDAMENTALS_ARCHIVE_INCOMPLETE === "1";
+const maxRetryBatches = Number(process.env.FUNDAMENTALS_ARCHIVE_MAX_BATCHES || 50);
 
 if (!cronSecret) {
   console.error("CRON_SECRET is required to archive fundamentals.");
@@ -21,14 +23,25 @@ if (!cronSecret) {
 
 let offset = Number(process.env.FUNDAMENTALS_ARCHIVE_OFFSET || 0);
 let totalStored = 0;
+let totalPartial = 0;
 let totalFailed = 0;
+let batchesRun = 0;
 
 while (true) {
+  batchesRun += 1;
   const url = new URL("/api/cron/fundamentals-archive", baseUrl);
-  url.searchParams.set("offset", String(offset));
+  if (retryIncomplete) {
+    url.searchParams.set("incomplete", "1");
+  } else {
+    url.searchParams.set("offset", String(offset));
+  }
   url.searchParams.set("limit", String(batchLimit));
 
-  console.log(`Archiving fundamentals batch offset=${offset} limit=${batchLimit}`);
+  console.log(
+    retryIncomplete
+      ? `Retrying incomplete fundamentals batch offset=${offset} limit=${batchLimit}`
+      : `Archiving fundamentals batch offset=${offset} limit=${batchLimit}`
+  );
   const response = await fetch(url, {
     headers: {
       authorization: `Bearer ${cronSecret}`,
@@ -43,21 +56,33 @@ while (true) {
   }
 
   totalStored += payload.stored ?? 0;
+  totalPartial += payload.partial?.length ?? 0;
   totalFailed += payload.failed?.length ?? 0;
   console.log(
-    `Stored ${payload.stored}/${payload.limit}. Failed ${payload.failed?.length ?? 0}. Next offset: ${
+    `Stored ${payload.stored}/${payload.limit}. Partial ${payload.partial?.length ?? 0}. Failed ${
+      payload.failed?.length ?? 0
+    }. Next offset: ${
       payload.nextOffset ?? "done"
     }`
   );
+  for (const partial of (payload.partial ?? []).slice(0, 10)) {
+    console.log(`  ${partial.symbol}: queued ${partial.missingTabs?.join(", ") ?? "missing tabs"}`);
+  }
   for (const failure of (payload.failed ?? []).slice(0, 10)) {
     console.log(`  ${failure.symbol}: ${failure.error}`);
   }
 
   if (payload.nextOffset === null || payload.nextOffset === undefined) break;
+  if (retryIncomplete && batchesRun >= maxRetryBatches) {
+    console.log(`Stopped after ${maxRetryBatches} incomplete retry batches.`);
+    break;
+  }
   offset = payload.nextOffset;
 }
 
-console.log(`Fundamentals archive complete. Stored=${totalStored}, failed=${totalFailed}`);
+console.log(
+  `Fundamentals archive complete. Stored=${totalStored}, partial=${totalPartial}, failed=${totalFailed}`
+);
 
 function loadEnvFile(filename) {
   const filePath = path.resolve(process.cwd(), filename);

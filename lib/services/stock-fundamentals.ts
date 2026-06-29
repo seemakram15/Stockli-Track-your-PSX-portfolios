@@ -12,6 +12,7 @@ import type {
   FinancialTableRow,
   StockFinancialPeerComparison,
   StockFinancialPeerRow,
+  StockFinancialsAvailability,
   StockFinancialsData,
   StockFinancialTabId,
 } from "@/lib/types/stock-fundamentals";
@@ -24,6 +25,8 @@ const COMPANY_LIST_TTL_SECONDS = 7 * 24 * 60 * 60;
 const COMPANY_LIST_STALE_SECONDS = 365 * 24 * 60 * 60;
 const ARCHIVE_BATCH_SIZE = 1;
 const FINANCIAL_FETCH_ATTEMPTS = 3;
+const FUNDAMENTALS_CACHE_KEY_PREFIX = "stock-fundamentals:v4:";
+const INCOMPLETE_FUNDAMENTALS_KEY_PREFIX = "stock-fundamentals:incomplete:v1:";
 const REQUIRED_FINANCIAL_TABS: StockFinancialTabId[] = [
   "overview",
   "latest",
@@ -38,6 +41,18 @@ type FundamentalsCacheEnvelope = {
   storedAt: string;
   freshUntil: number;
   staleUntil: number;
+};
+
+export type StockFinancialsIncompleteRecord = {
+  symbol: string;
+  company: FundamentalsCompany | null;
+  data: StockFinancialsData;
+  availableTabs: StockFinancialTabId[];
+  missingTabs: StockFinancialTabId[];
+  attempts: number;
+  lastAttemptAt?: string | null;
+  updatedAt: string;
+  lastError?: string | null;
 };
 
 type CacheStatus = "fresh" | "stale" | "miss";
@@ -128,6 +143,15 @@ export async function getStockFinancials(symbolRaw: string) {
     } satisfies StockFinancialsCacheResult;
   }
 
+  const incomplete = await readIncompleteStockFinancials(symbol);
+  if (incomplete) {
+    return {
+      value: attachFinancialAvailability(incomplete.data, incomplete),
+      status: "miss",
+      storedAt: incomplete.updatedAt,
+    } satisfies StockFinancialsCacheResult;
+  }
+
   return {
     value: buildPreparingFinancials(symbol),
     status: "miss",
@@ -146,14 +170,34 @@ export async function refreshStockFinancials(
   const hasMeaningfulFreshData = hasMeaningfulFinancialData(value);
 
   if (previous?.value && !hasMeaningfulFreshData) {
+    const previousComplete = hasCompleteFinancialData(previous.value);
+    if (!previousComplete) {
+      const missingTabs = getMissingFinancialTabs(previous.value);
+      await deleteStockFinancialsSnapshot(symbol);
+      const incomplete = await markStockFinancialsIncomplete(
+        symbol,
+        previous.value,
+        missingTabs,
+        "Fresh fundamentals did not include statement rows."
+      );
+      return {
+        value: attachFinancialAvailability(previous.value, incomplete),
+        storedAt: incomplete.updatedAt,
+        usedFallback: true,
+        hadMeaningfulFreshData: false,
+        complete: false,
+        missingTabs,
+      };
+    }
+
     const envelope = await storeStockFinancialsSnapshot(symbol, previous.value);
     return {
       value: previous.value,
       storedAt: envelope.storedAt,
       usedFallback: true,
       hadMeaningfulFreshData: false,
-      complete: hasCompleteFinancialData(previous.value),
-      missingTabs: getMissingFinancialTabs(previous.value),
+      complete: true,
+      missingTabs: [],
     };
   }
 
@@ -172,13 +216,20 @@ export async function refreshStockFinancials(
     }
 
     await deleteStockFinancialsSnapshot(symbol);
+    const missingTabs = getMissingFinancialTabs(nextValue);
+    const incomplete = await markStockFinancialsIncomplete(
+      symbol,
+      nextValue,
+      missingTabs,
+      `Incomplete fundamentals: ${missingTabs.join(", ")}`
+    );
     return {
-      value: buildPreparingFinancials(symbol, nextValue.company),
+      value: attachFinancialAvailability(nextValue, incomplete),
       storedAt: new Date().toISOString(),
       usedFallback: false,
       hadMeaningfulFreshData: hasMeaningfulFreshData,
       complete: false,
-      missingTabs: getMissingFinancialTabs(nextValue),
+      missingTabs,
     };
   }
 
@@ -320,13 +371,33 @@ export async function archiveStockFundamentals({
       const hasMeaningfulFreshData = hasMeaningfulFinancialData(data);
 
       if (previous?.value && !hasMeaningfulFreshData) {
+        const previousComplete = hasCompleteFinancialData(previous.value);
+        if (!previousComplete) {
+          await deleteStockFinancialsSnapshot(symbol);
+          const missingTabs = getMissingFinancialTabs(previous.value);
+          await markStockFinancialsIncomplete(
+            symbol,
+            previous.value,
+            missingTabs,
+            "Fresh fundamentals did not include statement rows."
+          );
+          return {
+            symbol,
+            ok: true,
+            partial: true,
+            preserved: true,
+            complete: false,
+            missingTabs,
+          };
+        }
+
         await storeStockFinancialsSnapshot(symbol, previous.value);
         return {
           symbol,
           ok: true,
           preserved: true,
-          complete: hasCompleteFinancialData(previous.value),
-          missingTabs: getMissingFinancialTabs(previous.value),
+          complete: true,
+          missingTabs: [],
         };
       }
 
@@ -344,10 +415,20 @@ export async function archiveStockFundamentals({
         }
 
         await deleteStockFinancialsSnapshot(symbol);
+        const missingTabs = getMissingFinancialTabs(nextValue);
+        await markStockFinancialsIncomplete(
+          symbol,
+          nextValue,
+          missingTabs,
+          `Incomplete fundamentals: ${missingTabs.join(", ")}`
+        );
         return {
           symbol,
-          ok: false,
-          error: `Incomplete fundamentals: ${getMissingFinancialTabs(nextValue).join(", ")}`,
+          ok: true,
+          partial: true,
+          complete: false,
+          missingTabs,
+          warning: `Incomplete fundamentals: ${missingTabs.join(", ")}`,
         };
       }
 
@@ -369,6 +450,7 @@ export async function archiveStockFundamentals({
   });
 
   const failed = results.filter((result) => !result.ok);
+  const partial = results.filter((result) => result.ok && result.complete === false);
   const stored = results.length - failed.length;
   const nextOffset =
     requestedSymbols.size || offset + candidates.length >= allCompanies.length
@@ -382,6 +464,7 @@ export async function archiveStockFundamentals({
     offset,
     limit: candidates.length,
     stored,
+    partial,
     failed,
     nextOffset,
   };
@@ -518,9 +601,10 @@ async function storeStockFinancialsSnapshot(
   value: StockFinancialsData
 ): Promise<FundamentalsCacheEnvelope> {
   const now = Date.now();
-  const key = `stock-fundamentals:v4:${symbol}`;
+  const key = `${FUNDAMENTALS_CACHE_KEY_PREFIX}${symbol}`;
+  const valueWithAvailability = attachFinancialAvailability(value);
   const envelope: FundamentalsCacheEnvelope = {
-    value,
+    value: valueWithAvailability,
     storedAt: new Date(now).toISOString(),
     freshUntil: now + FINANCIALS_CACHE_TTL_SECONDS * 1000,
     staleUntil: now + FINANCIALS_CACHE_STALE_SECONDS * 1000,
@@ -530,30 +614,206 @@ async function storeStockFinancialsSnapshot(
   await Promise.allSettled(
     getRedisClients().map((redis) => redis.set(key, envelope, { ex: FINANCIALS_CACHE_STALE_SECONDS }))
   );
+  await clearStockFinancialsIncomplete(symbol);
   return envelope;
 }
 
 async function deleteStockFinancialsSnapshot(symbol: string) {
-  const key = `stock-fundamentals:v4:${symbol}`;
+  const key = `${FUNDAMENTALS_CACHE_KEY_PREFIX}${symbol}`;
   setMemoryCache(key, null, 1);
   await Promise.allSettled(getRedisClients().map((redis) => redis.del(key)));
 }
 
 async function readStockFinancialsSnapshot(symbol: string) {
-  const key = `stock-fundamentals:v4:${symbol}`;
+  const key = `${FUNDAMENTALS_CACHE_KEY_PREFIX}${symbol}`;
   const memory = getMemoryCache<FundamentalsCacheEnvelope>(key);
-  if (memory) return memory;
+  if (memory) return { ...memory, value: attachFinancialAvailability(memory.value) };
 
   for (const redis of getRedisClients()) {
     try {
       const cached = await redis.get<FundamentalsCacheEnvelope>(key);
-      if (cached) return cached;
+      if (cached) return { ...cached, value: attachFinancialAvailability(cached.value) };
     } catch (error) {
       console.warn(`[fundamentals] cache read failed for ${key}:`, error);
     }
   }
 
   return null;
+}
+
+export async function getIncompleteStockFundamentalsQueue({
+  offset = 0,
+  limit = 25,
+}: {
+  offset?: number;
+  limit?: number;
+} = {}) {
+  const safeOffset = Math.max(0, offset);
+  const safeLimit = Math.min(Math.max(1, limit), 50);
+  const records = await readAllIncompleteStockFinancialsWithMissingCompanies();
+  const window = records.slice(safeOffset, safeOffset + safeLimit);
+
+  return {
+    total: records.length,
+    offset: safeOffset,
+    limit: safeLimit,
+    nextOffset: safeOffset + window.length >= records.length ? null : safeOffset + window.length,
+    records: window,
+  };
+}
+
+async function markStockFinancialsIncomplete(
+  symbol: string,
+  value: StockFinancialsData,
+  missingTabs: StockFinancialTabId[],
+  lastError?: string | null
+) {
+  const previous = await readIncompleteStockFinancials(symbol);
+  const record = createIncompleteRecord({
+    symbol,
+    value,
+    missingTabs,
+    attempts: (previous?.attempts ?? 0) + 1,
+    lastAttemptAt: new Date().toISOString(),
+    lastError,
+  });
+  const key = `${INCOMPLETE_FUNDAMENTALS_KEY_PREFIX}${symbol}`;
+  setMemoryCache(key, record, FINANCIALS_CACHE_STALE_SECONDS);
+  await Promise.allSettled(
+    getRedisClients().map((redis) => redis.set(key, record, { ex: FINANCIALS_CACHE_STALE_SECONDS }))
+  );
+  return record;
+}
+
+async function clearStockFinancialsIncomplete(symbol: string) {
+  const key = `${INCOMPLETE_FUNDAMENTALS_KEY_PREFIX}${symbol}`;
+  setMemoryCache(key, null, 1);
+  await Promise.allSettled(getRedisClients().map((redis) => redis.del(key)));
+}
+
+async function readIncompleteStockFinancials(symbol: string) {
+  const key = `${INCOMPLETE_FUNDAMENTALS_KEY_PREFIX}${symbol}`;
+  const memory = getMemoryCache<StockFinancialsIncompleteRecord>(key);
+  if (memory) return memory;
+
+  for (const redis of getRedisClients()) {
+    try {
+      const cached = await redis.get<StockFinancialsIncompleteRecord>(key);
+      if (cached) return cached;
+    } catch (error) {
+      console.warn(`[fundamentals] incomplete queue read failed for ${key}:`, error);
+    }
+  }
+
+  return null;
+}
+
+async function readAllIncompleteStockFinancialsWithMissingCompanies() {
+  const records = new Map<string, StockFinancialsIncompleteRecord>();
+  for (const record of await readAllIncompleteStockFinancials()) {
+    records.set(record.symbol, record);
+  }
+
+  const companies = await getFundamentalsCompanies();
+  await mapLimit(companies, 10, async (company) => {
+    const symbol = normalizeSymbol(company.symbol || company.label2);
+    if (!symbol || records.has(symbol)) return;
+
+    const snapshot = await readStockFinancialsSnapshot(symbol);
+    if (snapshot?.value && hasCompleteFinancialData(snapshot.value)) return;
+
+    const value =
+      snapshot?.value ??
+      buildPreparingFinancials(
+        symbol,
+        company,
+        null
+      );
+    records.set(
+      symbol,
+      createIncompleteRecord({
+        symbol,
+        value,
+        missingTabs: getMissingFinancialTabs(value),
+        attempts: 0,
+        lastAttemptAt: null,
+        lastError: snapshot?.value ? "Cached fundamentals are incomplete." : "Fundamentals are not archived yet.",
+      })
+    );
+  });
+
+  return sortIncompleteRecords(Array.from(records.values()));
+}
+
+async function readAllIncompleteStockFinancials() {
+  const records = new Map<string, StockFinancialsIncompleteRecord>();
+  for (const redis of getRedisClients()) {
+    try {
+      let cursor = 0;
+      do {
+        const scanResult = await (redis as unknown as {
+          scan: (
+            cursor: number,
+            options: { match: string; count: number }
+          ) => Promise<[number, string[]]>;
+        }).scan(cursor, {
+          match: `${INCOMPLETE_FUNDAMENTALS_KEY_PREFIX}*`,
+          count: 100,
+        });
+        cursor = Number(scanResult[0]);
+        for (const key of scanResult[1]) {
+          const record = await redis.get<StockFinancialsIncompleteRecord>(key);
+          if (record?.symbol) records.set(record.symbol, record);
+        }
+      } while (cursor !== 0);
+    } catch (error) {
+      console.warn("[fundamentals] incomplete queue scan failed:", error);
+    }
+  }
+
+  return sortIncompleteRecords(Array.from(records.values()));
+}
+
+function sortIncompleteRecords(records: StockFinancialsIncompleteRecord[]) {
+  return records.sort((a, b) => {
+    const byAttempts = a.attempts - b.attempts;
+    if (byAttempts !== 0) return byAttempts;
+    return a.symbol.localeCompare(b.symbol);
+  });
+}
+
+function createIncompleteRecord({
+  symbol,
+  value,
+  missingTabs,
+  attempts,
+  lastAttemptAt,
+  lastError,
+}: {
+  symbol: string;
+  value: StockFinancialsData;
+  missingTabs: StockFinancialTabId[];
+  attempts: number;
+  lastAttemptAt?: string | null;
+  lastError?: string | null;
+}) {
+  const now = new Date().toISOString();
+  let record: StockFinancialsIncompleteRecord = {
+    symbol,
+    company: value.company,
+    data: value,
+    availableTabs: getAvailableFinancialTabs(value),
+    missingTabs,
+    attempts,
+    lastAttemptAt,
+    updatedAt: now,
+    lastError: lastError ?? null,
+  };
+  record = {
+    ...record,
+    data: attachFinancialAvailability(value, record),
+  };
+  return record;
 }
 
 async function getCompleteArchivedSnapshot(symbol: string) {
@@ -610,8 +870,39 @@ function getMissingFinancialTabs(value: StockFinancialsData): StockFinancialTabI
   return REQUIRED_FINANCIAL_TABS.filter((tabId) => !tabIsCachedSection(value.tabs[tabId]));
 }
 
+function getAvailableFinancialTabs(value: StockFinancialsData): StockFinancialTabId[] {
+  if (!value.company) return [];
+  return REQUIRED_FINANCIAL_TABS.filter((tabId) => tabIsCachedSection(value.tabs[tabId]));
+}
+
+function attachFinancialAvailability(
+  value: StockFinancialsData,
+  record?: StockFinancialsIncompleteRecord | null
+): StockFinancialsData {
+  const missingTabs = record?.missingTabs ?? getMissingFinancialTabs(value);
+  const availableTabs = record?.availableTabs ?? getAvailableFinancialTabs(value);
+  const availability: StockFinancialsAvailability = {
+    complete: missingTabs.length === 0,
+    availableTabs,
+    missingTabs,
+    queued: Boolean(record && missingTabs.length > 0),
+    attempts: record?.attempts,
+    lastAttemptAt: record?.lastAttemptAt ?? null,
+    updatedAt: record?.updatedAt ?? value.updatedAt,
+    message:
+      missingTabs.length > 0
+        ? "Some sections are still being prepared and will appear as soon as the cache completes."
+        : "All required financial sections are cached.",
+  };
+
+  return {
+    ...value,
+    availability,
+  };
+}
+
 function tabIsCachedSection(tab: FinancialTabData | undefined) {
-  return Boolean(tab && tab.status !== "error");
+  return tabHasUsableContent(tab);
 }
 
 function tabHasUsableContent(tab: FinancialTabData | undefined) {
@@ -651,24 +942,31 @@ function delay(ms: number) {
 
 function buildPreparingFinancials(
   symbol: string,
-  company: FundamentalsCompany | null = null
+  company: FundamentalsCompany | null = null,
+  record?: StockFinancialsIncompleteRecord | null
 ): StockFinancialsData {
   const tabs = { ...EMPTY_TABS };
   for (const tabId of Object.keys(tabs) as StockFinancialTabId[]) {
+    const isAvailable = record?.availableTabs.includes(tabId);
     tabs[tabId] = {
       ...tabs[tabId],
-      status: "empty",
-      message: "Company fundamentals are preparing and will appear here shortly.",
+      status: isAvailable ? "ok" : "empty",
+      message: isAvailable
+        ? "This section is available in the cache."
+        : "Company fundamentals are preparing and will appear here shortly.",
     };
   }
 
-  return {
-    symbol,
-    company,
-    source: "fundamentals",
-    updatedAt: new Date().toISOString(),
-    tabs,
-  };
+  return attachFinancialAvailability(
+    {
+      symbol,
+      company,
+      source: "fundamentals",
+      updatedAt: record?.updatedAt ?? new Date().toISOString(),
+      tabs,
+    },
+    record
+  );
 }
 
 async function buildOverviewTab(company: FundamentalsCompany): Promise<FinancialTabData> {

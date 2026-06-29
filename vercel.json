@@ -10,7 +10,7 @@
       "schedule": "30 11 * * *"
     },
     {
-      "path": "/api/cron/fundamentals-archive?cursor=auto&limit=20",
+      "path": "/api/cron/fundamentals-archive?incomplete=1&limit=20",
       "schedule": "15 20 * * *"
     }
   ]
