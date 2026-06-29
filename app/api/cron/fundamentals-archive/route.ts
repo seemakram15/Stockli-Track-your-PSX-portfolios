@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { isAuthorizedCronRequest } from "@/lib/auth/cron";
 import { getRedisClients } from "@/lib/cache/redis";
-import { archiveStockFundamentals } from "@/lib/services/stock-fundamentals";
+import {
+  archiveStockFundamentals,
+  getIncompleteStockFundamentalsQueue,
+} from "@/lib/services/stock-fundamentals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +18,8 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
+  const retryIncomplete =
+    searchParams.get("incomplete") === "1" || searchParams.get("queue") === "incomplete";
   const useCursor = searchParams.get("cursor") === "auto";
   const offset = useCursor ? await readArchiveCursor() : parsePositiveInt(searchParams.get("offset"), 0);
   const limit = parsePositiveInt(searchParams.get("limit"), 25);
@@ -24,11 +29,13 @@ export async function GET(request: Request) {
     .map((symbol) => symbol.trim())
     .filter(Boolean);
 
-  const result = await archiveStockFundamentals({
-    offset,
-    limit,
-    symbols,
-  });
+  const result = retryIncomplete
+    ? await archiveIncompleteStockFundamentals({ offset, limit })
+    : await archiveStockFundamentals({
+        offset,
+        limit,
+        symbols,
+      });
 
   if (useCursor) {
     await writeArchiveCursor(result.nextOffset ?? 0);
@@ -39,6 +46,41 @@ export async function GET(request: Request) {
       "Cache-Control": "no-store, max-age=0",
     },
   });
+}
+
+async function archiveIncompleteStockFundamentals({
+  offset,
+  limit,
+}: {
+  offset: number;
+  limit: number;
+}) {
+  const queue = await getIncompleteStockFundamentalsQueue({ offset, limit });
+  if (queue.records.length === 0) {
+    return {
+      mode: "incomplete",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      total: 0,
+      offset,
+      limit,
+      processed: 0,
+      nextOffset: null,
+      results: [],
+    };
+  }
+
+  const result = await archiveStockFundamentals({
+    symbols: queue.records.map((record) => record.symbol),
+    limit: queue.records.length,
+  });
+
+  return {
+    mode: "incomplete",
+    queuedTotal: queue.total,
+    ...result,
+    nextOffset: queue.total > queue.records.length ? 0 : null,
+  };
 }
 
 function parsePositiveInt(value: string | null, fallback: number) {
