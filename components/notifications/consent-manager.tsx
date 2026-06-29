@@ -1,17 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { BellRing, Cookie, ShieldCheck, X } from "lucide-react";
+import { BellRing, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const COOKIE_CONSENT_KEY = "stockli-cookie-consent-v1";
-const NOTIFICATION_DISMISS_KEY = "stockli-notification-consent-dismissed-v1";
+const DEVICE_CONSENT_KEY = "stockli-device-consent-v2";
+const DEVICE_CONSENT_DISMISS_KEY = "stockli-device-consent-dismissed-v2";
 
 interface ConsentState {
   vapidPublicKey: string | null;
-  cookieConsentAt: string | null;
   notificationConsentStatus: "unknown" | "granted" | "denied";
 }
 
@@ -22,78 +21,26 @@ export function ConsentManager() {
   const [vapidPublicKey, setVapidPublicKey] = React.useState<string | null>(null);
   const [pushSupported, setPushSupported] = React.useState(false);
 
-  React.useEffect(() => {
-    setMounted(true);
-    const supported =
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      "serviceWorker" in navigator &&
-      "PushManager" in window;
-    setPushSupported(supported);
-
-    let cancelled = false;
-    fetch("/api/notifications/consent", { headers: { accept: "application/json" } })
-      .then((response) => response.json() as Promise<ConsentState>)
-      .then((state) => {
-        if (cancelled) return;
-        setVapidPublicKey(state.vapidPublicKey);
-        const cookieAccepted =
-          window.localStorage.getItem(COOKIE_CONSENT_KEY) === "accepted" ||
-          Boolean(state.cookieConsentAt);
-        const dismissed = window.localStorage.getItem(NOTIFICATION_DISMISS_KEY) === "1";
-        const permission = supported ? Notification.permission : "denied";
-        setVisible(!cookieAccepted || (Boolean(state.vapidPublicKey) && permission === "default" && !dismissed));
-      })
-      .catch(() => {
-        const cookieAccepted = window.localStorage.getItem(COOKIE_CONSENT_KEY) === "accepted";
-        setVisible(!cookieAccepted);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (!mounted || !visible) return null;
-
-  const canEnablePush = pushSupported && Boolean(vapidPublicKey);
-
-  async function acceptCookies() {
-    window.localStorage.setItem(COOKIE_CONSENT_KEY, "accepted");
-    await postConsent({ cookieConsent: true });
-  }
-
-  async function dismiss() {
-    window.localStorage.setItem(NOTIFICATION_DISMISS_KEY, "1");
-    await acceptCookies();
-    setVisible(false);
-  }
-
-  async function enableNotifications() {
-    setBusy(true);
-    try {
-      await acceptCookies();
-      if (!canEnablePush || !vapidPublicKey) {
-        toast.info("Browser notifications will be available after push keys are configured.");
-        setVisible(false);
-        return;
+  const syncPushSubscription = React.useCallback(
+    async ({
+      vapidPublicKey,
+      syncConsent = false,
+      showSuccessToast = false,
+    }: {
+      vapidPublicKey: string;
+      syncConsent?: boolean;
+      showSuccessToast?: boolean;
+    }) => {
+      if (
+        !pushSupported ||
+        !vapidPublicKey ||
+        typeof window === "undefined" ||
+        Notification.permission !== "granted"
+      ) {
+        return false;
       }
 
-      const permission = await Notification.requestPermission();
-      await postConsent({
-        notificationStatus: permission === "granted" ? "granted" : permission === "denied" ? "denied" : "unknown",
-      });
-
-      if (permission !== "granted") {
-        window.localStorage.setItem(NOTIFICATION_DISMISS_KEY, "1");
-        toast.info("Notifications are off. You can enable them later from browser settings.");
-        setVisible(false);
-        return;
-      }
-
-      const registration =
-        (await navigator.serviceWorker.getRegistration()) ??
-        (await navigator.serviceWorker.register("/sw.js"));
+      const registration = await ensureServiceWorkerRegistration();
       const existing = await registration.pushManager.getSubscription();
       const subscription =
         existing ??
@@ -112,7 +59,98 @@ export function ConsentManager() {
       });
       if (!response.ok) throw new Error("Could not save notification subscription.");
 
-      toast.success("Market notifications enabled.");
+      if (syncConsent) {
+        await postConsent({ notificationStatus: "granted" });
+      }
+
+      if (showSuccessToast) {
+        toast.success("Notifications are enabled. Stockli can now alert you even when the app is closed.");
+      }
+      return true;
+    },
+    [pushSupported]
+  );
+
+  React.useEffect(() => {
+    setMounted(true);
+    const supported =
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      "serviceWorker" in navigator &&
+      "PushManager" in window;
+    setPushSupported(supported);
+
+    let cancelled = false;
+    fetch("/api/notifications/consent", { headers: { accept: "application/json" } })
+      .then((response) => response.json() as Promise<ConsentState>)
+      .then((state) => {
+        if (cancelled) return;
+        setVapidPublicKey(state.vapidPublicKey);
+        const deviceConsentAccepted = window.localStorage.getItem(DEVICE_CONSENT_KEY) === "accepted";
+        const dismissed = window.localStorage.getItem(DEVICE_CONSENT_DISMISS_KEY) === "1";
+        const permission = supported ? Notification.permission : "denied";
+        setVisible(!deviceConsentAccepted && !dismissed);
+
+        if (state.vapidPublicKey && permission === "granted") {
+          void syncPushSubscription({
+            vapidPublicKey: state.vapidPublicKey,
+            syncConsent: state.notificationConsentStatus !== "granted",
+          }).catch(() => undefined);
+        } else if (supported && permission === "denied" && state.notificationConsentStatus !== "denied") {
+          void postConsent({ notificationStatus: "denied" });
+        }
+      })
+      .catch(() => {
+        const deviceConsentAccepted = window.localStorage.getItem(DEVICE_CONSENT_KEY) === "accepted";
+        const dismissed = window.localStorage.getItem(DEVICE_CONSENT_DISMISS_KEY) === "1";
+        setVisible(!deviceConsentAccepted && !dismissed);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [syncPushSubscription]);
+
+  if (!mounted || !visible) return null;
+
+  const canEnablePush = pushSupported && Boolean(vapidPublicKey);
+
+  async function acceptDeviceConsent() {
+    window.localStorage.setItem(DEVICE_CONSENT_KEY, "accepted");
+    window.localStorage.removeItem(DEVICE_CONSENT_DISMISS_KEY);
+    await postConsent({ cookieConsent: true });
+  }
+
+  async function dismiss() {
+    window.localStorage.setItem(DEVICE_CONSENT_DISMISS_KEY, "1");
+    setVisible(false);
+  }
+
+  async function acceptConsent() {
+    setBusy(true);
+    try {
+      await acceptDeviceConsent();
+      if (!canEnablePush || !vapidPublicKey) {
+        toast.info("Cookies are saved for this device. Notifications will be available after push is configured.");
+        setVisible(false);
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      await postConsent({
+        notificationStatus: permission === "granted" ? "granted" : permission === "denied" ? "denied" : "unknown",
+      });
+
+      if (permission !== "granted") {
+        toast.info("Cookies are saved. You can enable notifications later from this browser's settings.");
+        setVisible(false);
+        return;
+      }
+
+      await syncPushSubscription({
+        vapidPublicKey,
+        showSuccessToast: true,
+      });
       setVisible(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not enable notifications.");
@@ -142,22 +180,18 @@ export function ConsentManager() {
           <ShieldCheck className="size-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold">Cookies and notifications</p>
+          <p className="text-sm font-semibold">Allow cookies and alerts on this device</p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Stockli uses device cache and cookies to keep screens fast. You can also enable market,
-            alert and portfolio notifications for this browser or installed app.
+            Stockli uses cookies and device storage to keep pages fast. When you continue, we will
+            also ask this browser or app for permission to send market, alert, and portfolio updates.
           </p>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <Button type="button" variant="outline" onClick={dismiss} disabled={busy}>
-          <Cookie className="size-4" />
-          Accept cookies
-        </Button>
-        <Button type="button" onClick={enableNotifications} disabled={busy}>
+      <div className="mt-4">
+        <Button type="button" onClick={acceptConsent} disabled={busy} className="w-full">
           <BellRing className="size-4" />
-          Enable alerts
+          Accept and enable alerts
         </Button>
       </div>
     </div>
@@ -184,4 +218,12 @@ function urlBase64ToUint8Array(base64String: string) {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+async function ensureServiceWorkerRegistration() {
+  const existing = await navigator.serviceWorker.getRegistration();
+  if (!existing) {
+    await navigator.serviceWorker.register("/sw.js");
+  }
+  return navigator.serviceWorker.ready;
 }

@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
   if (body.cookieConsent === true) {
     update.cookie_consent_at = now;
-    update.cookie_consent_version = "2026-06-25";
+    update.cookie_consent_version = "2026-06-29";
   }
   if (notificationStatus) {
     update.notification_consent_at = now;

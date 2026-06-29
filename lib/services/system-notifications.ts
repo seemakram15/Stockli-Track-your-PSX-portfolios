@@ -103,25 +103,24 @@ async function createMarketSituationNotification(admin: SupabaseClient, now: Dat
   const status = marketStatus(now);
   const date = pktDate(now);
   const keyStatus = status.label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const title =
-    status.label.toLowerCase().includes("between sessions")
-      ? "PSX market break"
-      : ({
-          open: "PSX market opened",
-          "pre-open": "PSX pre-open started",
-          closed: "PSX market closed",
-          weekend: "PSX market is closed",
-          holiday: "PSX market holiday",
-        }[status.status] ?? "PSX market update");
+  const betweenSessions = status.label.toLowerCase().includes("between sessions");
+  const title = betweenSessions
+    ? "PSX is on its trading break"
+    : ({
+        open: "PSX market is now open",
+        "pre-open": "PSX pre-open has started",
+        closed: "PSX market is now closed",
+        weekend: "PSX is closed for the weekend",
+        holiday: "PSX is closed for a market holiday",
+      }[status.status] ?? "PSX market update");
 
-  const body =
-    title === "PSX market break"
-      ? `Trading is between sessions. Live refresh resumes ${formatNextRefresh(status.nextRefreshAt)}.`
-      : status.status === "open"
-        ? "Live prices, portfolio P/L, alerts and calendars are refreshing during the session."
-        : status.status === "pre-open"
-          ? "Pre-open is active. Live trading updates begin when the regular session starts."
-          : `${status.label}. Next refresh window ${formatNextRefresh(status.nextRefreshAt)}.`;
+  const body = betweenSessions
+    ? `Trading is paused between sessions. Live updates resume ${formatNextRefresh(status.nextRefreshAt)}.`
+    : status.status === "open"
+      ? "Live prices, portfolio moves, and price alerts are active during the trading session."
+      : status.status === "pre-open"
+        ? "Pre-open trading is underway. Live market updates will continue when the regular session opens."
+        : `${status.label}. The next refresh window starts ${formatNextRefresh(status.nextRefreshAt)}.`;
 
   return createNotification(admin, {
     type: "MARKET",
@@ -138,9 +137,9 @@ async function createFeedIssueNotification(admin: SupabaseClient, now: Date, mes
   const { hour } = pktParts(now);
   return createNotification(admin, {
     type: "MARKET",
-    title: "Market feed needs attention",
+    title: "PSX feed update is delayed",
     body:
-      "The live PSX feed did not respond during a refresh window. Cached market data remains available while we retry.",
+      "The live PSX feed did not respond during the last refresh attempt. Stockli is still showing cached market data while it retries in the background.",
     href: "/market",
     eventKey: `market-feed-issue:${pktDate(now)}:${hour}`,
     eventPayload: { message: message.slice(0, 500) },
@@ -158,8 +157,8 @@ async function createKse100ChangeNotification(admin: SupabaseClient, now: Date) 
   const direction = kse100.change >= 0 ? "up" : "down";
   return createNotification(admin, {
     type: "MARKET",
-    title: `KSE100 is ${direction} ${formatPct(Math.abs(kse100.changePct))}`,
-    body: `${formatSigned(kse100.change)} points today. Current level ${formatNumber(kse100.current)}.`,
+    title: `KSE100 moved ${formatSignedPct(kse100.changePct)} today`,
+    body: `The index is ${direction} ${formatSignedNumber(kse100.change)} points and is now at ${formatNumber(kse100.current)}.`,
     symbol: "KSE100",
     href: "/market",
     eventKey: `kse100-change:${pktDate(now)}:${bucket}:${direction}`,
@@ -218,12 +217,13 @@ async function createPortfolioPulseNotifications(
   await Promise.all(
     Array.from(totals.entries()).map(async ([userId, total]) => {
       if (Math.abs(total.dayPl) < 1) return;
-      const positive = total.dayPl >= 0;
+      const move = formatSignedMoney(total.dayPl);
+      const holdingLabel = total.positions === 1 ? "holding" : "holdings";
       const result = await createNotification(admin, {
         userId,
         type: "PORTFOLIO",
-        title: positive ? "Portfolio pulse: gain today" : "Portfolio pulse: loss today",
-        body: `Your positions are ${positive ? "up" : "down"} Rs ${money(Math.abs(total.dayPl))} today across ${total.positions} positions.`,
+        title: `Portfolio update: ${move} today`,
+        body: `Your portfolio is ${total.dayPl >= 0 ? "up" : "down"} ${move} today across ${total.positions} ${holdingLabel}.`,
         href: "/dashboard",
         eventKey: `portfolio-pulse:${userId}:${pktDate(now)}:${bucket}`,
         eventPayload: total,
@@ -280,11 +280,15 @@ function formatPct(value: number) {
   return `${value.toFixed(2)}%`;
 }
 
-function formatSigned(value: number) {
+function formatSignedNumber(value: number) {
   const formatted = Math.abs(value).toLocaleString("en-US", {
     maximumFractionDigits: 2,
   });
   return value >= 0 ? `+${formatted}` : `-${formatted}`;
+}
+
+function formatSignedPct(value: number) {
+  return `${value >= 0 ? "+" : "-"}${formatPct(Math.abs(value))}`;
 }
 
 function formatNumber(value: number) {
@@ -298,4 +302,8 @@ function money(value: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatSignedMoney(value: number) {
+  return `${value >= 0 ? "+" : "-"}Rs ${money(Math.abs(value))}`;
 }
