@@ -50,12 +50,24 @@ export interface FinancialTabData {
   tables: FinancialTable[];
 }
 
+export interface StockFinancialsAvailability {
+  complete: boolean;
+  availableTabs: StockFinancialTabId[];
+  missingTabs: StockFinancialTabId[];
+  queued: boolean;
+  attempts?: number;
+  lastAttemptAt?: string | null;
+  updatedAt: string;
+  message?: string;
+}
+
 export interface StockFinancialsData {
   symbol: string;
   company: FundamentalsCompany | null;
   source: "fundamentals";
   updatedAt: string;
   tabs: Record<StockFinancialTabId, FinancialTabData>;
+  availability?: StockFinancialsAvailability;
 }
 
 export interface StockFinancialPeerRow {
