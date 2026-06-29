@@ -164,11 +164,12 @@ export async function runBackendWarmup({
           .from("alerts")
           .update({ last_triggered_at: new Date().toISOString(), is_active: false })
           .eq("id", alert.id);
+        const priceDelta = quote.price - Number(alert.target_price);
         await createNotification(admin, {
           userId: alert.user_id,
           type: "ALERT",
-          title: `${alert.symbol} ${alert.condition === "ABOVE" ? "rose above" : "fell below"} Rs ${money(alert.target_price)}`,
-          body: `Your price alert triggered — now Rs ${money(quote.price)}.`,
+          title: `Price alert hit: ${alert.symbol} crossed ${alert.condition === "ABOVE" ? "above" : "below"} Rs ${money(alert.target_price)}`,
+          body: `${alert.symbol} is now at Rs ${money(quote.price)} (${formatSignedMoney(priceDelta)} vs your alert price).`,
           symbol: alert.symbol,
           href: `/stock/${alert.symbol}`,
           eventKey: `price-alert:${alert.id}:${Math.round(Number(quote.price) * 100)}`,
@@ -268,6 +269,10 @@ function money(value: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatSignedMoney(value: number): string {
+  return `${value >= 0 ? "+" : "-"}Rs ${money(Math.abs(value))}`;
 }
 
 function isoDateInPkt(date: Date): string {

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link, { useLinkStatus } from "next/link";
+import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BadgePercent,
@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EXPLORE_NAV_ITEMS, MARKET_NAV_ITEMS, NAV_ITEMS, TOOL_NAV_ITEMS } from "@/lib/constants";
+import { PrefetchNavLink } from "./prefetch-nav-link";
 
 const ICONS: Record<string, LucideIcon> = {
   BadgePercent,
@@ -75,9 +76,11 @@ function NavIcon({ Icon, active }: { Icon: LucideIcon; active: boolean }) {
 export function NavLinks({
   onNavigate,
   showAdmin = false,
+  prefetchOnMount = true,
 }: {
-  onNavigate?: () => void;
+  onNavigate?: (event: React.MouseEvent<HTMLAnchorElement>, href: string) => void;
   showAdmin?: boolean;
+  prefetchOnMount?: boolean;
 }) {
   const pathname = usePathname() ?? "/";
   const marketActive = pathname === "/market" || pathname.startsWith("/market/");
@@ -134,7 +137,11 @@ export function NavLinks({
               </button>
               {marketOpen && (
                 <div className="space-y-1 pl-4">
-                  <MarketNavItems pathname={pathname} onNavigate={onNavigate} />
+                  <MarketNavItems
+                    pathname={pathname}
+                    onNavigate={onNavigate}
+                    prefetchOnMount={prefetchOnMount}
+                  />
                 </div>
               )}
             </div>
@@ -151,6 +158,7 @@ export function NavLinks({
               pathname={pathname}
               items={TOOL_NAV_ITEMS}
               onNavigate={onNavigate}
+              prefetchOnMount={prefetchOnMount}
             />
           );
         }
@@ -165,6 +173,7 @@ export function NavLinks({
               pathname={pathname}
               items={exploreItems}
               onNavigate={onNavigate}
+              prefetchOnMount={prefetchOnMount}
             />
           );
         }
@@ -173,11 +182,11 @@ export function NavLinks({
         const active =
           pathname === item.href || pathname.startsWith(item.href + "/");
         return (
-          <Link
+          <PrefetchNavLink
             key={item.href}
             href={item.href}
-            prefetch={false}
-            onClick={onNavigate}
+            onClick={(event) => onNavigate?.(event, item.href)}
+            prefetchOnMount={prefetchOnMount}
             aria-current={active ? "page" : undefined}
             className={cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
@@ -188,7 +197,7 @@ export function NavLinks({
           >
             {Icon && <NavIcon Icon={Icon} active={active} />}
             {item.label}
-          </Link>
+          </PrefetchNavLink>
         );
       })}
     </nav>
@@ -202,13 +211,15 @@ function MobileNavGroup({
   pathname,
   items,
   onNavigate,
+  prefetchOnMount,
 }: {
   label: string;
   icon: string;
   active: boolean;
   pathname: string;
   items: ReadonlyArray<{ href: string; label: string; icon: string }>;
-  onNavigate?: () => void;
+  onNavigate?: (event: React.MouseEvent<HTMLAnchorElement>, href: string) => void;
+  prefetchOnMount: boolean;
 }) {
   const [open, setOpen] = React.useState(active);
   const Icon = ICONS[icon];
@@ -256,6 +267,7 @@ function MobileNavGroup({
               icon={item.icon}
               pathname={pathname}
               onNavigate={onNavigate}
+              prefetchOnMount={prefetchOnMount}
             />
           ))}
         </div>
@@ -267,9 +279,11 @@ function MobileNavGroup({
 function MarketNavItems({
   pathname,
   onNavigate,
+  prefetchOnMount,
 }: {
   pathname: string;
-  onNavigate?: () => void;
+  onNavigate?: (event: React.MouseEvent<HTMLAnchorElement>, href: string) => void;
+  prefetchOnMount: boolean;
 }) {
   const activeGroups = React.useMemo(() => {
     const groups: Record<string, boolean> = {};
@@ -345,6 +359,7 @@ function MarketNavItems({
                       icon={child.icon}
                       pathname={pathname}
                       onNavigate={onNavigate}
+                      prefetchOnMount={prefetchOnMount}
                     />
                   ))}
                 </div>
@@ -361,6 +376,7 @@ function MarketNavItems({
             icon={item.icon}
             pathname={pathname}
             onNavigate={onNavigate}
+            prefetchOnMount={prefetchOnMount}
           />
         );
       })}
@@ -374,21 +390,23 @@ function MarketNavLink({
   icon,
   pathname,
   onNavigate,
+  prefetchOnMount,
 }: {
   href: string;
   label: string;
   icon: string;
   pathname: string;
-  onNavigate?: () => void;
+  onNavigate?: (event: React.MouseEvent<HTMLAnchorElement>, href: string) => void;
+  prefetchOnMount: boolean;
 }) {
   const Icon = ICONS[icon];
   const active = pathname === href || (href !== "/market" && pathname.startsWith(href + "/"));
 
   return (
-    <Link
+    <PrefetchNavLink
       href={href}
-      prefetch={false}
-      onClick={onNavigate}
+      onClick={(event) => onNavigate?.(event, href)}
+      prefetchOnMount={prefetchOnMount}
       aria-current={active ? "page" : undefined}
       className={cn(
         "group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
@@ -399,6 +417,6 @@ function MarketNavLink({
     >
       {Icon && <NavIcon Icon={Icon} active={active} />}
       <span className="min-w-0 truncate">{label}</span>
-    </Link>
+    </PrefetchNavLink>
   );
 }

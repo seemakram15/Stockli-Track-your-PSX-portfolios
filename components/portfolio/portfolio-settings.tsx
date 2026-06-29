@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useRouteTransition } from "@/components/navigation/route-transition-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,11 +118,15 @@ function DeleteButton({
   onDeleted: () => void;
 }) {
   const router = useRouter();
+  const { beginNavigation } = useRouteTransition();
 
   function afterDelete() {
     markPortfolioMutated({ portfolioId: id, userId });
     onDeleted();
-    router.push("/portfolios");
+    beginNavigation("/portfolios");
+    React.startTransition(() => {
+      router.push("/portfolios");
+    });
     router.refresh();
   }
 

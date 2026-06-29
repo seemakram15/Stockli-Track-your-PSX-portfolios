@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Menu } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sheet,
   SheetContent,
@@ -10,12 +11,21 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { useRouteTransition } from "@/components/navigation/route-transition-provider";
 import { Logo } from "@/components/logo";
 import { NavLinks } from "./nav-links";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 
 export function MobileNav({ showAdmin = false }: { showAdmin?: boolean }) {
   const [open, setOpen] = React.useState(false);
+  const pathname = usePathname() ?? "/";
+  const router = useRouter();
+  const { beginNavigation } = useRouteTransition();
+
+  React.useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -30,7 +40,23 @@ export function MobileNav({ showAdmin = false }: { showAdmin?: boolean }) {
           </SheetTitle>
         </SheetHeader>
         <div className="flex-1 px-3 py-4">
-          <NavLinks onNavigate={() => setOpen(false)} showAdmin={showAdmin} />
+          <NavLinks
+            onNavigate={(event, href) => {
+              if (pathname === href || pathname.startsWith(`${href}/`)) {
+                setOpen(false);
+                return;
+              }
+
+              event.preventDefault();
+              beginNavigation(href);
+              React.startTransition(() => {
+                router.push(href);
+              });
+              requestAnimationFrame(() => setOpen(false));
+            }}
+            showAdmin={showAdmin}
+            prefetchOnMount={false}
+          />
         </div>
         <div className="border-t border-border p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <InstallAppButton className="w-full justify-start" />
