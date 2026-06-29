@@ -118,6 +118,10 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(resubscribeToPush());
+});
+
 function networkFirst(request, cacheName) {
   return fetch(request)
     .then((response) => {
@@ -128,4 +132,45 @@ function networkFirst(request, cacheName) {
       return response;
     })
     .catch(() => caches.match(request));
+}
+
+async function resubscribeToPush() {
+  try {
+    const configResponse = await fetch("/api/notifications/consent", {
+      headers: { accept: "application/json" },
+      credentials: "include",
+    });
+    if (!configResponse.ok) return;
+
+    const config = await configResponse.json();
+    if (!config?.vapidPublicKey) return;
+
+    const subscription = await self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(config.vapidPublicKey),
+    });
+
+    await fetch("/api/notifications/push-subscription", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(subscription.toJSON()),
+    });
+  } catch {
+    // If background re-subscribe fails, the next signed-in app visit will repair it.
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = `${base64String}${padding}`.replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i += 1) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }

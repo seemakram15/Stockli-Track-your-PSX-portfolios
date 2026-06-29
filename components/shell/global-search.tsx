@@ -22,6 +22,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useRouteTransition } from "@/components/navigation/route-transition-provider";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { SearchResult } from "@/app/api/search/route";
@@ -86,6 +87,7 @@ export function GlobalSearch({
   mode?: SearchMode;
 }) {
   const router = useRouter();
+  const { beginNavigation } = useRouteTransition();
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [results, setResults] = React.useState<SearchResult[]>([]);
@@ -188,7 +190,10 @@ export function GlobalSearch({
 
   function go(entry: SearchEntry) {
     setOpen(false);
-    router.push(entry.href);
+    beginNavigation(entry.href);
+    React.startTransition(() => {
+      router.push(entry.href);
+    });
   }
 
   function onKeyDown(event: React.KeyboardEvent) {

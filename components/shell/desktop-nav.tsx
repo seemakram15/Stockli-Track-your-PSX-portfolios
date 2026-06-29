@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link, { useLinkStatus } from "next/link";
-import { usePathname } from "next/navigation";
+import { useLinkStatus } from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BadgePercent,
   Bell,
@@ -31,7 +31,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { EXPLORE_NAV_ITEMS, MARKET_NAV_ITEMS, NAV_ITEMS, TOOL_NAV_ITEMS } from "@/lib/constants";
+import { useRouteTransition } from "@/components/navigation/route-transition-provider";
 import { cn } from "@/lib/utils";
+import { PrefetchNavLink } from "./prefetch-nav-link";
 
 const ICONS: Record<string, LucideIcon> = {
   BadgePercent,
@@ -60,6 +62,8 @@ const ICONS: Record<string, LucideIcon> = {
 
 export function DesktopNav({ showAdmin = false }: { showAdmin?: boolean }) {
   const pathname = usePathname() ?? "/";
+  const router = useRouter();
+  const { beginNavigation } = useRouteTransition();
   const marketActive = pathname === "/market" || pathname.startsWith("/market/");
   const toolsActive = pathname.startsWith("/analysis");
   const exploreActive =
@@ -78,6 +82,26 @@ export function DesktopNav({ showAdmin = false }: { showAdmin?: boolean }) {
     ],
     [showAdmin]
   );
+  const handleNavigate = React.useCallback(
+    (
+      event: React.MouseEvent<HTMLAnchorElement>,
+      href: string,
+      afterNavigate?: () => void
+    ) => {
+      if (pathname === href || pathname.startsWith(`${href}/`)) {
+        afterNavigate?.();
+        return;
+      }
+
+      event.preventDefault();
+      beginNavigation(href);
+      React.startTransition(() => {
+        router.push(href);
+      });
+      requestAnimationFrame(() => afterNavigate?.());
+    },
+    [beginNavigation, pathname, router]
+  );
 
   return (
     <nav className="hidden min-w-0 items-center gap-1 lg:flex">
@@ -86,20 +110,23 @@ export function DesktopNav({ showAdmin = false }: { showAdmin?: boolean }) {
         label={dashboardItem.label}
         icon={dashboardItem.icon}
         active={pathname === dashboardItem.href || pathname.startsWith(dashboardItem.href + "/")}
+        onNavigate={handleNavigate}
       />
       <DesktopNavLink
         href={portfoliosItem.href}
         label={portfoliosItem.label}
         icon={portfoliosItem.icon}
         active={pathname === portfoliosItem.href || pathname.startsWith(portfoliosItem.href + "/")}
+        onNavigate={handleNavigate}
       />
-      <MarketDropdown active={marketActive} pathname={pathname} />
+      <MarketDropdown active={marketActive} pathname={pathname} onNavigate={handleNavigate} />
       <NavDropdown
         label="Tools"
         sectionLabel="Tools"
         active={toolsActive}
         pathname={pathname}
         links={toolsLinks}
+        onNavigate={handleNavigate}
       />
       <NavDropdown
         label="Explore"
@@ -107,18 +134,21 @@ export function DesktopNav({ showAdmin = false }: { showAdmin?: boolean }) {
         active={exploreActive}
         pathname={pathname}
         links={exploreLinks}
+        onNavigate={handleNavigate}
       />
       <DesktopNavLink
         href={watchlistItem.href}
         label={watchlistItem.label}
         icon={watchlistItem.icon}
         active={pathname === watchlistItem.href || pathname.startsWith(watchlistItem.href + "/")}
+        onNavigate={handleNavigate}
       />
       <DesktopNavLink
         href={alertsItem.href}
         label={alertsItem.label}
         icon={alertsItem.icon}
         active={pathname === alertsItem.href || pathname.startsWith(alertsItem.href + "/")}
+        onNavigate={handleNavigate}
       />
     </nav>
   );
@@ -130,18 +160,26 @@ type DropdownLink = {
   icon: string;
 };
 
+type DesktopNavigateHandler = (
+  event: React.MouseEvent<HTMLAnchorElement>,
+  href: string,
+  afterNavigate?: () => void
+) => void;
+
 function NavDropdown({
   label,
   sectionLabel,
   active,
   pathname,
   links,
+  onNavigate,
 }: {
   label: string;
   sectionLabel: string;
   active: boolean;
   pathname: string;
   links: DropdownLink[];
+  onNavigate: DesktopNavigateHandler;
 }) {
   const [open, setOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -224,7 +262,8 @@ function NavDropdown({
                   label={item.label}
                   icon={item.icon}
                   active={pathname === item.href || pathname.startsWith(item.href + "/")}
-                  onNavigate={closeMenu}
+                  onNavigate={onNavigate}
+                  afterNavigate={closeMenu}
                 />
               ))}
             </div>
@@ -235,7 +274,15 @@ function NavDropdown({
   );
 }
 
-function MarketDropdown({ active, pathname }: { active: boolean; pathname: string }) {
+function MarketDropdown({
+  active,
+  pathname,
+  onNavigate,
+}: {
+  active: boolean;
+  pathname: string;
+  onNavigate: DesktopNavigateHandler;
+}) {
   const [open, setOpen] = React.useState(false);
   const [openGroup, setOpenGroup] = React.useState<string | null>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -358,7 +405,8 @@ function MarketDropdown({ active, pathname }: { active: boolean; pathname: strin
                                 label={child.label}
                                 icon={child.icon}
                                 active={isMarketRouteActive(pathname, child.href)}
-                                onNavigate={closeMenu}
+                                onNavigate={onNavigate}
+                                afterNavigate={closeMenu}
                               />
                             ))}
                           </div>
@@ -375,7 +423,8 @@ function MarketDropdown({ active, pathname }: { active: boolean; pathname: strin
                       label={item.label}
                       icon={item.icon}
                       active={isMarketRouteActive(pathname, item.href)}
-                      onNavigate={closeMenu}
+                      onNavigate={onNavigate}
+                      afterNavigate={closeMenu}
                     />
                   </div>
                 );
@@ -398,18 +447,20 @@ function DesktopNavLink({
   label,
   icon,
   active,
+  onNavigate,
 }: {
   href: string;
   label: string;
   icon: string;
   active: boolean;
+  onNavigate?: DesktopNavigateHandler;
 }) {
   const Icon = ICONS[icon];
 
   return (
-    <Link
+    <PrefetchNavLink
       href={href}
-      prefetch={false}
+      onClick={(event) => onNavigate?.(event, href)}
       aria-current={active ? "page" : undefined}
       className={cn(
         "inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold transition-colors",
@@ -418,7 +469,7 @@ function DesktopNavLink({
     >
       {Icon ? <PendingIcon Icon={Icon} active={active} /> : null}
       <span>{label}</span>
-    </Link>
+    </PrefetchNavLink>
   );
 }
 
@@ -428,20 +479,21 @@ function DesktopMarketItem({
   icon,
   active,
   onNavigate,
+  afterNavigate,
 }: {
   href: string;
   label: string;
   icon: string;
   active: boolean;
-  onNavigate?: () => void;
+  onNavigate?: DesktopNavigateHandler;
+  afterNavigate?: () => void;
 }) {
   const Icon = ICONS[icon];
 
   return (
-    <Link
+    <PrefetchNavLink
       href={href}
-      prefetch={false}
-      onClick={onNavigate}
+      onClick={(event) => onNavigate?.(event, href, afterNavigate)}
       className={cn(
         "flex min-w-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground",
         active && "bg-accent text-accent-foreground"
@@ -451,7 +503,7 @@ function DesktopMarketItem({
         {Icon ? <PendingIcon Icon={Icon} active={active} /> : null}
       </span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
-    </Link>
+    </PrefetchNavLink>
   );
 }
 
