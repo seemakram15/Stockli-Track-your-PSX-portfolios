@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, BarChart3, Layers, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { ChangeBadge } from "@/components/change-badge";
 import { MarketAccordion } from "@/components/market/market-accordion";
+import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterPanel } from "@/components/ui/filter-panel";
@@ -100,18 +101,32 @@ export function SectorPerformanceDirectory({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SectorStat label="Sectors" value={summary.sectorCount.toLocaleString("en-US")} />
-        <SectorStat label="Stocks tracked" value={summary.stockCount.toLocaleString("en-US")} />
-        <SectorStat
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <StatCard
+          label="Sectors"
+          value={summary.sectorCount.toLocaleString("en-US")}
+          accent="teal"
+          icon={<Layers className="size-4" />}
+        />
+        <StatCard
+          label="Stocks tracked"
+          value={summary.stockCount.toLocaleString("en-US")}
+          accent="sky"
+          icon={<BarChart3 className="size-4" />}
+        />
+        <StatCard
           label="Advancing sectors"
           value={summary.advancing.toLocaleString("en-US")}
           tone="gain"
+          accent="emerald"
+          icon={<TrendingUp className="size-4" />}
         />
-        <SectorStat
+        <StatCard
           label="Declining sectors"
           value={summary.declining.toLocaleString("en-US")}
           tone="loss"
+          accent="rose"
+          icon={<TrendingDown className="size-4" />}
         />
       </div>
 
@@ -120,8 +135,10 @@ export function SectorPerformanceDirectory({
           {visibleSectors.map((sector) => (
             <MarketAccordion
               key={sector.sector}
-              className="border-emerald-200/70 bg-emerald-50/60 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/20"
-              summaryClassName="border-emerald-200/60 bg-emerald-50/85 hover:bg-emerald-100/75 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40"
+              icon={<BarChart3 />}
+              accent="teal"
+              className="border-teal-200/70 bg-teal-50/60 shadow-soft dark:border-teal-900/50 dark:bg-teal-950/20"
+              summaryClassName="border-teal-200/60 bg-teal-50/85 hover:bg-teal-100/75 dark:border-teal-900/50 dark:bg-teal-950/30 dark:hover:bg-teal-900/40"
               contentClassName="bg-background/75 dark:bg-transparent"
               title={
                 <span className="inline-flex items-center gap-2">
@@ -289,31 +306,6 @@ function SectorStocksList({ stocks }: { stocks: SectorStockPerformance[] }) {
           </Link>
         ))}
       </div>
-    </div>
-  );
-}
-
-function SectorStat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: "gain" | "loss";
-}) {
-  return (
-    <div className="min-w-0 rounded-xl border border-border bg-muted/20 p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p
-        className={cn(
-          "mt-1 text-lg font-semibold tabular-nums [overflow-wrap:anywhere]",
-          tone === "gain" && "text-gain",
-          tone === "loss" && "text-loss"
-        )}
-      >
-        {value}
-      </p>
     </div>
   );
 }

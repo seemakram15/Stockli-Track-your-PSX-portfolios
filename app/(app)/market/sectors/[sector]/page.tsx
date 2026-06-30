@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import type * as React from "react";
 import { notFound } from "next/navigation";
-import { Activity, BarChart3, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, BarChart3, Flame, Layers, TrendingDown, TrendingUp } from "lucide-react";
 import {
   getMarketSectorIndexLabel,
   normalizeMarketSectorIndex,
@@ -10,7 +9,9 @@ import { getSectorPerformance } from "@/lib/services/market";
 import { PageHeader } from "@/components/page-header";
 import { SmartBackLink } from "@/components/smart-back-link";
 import { SectorStocksTable } from "@/components/market/sector-stocks-table";
+import { StatCard } from "@/components/stat-card";
 import { DataDelayBadge } from "@/components/status-badges";
+import { IconChip } from "@/components/ui/accent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCompact, formatPercent, plColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -59,42 +60,50 @@ export default async function MarketSectorPage({
       <SmartBackLink fallbackHref={backHref} label="Back to sectors" />
 
       <PageHeader
+        icon={<BarChart3 />}
+        eyebrow="Sector detail"
+        accent="teal"
         title={sector.sector}
         description={description}
         actions={<DataDelayBadge />}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <SectorMetric
+        <StatCard
           icon={<BarChart3 className="size-4" />}
           label="Sector move"
           value={formatPercent(sector.avgChangePct)}
-          tone={sector.avgChangePct}
+          tone={toneOf(sector.avgChangePct)}
+          accent="teal"
         />
-        <SectorMetric
+        <StatCard
           icon={<Activity className="size-4" />}
           label="Total volume"
           value={formatCompact(sector.volume)}
+          accent="sky"
         />
-        <SectorMetric
+        <StatCard
           icon={<TrendingUp className="size-4" />}
           label="Advancers"
           value={sector.advancers.toLocaleString("en-US")}
-          sub={`${sector.count} total stocks`}
-          tone={1}
+          sub={<span className="text-muted-foreground">{sector.count} total stocks</span>}
+          tone="gain"
+          accent="emerald"
         />
-        <SectorMetric
+        <StatCard
           icon={<TrendingDown className="size-4" />}
           label="Decliners"
           value={sector.decliners.toLocaleString("en-US")}
-          sub={flat > 0 ? `${flat} flat` : undefined}
-          tone={-1}
+          sub={flat > 0 ? <span className="text-muted-foreground">{flat} flat</span> : undefined}
+          tone="loss"
+          accent="rose"
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconChip accent="teal" variant="gradient"><Layers /></IconChip>
             <CardTitle>All stocks ({sector.stocks.length})</CardTitle>
           </CardHeader>
           <CardContent>
@@ -103,12 +112,13 @@ export default async function MarketSectorPage({
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconChip accent="orange" variant="gradient"><Flame /></IconChip>
             <CardTitle>Most active</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {mostActive.map((stock) => (
-              <div key={stock.symbol} className="rounded-xl border border-border bg-muted/15 p-3">
+              <div key={stock.symbol} className="rounded-xl border border-border bg-muted/15 p-3 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold">{stock.symbol}</p>
@@ -127,33 +137,10 @@ export default async function MarketSectorPage({
   );
 }
 
-function SectorMetric({
-  icon,
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub?: string;
-  tone?: number;
-}) {
-  return (
-    <Card>
-      <CardContent className="min-w-0 p-3 sm:p-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {icon}
-          {label}
-        </div>
-        <p className={cn("mt-2 text-lg font-bold tabular-nums [overflow-wrap:anywhere] sm:text-2xl", tone == null ? "" : plColorClass(tone))}>
-          {value}
-        </p>
-        {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
-      </CardContent>
-    </Card>
-  );
+function toneOf(value: number): "gain" | "loss" | "default" {
+  if (value > 0) return "gain";
+  if (value < 0) return "loss";
+  return "default";
 }
 
 function decodeParam(value: string) {

@@ -7,6 +7,7 @@ import { isDemoMode } from "@/lib/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
+import { IconChip } from "@/components/ui/accent";
 import { SmartBackLink } from "@/components/smart-back-link";
 import { LiveSummaryCards } from "@/components/live-summary-cards";
 import { HoldingsTable } from "@/components/holdings-table";
@@ -41,19 +42,22 @@ export default async function AdminUserPage({
       <SmartBackLink fallbackHref="/admin" label="Back" />
 
       {/* Impersonation/view notice */}
-      <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-sm">
-        <Eye className="size-4 text-primary" />
+      <div className="flex items-center gap-2 rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-2.5 text-sm">
+        <Eye className="size-4 text-sky-600 dark:text-sky-400" />
         <span className="text-muted-foreground">
           Viewing another user&apos;s account as superadmin (read-only).
         </span>
       </div>
 
       <PageHeader
+        icon={<Shield />}
+        accent="primary"
+        eyebrow="User account"
         title={
           <span className="flex flex-wrap items-center gap-2">
             {profile.displayName ?? email ?? "User"}
             {profile.role === "superadmin" && (
-              <Badge className="gap-1">
+              <Badge variant="violet">
                 <Shield className="size-3" /> Superadmin
               </Badge>
             )}
@@ -99,8 +103,10 @@ export default async function AdminUserPage({
 
         <div className="space-y-4">
           <Card>
-            <CardHeader className="flex-row items-center gap-2">
-              <Star className="size-4 text-chart-3" />
+            <CardHeader className="flex-row items-center gap-3">
+              <IconChip accent="amber" size="sm">
+                <Star />
+              </IconChip>
               <CardTitle className="text-base">Watchlist ({watchlistSymbols.length})</CardTitle>
             </CardHeader>
             <CardContent>
@@ -119,8 +125,10 @@ export default async function AdminUserPage({
           </Card>
 
           <Card>
-            <CardHeader className="flex-row items-center gap-2">
-              <Bell className="size-4 text-muted-foreground" />
+            <CardHeader className="flex-row items-center gap-3">
+              <IconChip accent="rose" size="sm">
+                <Bell />
+              </IconChip>
               <CardTitle className="text-base">Alerts ({alerts.length})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">

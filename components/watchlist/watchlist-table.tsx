@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { Star, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -25,9 +25,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ChangeBadge } from "@/components/change-badge";
+import { IconChip } from "@/components/ui/accent";
 import { usePrices } from "@/lib/hooks/use-prices";
 import { effectiveQuotePrice } from "@/lib/services/metrics";
-import { formatPKR, formatCompact } from "@/lib/format";
+import { formatPKR, formatCompact, plColorClass } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { removeFromWatchlist } from "@/lib/actions/watchlist";
 import type { Quote } from "@/lib/types";
 
@@ -56,18 +58,29 @@ export function WatchlistTable({
           const q = quotes.get(it.symbol.toUpperCase());
           const price = effectiveQuotePrice(q ?? null);
           return (
-            <div key={it.symbol} className="rounded-xl border border-border bg-card p-3">
+            <div
+              key={it.symbol}
+              className="rounded-xl border border-border bg-card p-3 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg"
+            >
               <div className="flex items-start justify-between gap-3">
-                <Link href={`/stock/${it.symbol}`} className="min-w-0">
-                  <span className="font-semibold">{it.symbol}</span>
-                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                    {it.company ?? it.sector ?? ""}
+                <Link href={`/stock/${it.symbol}`} className="flex min-w-0 items-center gap-2.5">
+                  <IconChip accent="amber" variant="gradient" size="sm">
+                    <Star />
+                  </IconChip>
+                  <span className="min-w-0">
+                    <span className="font-semibold">{it.symbol}</span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                      {it.company ?? it.sector ?? ""}
+                    </span>
                   </span>
                 </Link>
                 <RemoveWatchItem symbol={it.symbol} demo={demo} />
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                <MobileMetric label="Current" value={formatPKR(price)} />
+                <MobileMetric
+                  label="Current"
+                  value={<span className={cn("tabular-nums", plColorClass(q?.changePct ?? null))}>{formatPKR(price)}</span>}
+                />
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground">Change</p>
                   <ChangeBadge pct={q?.changePct} className="justify-end" />
@@ -97,19 +110,24 @@ export function WatchlistTable({
               const q = quotes.get(it.symbol.toUpperCase());
               const price = effectiveQuotePrice(q ?? null);
               return (
-                <TableRow key={it.symbol} className="group">
+                <TableRow key={it.symbol} className="group transition-colors hover:bg-amber-500/5">
                   <TableCell>
-                    <Link href={`/stock/${it.symbol}`} className="flex flex-col">
-                      <span className="font-semibold group-hover:text-primary">{it.symbol}</span>
-                      <span className="max-w-44 truncate text-xs text-muted-foreground">
-                        {it.company}
+                    <Link href={`/stock/${it.symbol}`} className="flex items-center gap-2.5">
+                      <IconChip accent="amber" variant="gradient" size="sm">
+                        <Star />
+                      </IconChip>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="font-semibold group-hover:text-primary">{it.symbol}</span>
+                        <span className="max-w-44 truncate text-xs text-muted-foreground">
+                          {it.company}
+                        </span>
                       </span>
                     </Link>
                   </TableCell>
                   <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
                     {it.sector}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell className={cn("text-right tabular-nums", plColorClass(q?.changePct ?? null))}>
                     {formatPKR(price)}
                   </TableCell>
                   <TableCell className="text-right">

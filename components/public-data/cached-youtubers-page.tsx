@@ -23,6 +23,9 @@ export function CachedYoutubersPage() {
       <PageHeader
         title="Youtubers"
         description="Latest Pakistan market videos from selected YouTube channels, arranged newest first."
+        icon={<PlaySquare />}
+        eyebrow="Market creators"
+        accent="rose"
         actions={
           <>
             <CacheStatusBadge
@@ -31,7 +34,7 @@ export function CachedYoutubersPage() {
               isFromDeviceCache={isFromDeviceCache}
               isRefreshing={isRefreshing}
             />
-            <Button asChild variant="outline" size="sm">
+            <Button asChild size="sm" className="bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-500/25 hover:from-rose-500 hover:to-pink-400 hover:text-white">
               <a href="https://www.youtube.com/" target="_blank" rel="noreferrer">
                 <PlaySquare className="size-4" />
                 YouTube

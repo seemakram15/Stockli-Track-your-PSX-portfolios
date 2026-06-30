@@ -17,8 +17,11 @@ export default async function AlertsPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader
+        icon={<Bell />}
+        eyebrow="Notifications"
+        accent="rose"
         title="Price alerts"
-        description="Get notified when a stock crosses your target. Evaluated each refresh (~15 min)."
+        description="Get notified when a stock crosses your target. Evaluated each refresh (~10 min)."
         actions={<CreateAlertDialog />}
       />
 

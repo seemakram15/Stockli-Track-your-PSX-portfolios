@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/format";
 import { setUserRole, type AdminActionState } from "@/lib/actions/admin";
@@ -122,19 +123,15 @@ export function AdminUsersTable({
 }
 
 function RoleBadge({ role }: { role: AdminUserRow["role"] }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-        role === "superadmin"
-          ? "bg-primary/15 text-primary"
-          : "bg-muted text-muted-foreground"
-      )}
-    >
-      {role === "superadmin" && <Shield className="size-3" />}
-      {role === "superadmin" ? "Superadmin" : "User"}
-    </span>
-  );
+  if (role === "superadmin") {
+    return (
+      <Badge variant="violet">
+        <Shield className="size-3" />
+        Superadmin
+      </Badge>
+    );
+  }
+  return <Badge variant="secondary">User</Badge>;
 }
 
 function MobileMetric({

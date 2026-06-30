@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Activity, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { IconChip } from "@/components/ui/accent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkline } from "@/components/charts/sparkline";
 import { PriceChart } from "@/components/charts/price-chart";
@@ -75,8 +76,8 @@ export function IndicesPanel({
               key={idx.symbol}
               onClick={() => select(idx.symbol)}
               className={cn(
-                "flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-card p-3 text-left transition-colors sm:p-4",
-                isActive ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/40"
+                "flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-card p-3 text-left shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg sm:p-4",
+                isActive ? "border-emerald-500 ring-1 ring-emerald-500/60" : "border-border hover:border-emerald-500/40"
               )}
             >
               <div className="min-w-0">
@@ -94,9 +95,9 @@ export function IndicesPanel({
       <Card className={cn("transition-opacity", loading && "opacity-60")}>
         <CardHeader className="flex-col items-start gap-3 sm:flex-row sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-              {loading ? <Loader2 className="size-5 animate-spin" /> : <Activity className="size-5" />}
-            </span>
+            <IconChip accent="emerald" variant="gradient">
+              {loading ? <Loader2 className="animate-spin" /> : <Activity />}
+            </IconChip>
             <div className="min-w-0">
               <CardTitle className="text-xl">{detail.symbol}</CardTitle>
               <p className="truncate text-sm text-muted-foreground">{detail.name}</p>

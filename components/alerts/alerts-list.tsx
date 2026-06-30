@@ -15,6 +15,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { IconChip } from "@/components/ui/accent";
 import { usePrices } from "@/lib/hooks/use-prices";
 import { effectiveQuotePrice } from "@/lib/services/metrics";
 import { formatPKR, formatPercent } from "@/lib/format";
@@ -37,21 +39,24 @@ export function AlertsList({ alerts, demo }: { alerts: Alert[]; demo?: boolean }
 
         return (
           <li key={a.id} className="py-3">
-            <div className="flex items-start gap-3">
-              <span
-                className={cn(
-                  "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                  a.condition === "ABOVE" ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"
-                )}
+            <div className="flex items-start gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-rose-500/5 sm:px-3">
+              <IconChip
+                accent={a.condition === "ABOVE" ? "sky" : "orange"}
+                variant="gradient"
+                size="sm"
+                className="mt-0.5"
               >
-                {a.condition === "ABOVE" ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}
-              </span>
+                {a.condition === "ABOVE" ? <ArrowUp /> : <ArrowDown />}
+              </IconChip>
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link href={`/stock/${a.symbol}`} className="font-semibold hover:text-primary">
                     {a.symbol}
                   </Link>
+                  <Badge variant={a.condition === "ABOVE" ? "info" : "warning"}>
+                    {a.condition === "ABOVE" ? "Above" : "Below"}
+                  </Badge>
                   <StatusBadge active={a.is_active} triggered={triggered} />
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -63,7 +68,12 @@ export function AlertsList({ alerts, demo }: { alerts: Alert[]; demo?: boolean }
                     <p className="text-xs text-muted-foreground">Current</p>
                     <p className="text-sm tabular-nums">{formatPKR(price)}</p>
                     {distance != null && (
-                      <p className="text-xs tabular-nums text-muted-foreground">
+                      <p
+                        className={cn(
+                          "text-xs tabular-nums",
+                          distance > 0 ? "text-gain" : distance < 0 ? "text-loss" : "text-muted-foreground"
+                        )}
+                      >
                         {formatPercent(distance)} to target
                       </p>
                     )}
@@ -91,13 +101,9 @@ export function AlertsList({ alerts, demo }: { alerts: Alert[]; demo?: boolean }
 }
 
 function StatusBadge({ active, triggered }: { active: boolean; triggered: boolean }) {
-  const label = triggered ? "Triggered" : active ? "Active" : "Paused";
-  const cls = triggered
-    ? "bg-chart-3/15 text-chart-3"
-    : active
-      ? "bg-gain/10 text-gain"
-      : "bg-muted text-muted-foreground";
-  return <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", cls)}>{label}</span>;
+  if (triggered) return <Badge variant="success">Triggered</Badge>;
+  if (active) return <Badge variant="gain">Active</Badge>;
+  return <Badge variant="secondary">Paused</Badge>;
 }
 
 function ToggleActionButton({

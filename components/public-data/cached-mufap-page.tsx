@@ -32,12 +32,10 @@ export function CachedMufapPage({ kind }: { kind: "mutual" | "etfs" }) {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title={
-          <span className="flex items-center gap-2">
-            <Icon className="size-7 text-primary" />
-            {title}
-          </span>
-        }
+        icon={<Icon />}
+        eyebrow={etfMode ? "Exchange traded funds" : "Mutual funds"}
+        accent="amber"
+        title={title}
         description={description}
         actions={
           <>

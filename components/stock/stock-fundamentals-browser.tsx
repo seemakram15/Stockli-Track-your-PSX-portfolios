@@ -4,6 +4,8 @@ import * as React from "react";
 import { ChevronDown, Database, FileText, Loader2, Search, SlidersHorizontal } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AccentPill, IconChip } from "@/components/ui/accent";
+import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import { cn } from "@/lib/utils";
@@ -46,39 +48,46 @@ export function StockFundamentalsBrowser() {
   const selected = companies.find((company) => company.symbol === selectedSymbol) ?? null;
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/10 via-background to-background p-4 shadow-sm sm:p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Fundamentals & Comparison</h1>
-            <p className="mt-1 max-w-5xl text-muted-foreground">
-              Search stocks that already have their full fundamentals archive ready on the server,
-              then open overview, statements, cash flows, ratios and peer comparisons instantly.
-            </p>
-          </div>
+    <div className="mx-auto max-w-7xl space-y-5">
+      <section className="relative overflow-hidden rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/10 sm:p-6">
+        <div className="pointer-events-none absolute inset-0 bg-brand-mesh-faint" aria-hidden />
+        <div className="relative flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <PageHeader
+            icon={<FileText />}
+            eyebrow="Fundamentals & AI tools"
+            accent="violet"
+            title={
+              <>
+                Fundamentals &{" "}
+                <span className="text-gradient-violet">Comparison</span>
+              </>
+            }
+            description="Search stocks that already have their full fundamentals archive ready on the server, then open overview, statements, cash flows, ratios and peer comparisons instantly."
+          />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border bg-background px-3 py-1 text-xs font-semibold text-muted-foreground shadow-sm">
+            <AccentPill accent="violet">
+              <Database />
               {companies.length} ready stocks
-            </span>
-            <span className="rounded-full border bg-background px-3 py-1 text-xs text-muted-foreground shadow-sm">
+            </AccentPill>
+            <span className="rounded-full border border-border bg-card/70 px-3 py-1 text-xs text-muted-foreground shadow-soft backdrop-blur">
               More companies keep appearing automatically as the archive completes.
             </span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <Card className="overflow-hidden border-primary/20 bg-background shadow-sm">
-        <CardHeader className="gap-0 border-b bg-primary/5 px-0 py-0">
+      <Card variant="feature" className="overflow-hidden">
+        <CardHeader className="gap-0 border-b bg-gradient-to-r from-violet-500/10 via-fuchsia-500/5 to-transparent px-0 py-0">
           <button
             type="button"
             onClick={() => setFinderOpen((open) => !open)}
-            className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-primary/10 sm:px-5"
+            className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-violet-500/10 sm:px-5"
             aria-expanded={finderOpen}
           >
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-                <SlidersHorizontal className="size-5" />
-              </span>
+              <IconChip accent="violet" variant="gradient">
+                <SlidersHorizontal />
+              </IconChip>
               <div className="min-w-0">
                 <CardTitle className="text-lg">Find a stock</CardTitle>
                 <CardDescription>Search by ticker, company name, or sector.</CardDescription>
@@ -92,16 +101,16 @@ export function StockFundamentalsBrowser() {
               ) : null}
               {isRefreshing ? (
                 <span className="hidden items-center gap-2 rounded-full border px-3 py-1 text-xs text-muted-foreground sm:inline-flex">
-                  <Loader2 className="size-3.5 animate-spin text-primary" />
+                  <Loader2 className="size-3.5 animate-spin text-violet-500" />
                   Refreshing list
                 </span>
               ) : null}
-              <span className="hidden rounded-full bg-background px-2.5 py-1 text-xs font-semibold text-primary shadow-sm sm:inline-flex">
+              <span className="hidden rounded-full bg-violet-500/10 px-2.5 py-1 text-xs font-semibold text-violet-600 shadow-sm dark:text-violet-300 sm:inline-flex">
                 {finderOpen ? "Hide finder" : "Show finder"}
               </span>
               <ChevronDown
                 className={cn(
-                  "size-5 text-primary transition-transform",
+                  "size-5 text-violet-500 transition-transform",
                   finderOpen && "rotate-180"
                 )}
               />
@@ -122,7 +131,7 @@ export function StockFundamentalsBrowser() {
 
             {isLoading ? (
               <div className="flex min-h-32 items-center justify-center gap-3 text-muted-foreground">
-                <Loader2 className="size-5 animate-spin text-primary" />
+                <Loader2 className="size-5 animate-spin text-violet-500" />
                 Loading ready fundamentals list...
               </div>
             ) : error ? (
@@ -145,8 +154,8 @@ export function StockFundamentalsBrowser() {
                         setFinderOpen(false);
                       }}
                       className={cn(
-                        "flex items-center gap-3 rounded-xl border bg-card p-3 text-left shadow-sm transition hover:border-primary/40 hover:bg-primary/5",
-                        active && "border-primary bg-primary/10"
+                        "flex items-center gap-3 rounded-xl border bg-card p-3 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-violet-500/40 hover:bg-violet-500/5 hover:shadow-soft-lg",
+                        active && "border-violet-500 bg-violet-500/10 ring-1 ring-violet-500/30"
                       )}
                     >
                       <StockLogo

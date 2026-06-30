@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { TrendingUp } from "lucide-react";
+import { Activity, Landmark, Layers, TrendingUp } from "lucide-react";
 import { CacheStatusBadge } from "@/components/cache/cache-status-badge";
 import { EmptyState } from "@/components/empty-state";
 import { PageLoadingState } from "@/components/loading/page-loading-state";
@@ -11,6 +11,7 @@ import { MarketAccordion } from "@/components/market/market-accordion";
 import { MarketPerformers } from "@/components/market/market-performers";
 import { PageHeader } from "@/components/page-header";
 import { MarketStatusBadge } from "@/components/status-badges";
+import { IconChip } from "@/components/ui/accent";
 import { Card, CardContent } from "@/components/ui/card";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import { shouldRefreshPsxData } from "@/lib/psx/market-hours";
@@ -37,6 +38,9 @@ export function CachedPsxMarketPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
+        icon={<Landmark />}
+        eyebrow="Pakistan Stock Exchange"
+        accent="emerald"
         title="Pakistan Stock Exchange"
         description="Live PSX indices, constituents and market performers."
         actions={
@@ -57,7 +61,12 @@ export function CachedPsxMarketPage() {
       {data ? (
         <>
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold tracking-tight">Market Overview</h2>
+            <div className="flex items-center gap-2.5">
+              <IconChip accent="emerald" variant="gradient" size="sm">
+                <TrendingUp />
+              </IconChip>
+              <h2 className="text-lg font-semibold tracking-tight">Market Overview</h2>
+            </div>
             {data.detail ? (
               <IndicesPanel
                 cards={data.cards}
@@ -73,7 +82,7 @@ export function CachedPsxMarketPage() {
             )}
           </section>
 
-          <MarketAccordion title="Market Performers">
+          <MarketAccordion title="Market Performers" icon={<Activity />} accent="emerald">
             <MarketPerformers data={data.analytics.performers} showHeader={false} />
           </MarketAccordion>
 
@@ -81,6 +90,8 @@ export function CachedPsxMarketPage() {
             <MarketAccordion
               title={`${activeDetail.symbol} constituents (${activeDetail.constituents.length})`}
               meta="Sorted by index weight"
+              icon={<Layers />}
+              accent="sky"
             >
               <Card>
                 <CardContent>

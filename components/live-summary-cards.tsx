@@ -31,6 +31,7 @@ export function LiveSummaryCards({
       <StatCard
         label={valueLabel}
         value={formatPKR(summary.totalValue)}
+        accent="primary"
         icon={<Wallet className="size-4" />}
         sub={
           <span className="text-muted-foreground">
@@ -42,6 +43,7 @@ export function LiveSummaryCards({
         label="Day's P/L"
         value={formatPKR(summary.dayPL, { sign: true })}
         tone={summary.dayPL > 0 ? "gain" : summary.dayPL < 0 ? "loss" : "default"}
+        accent="sky"
         icon={<CalendarClock className="size-4" />}
         sub={<ChangeBadge pct={summary.dayPLPct} variant="pill" />}
       />
@@ -49,12 +51,14 @@ export function LiveSummaryCards({
         label="Total P/L"
         value={formatPKR(summary.totalPL, { sign: true })}
         tone={summary.totalPL > 0 ? "gain" : summary.totalPL < 0 ? "loss" : "default"}
+        accent="violet"
         icon={<TrendingUp className="size-4" />}
         sub={<ChangeBadge pct={summary.totalPLPct} variant="pill" />}
       />
       <StatCard
         label="Invested"
         value={formatPKR(summary.totalInvested)}
+        accent="amber"
         icon={<Coins className="size-4" />}
         sub={
           <span className="text-muted-foreground">

@@ -1,6 +1,7 @@
 import "server-only";
 import { isDemoMode } from "@/lib/config";
 import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/auth/current-user";
 import { getQuotes } from "@/lib/services/prices";
 import { PSX_TIMEZONE } from "@/lib/constants";
 import {
@@ -48,10 +49,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (isDemoMode) {
     return { id: DEMO_USER.id, email: DEMO_USER.email, displayName: DEMO_USER.displayName };
   }
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) return null;
   return {
     id: user.id,

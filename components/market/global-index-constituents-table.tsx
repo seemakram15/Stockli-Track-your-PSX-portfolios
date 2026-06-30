@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDownUp, ExternalLink, Search } from "lucide-react";
+import { ArrowDownUp, ExternalLink, Layers, Search } from "lucide-react";
+import { IconChip } from "@/components/ui/accent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { Input } from "@/components/ui/input";
@@ -62,11 +63,14 @@ export function GlobalIndexConstituentsTable({
     <Card>
       <CardHeader className="gap-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <CardTitle>{data.constituents.length.toLocaleString("en-US")} stocks</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {data.sourceLabel}
-            </p>
+          <div className="flex items-center gap-3">
+            <IconChip accent="sky" variant="gradient"><Layers /></IconChip>
+            <div>
+              <CardTitle>{data.constituents.length.toLocaleString("en-US")} stocks</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {data.sourceLabel}
+              </p>
+            </div>
           </div>
           <a
             href={data.sourceUrl}

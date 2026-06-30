@@ -113,7 +113,7 @@ export function SiteFooter() {
           </p>
           <p className="mt-2">
             Market data comes from the public PSX Data Portal (dps.psx.com.pk) and other
-            public sources, and is typically delayed ~15 minutes. Figures are shown in PKR
+            public sources, and is typically delayed ~10 minutes. Figures are shown in PKR
             and provided as-is for non-commercial, informational use only — always verify
             with an official source before trading.
           </p>
