@@ -15,7 +15,6 @@ import {
   TableProperties,
   UsersRound,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +55,35 @@ const TAB_ORDER: Array<{ id: StockFinancialTabId; label: string }> = [
   { id: "ratios", label: "Ratios" },
 ];
 
+type PeerLoadingState = {
+  percent: number;
+  title: string;
+  description: string;
+};
+
+const PEER_LOADING_STEPS: PeerLoadingState[] = [
+  {
+    percent: 12,
+    title: "Opening peer comparison",
+    description: "Starting the same-sector comparison for this metric.",
+  },
+  {
+    percent: 38,
+    title: "Reading cached fundamentals",
+    description: "Checking the archived snapshot for the selected company.",
+  },
+  {
+    percent: 68,
+    title: "Collecting same-sector peers",
+    description: "Finding companies with ready fundamentals in the same sector.",
+  },
+  {
+    percent: 88,
+    title: "Preparing the comparison table",
+    description: "Sorting the metric rows and getting the popup ready.",
+  },
+];
+
 export function StockFinancialsPanel({
   symbol,
   companyName,
@@ -64,59 +92,15 @@ export function StockFinancialsPanel({
   companyName?: string | null;
 }) {
   const normalizedSymbol = symbol.toUpperCase();
-  const { data, isRefreshing, isFromDeviceCache, cachedAt, refreshNow, mutate } =
+  const { data, isRefreshing, isFromDeviceCache, cachedAt, refreshNow } =
     usePersistentResource<StockFinancialsData>({
       cacheKey: `public:stock-financials:v4:${normalizedSymbol}`,
       url: `/api/public/stock-financials/${encodeURIComponent(normalizedSymbol)}`,
       refreshInterval: 60 * 60 * 1000,
       keepPreviousData: false,
     });
-  const [isFetchingFresh, setIsFetchingFresh] = React.useState(false);
-  const isBusy = isRefreshing || isFetchingFresh;
-
-  const fetchFreshData = React.useCallback(async () => {
-    setIsFetchingFresh(true);
-    try {
-      const response = await fetch(
-        `/api/public/stock-financials/${encodeURIComponent(normalizedSymbol)}/refresh`,
-        {
-          method: "POST",
-          headers: { accept: "application/json" },
-        }
-      );
-      const payload = (await response.json()) as {
-        data?: StockFinancialsData;
-        error?: string;
-        warning?: string | null;
-        refresh?: {
-          usedFallback: boolean;
-          hadMeaningfulFreshData: boolean;
-          complete?: boolean;
-          missingTabs?: StockFinancialTabId[];
-        };
-      };
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.error ?? "Fresh fundamentals could not be fetched.");
-      }
-      await mutate(payload.data, { revalidate: false });
-      const needsWarning =
-        Boolean(payload.refresh?.usedFallback) ||
-        payload.refresh?.hadMeaningfulFreshData === false ||
-        payload.refresh?.complete === false;
-      if (needsWarning) {
-        toast.warning(
-          payload.warning ??
-            `Updated ${normalizedSymbol} using cached fundamentals because the source did not return fresh statement rows.`
-        );
-      } else {
-        toast.success(`Fetched latest fundamentals for ${normalizedSymbol}.`);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Fresh fundamentals could not be fetched.");
-    } finally {
-      setIsFetchingFresh(false);
-    }
-  }, [mutate, normalizedSymbol]);
+  const isBusy = isRefreshing;
+  const displayName = data?.company?.name ?? companyName ?? normalizedSymbol;
 
   return (
     <Card className="overflow-hidden border-primary/20 bg-background shadow-sm">
@@ -152,39 +136,45 @@ export function StockFinancialsPanel({
             />
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void fetchFreshData()}
-              disabled={isBusy}
-            >
-              {isFetchingFresh ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <RefreshCw className="size-4" />
-              )}
-              Fetch Data
-            </Button>
-            <Button
-              type="button"
               variant="ghost"
               size="sm"
               onClick={() => refreshNow().catch(() => undefined)}
               disabled={isBusy}
             >
               <RefreshCw className={cn("size-4", isRefreshing && "animate-spin")} />
-              Refresh
+              Refresh snapshot
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="px-4 py-5 sm:px-6">
         {!data ? (
-          <EmptyState
-            icon={<Loader2 className="size-6 animate-spin text-primary" />}
-            title="Loading fundamentals..."
-            description="Company fundamentals are preparing and will appear here shortly."
-            className="border-solid"
-          />
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+            <div className="flex items-start gap-3">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+                <Loader2 className="size-5 animate-spin" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-lg font-semibold text-foreground">
+                  Loading {displayName} fundamentals
+                </p>
+                <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+                  We&apos;re opening the cached overview, latest results, statements, cash flow and
+                  ratio history for {displayName}.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 space-y-3">
+              <div className="h-2 overflow-hidden rounded-full bg-background">
+                <div className="h-full w-2/5 animate-pulse rounded-full bg-primary/70" />
+              </div>
+              <div className="grid gap-3 lg:grid-cols-3">
+                <div className="h-24 rounded-2xl bg-background/80 shadow-sm" />
+                <div className="h-24 rounded-2xl bg-background/70 shadow-sm" />
+                <div className="h-24 rounded-2xl bg-background/60 shadow-sm" />
+              </div>
+            </div>
+          </div>
         ) : (
           <Tabs defaultValue="overview" className="gap-5">
             <SectionAvailability availability={data.availability} />
@@ -736,14 +726,23 @@ function PeerComparisonDialog({
   const [data, setData] = React.useState<StockFinancialPeerComparison | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [progress, setProgress] = React.useState<PeerLoadingState>(PEER_LOADING_STEPS[0]);
 
   React.useEffect(() => {
     if (!open || data) return;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 15_000);
+    const progressTimers: number[] = [];
     let active = true;
     setLoading(true);
     setError(null);
+    setProgress(PEER_LOADING_STEPS[0]);
+    PEER_LOADING_STEPS.slice(1).forEach((step, index) => {
+      const timer = window.setTimeout(() => {
+        if (active) setProgress(step);
+      }, 450 + index * 650);
+      progressTimers.push(timer);
+    });
 
     fetch(
       `/api/public/stock-financials/${encodeURIComponent(symbol)}/peers?tab=${encodeURIComponent(
@@ -759,6 +758,11 @@ function PeerComparisonDialog({
         if (!response.ok || !payload.data) {
           throw new Error(payload.error ?? "Peer comparison unavailable");
         }
+        setProgress({
+          percent: 96,
+          title: "Rendering peer companies",
+          description: `Loaded ${payload.data.peers.length} same-sector companies for comparison.`,
+        });
         setData(payload.data);
       })
       .catch((fetchError: unknown) => {
@@ -771,12 +775,14 @@ function PeerComparisonDialog({
       })
       .finally(() => {
         window.clearTimeout(timeout);
+        progressTimers.forEach((timer) => window.clearTimeout(timer));
         if (active) setLoading(false);
       });
 
     return () => {
       active = false;
       window.clearTimeout(timeout);
+      progressTimers.forEach((timer) => window.clearTimeout(timer));
       controller.abort();
     };
   }, [data, open, row.label, symbol, tabId]);
@@ -804,9 +810,33 @@ function PeerComparisonDialog({
         </DialogHeader>
         <div className="p-5">
           {loading ? (
-            <div className="flex min-h-56 flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Loader2 className="size-6 animate-spin text-primary" />
-              Loading same-sector comparison...
+            <div className="space-y-5 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+              <div className="flex items-start gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+                  <Loader2 className="size-5 animate-spin" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-lg font-semibold text-foreground">{progress.title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{progress.description}</p>
+                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-primary">
+                    Metric: {row.label}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Peer comparison progress</span>
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {progress.percent}%
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-background">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${progress.percent}%` }}
+                  />
+                </div>
+              </div>
             </div>
           ) : error ? (
             <EmptyState
@@ -876,6 +906,14 @@ function PeerComparisonTable({
 
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-sm">
+        <span className="text-muted-foreground">
+          Showing {rows.length} same-sector companies with this metric ready.
+        </span>
+        <Badge variant="outline" className="bg-background">
+          {currentSymbol} selected
+        </Badge>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] border-collapse text-sm">
           <thead>

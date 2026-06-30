@@ -62,6 +62,10 @@ export const config = {
     vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
     vapidSubject: process.env.VAPID_SUBJECT ?? "mailto:seemakram15@gmail.com",
   },
+  ai: {
+    zaiApiKey: process.env.ZAI_API_KEY ?? "",
+    zaiBaseUrl: process.env.ZAI_BASE_URL ?? "https://api.z.ai/api/paas/v4",
+  },
   cronSecret: process.env.CRON_SECRET ?? "",
   siteUrl: defaultSiteUrl.replace(/\/$/, ""),
   psx: {
@@ -87,3 +91,6 @@ export const isSupabaseAdminConfigured =
 
 /** When true, the app serves sample data and disables auth enforcement. */
 export const isDemoMode = !isSupabaseConfigured;
+
+/** True when a real Z.AI API key is present for stock-analysis insights. */
+export const isZaiConfigured = looksReal(config.ai.zaiApiKey);

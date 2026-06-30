@@ -8,7 +8,6 @@ import { EmptyState } from "@/components/empty-state";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import { cn } from "@/lib/utils";
 import { StockFinancialsPanel } from "./stock-financials-panel";
-import { FundamentalsDeviceCacheButton } from "./fundamentals-device-cache";
 import { StockLogo } from "./stock-logo";
 
 type FundamentalsCompanyOption = {
@@ -28,8 +27,8 @@ export function StockFundamentalsBrowser() {
   const [selectedSymbol, setSelectedSymbol] = React.useState<string | null>(null);
   const [finderOpen, setFinderOpen] = React.useState(true);
   const { data, error, isLoading, isRefreshing } = usePersistentResource<CompaniesPayload>({
-    cacheKey: "public:stock-fundamentals:companies:v1",
-    url: "/api/public/stock-fundamentals/companies",
+    cacheKey: "public:stock-fundamentals:companies:ready:v1",
+    url: "/api/public/stock-fundamentals/companies?ready=1",
     refreshInterval: 24 * 60 * 60 * 1000,
   });
 
@@ -53,11 +52,18 @@ export function StockFundamentalsBrowser() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Fundamentals & Comparison</h1>
             <p className="mt-1 max-w-5xl text-muted-foreground">
-              Search any company, then review overview, latest results, statements, cash flows,
-              ratios and peer comparisons from our cached records.
+              Search stocks that already have their full fundamentals archive ready on the server,
+              then open overview, statements, cash flows, ratios and peer comparisons instantly.
             </p>
           </div>
-          <FundamentalsDeviceCacheButton className="w-full sm:w-auto" />
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border bg-background px-3 py-1 text-xs font-semibold text-muted-foreground shadow-sm">
+              {companies.length} ready stocks
+            </span>
+            <span className="rounded-full border bg-background px-3 py-1 text-xs text-muted-foreground shadow-sm">
+              More companies keep appearing automatically as the archive completes.
+            </span>
+          </div>
         </div>
       </div>
 
@@ -117,7 +123,7 @@ export function StockFundamentalsBrowser() {
             {isLoading ? (
               <div className="flex min-h-32 items-center justify-center gap-3 text-muted-foreground">
                 <Loader2 className="size-5 animate-spin text-primary" />
-                Loading stock list...
+                Loading ready fundamentals list...
               </div>
             ) : error ? (
               <EmptyState
@@ -166,7 +172,7 @@ export function StockFundamentalsBrowser() {
               <EmptyState
                 icon={<Search className="size-6" />}
                 title="No matching stocks"
-                description="Try a ticker like FFC, LUCK, MEBL, or a company name."
+                description="Try a ticker like FFC, LUCK, MEBL, or wait for more archived companies to appear."
                 className="border-solid"
               />
             )}

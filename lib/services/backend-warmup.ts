@@ -2,7 +2,7 @@ import "server-only";
 import { isSupabaseAdminConfigured } from "@/lib/config";
 import { isMarketOpen, isTradingDay, marketStatus, shouldRefreshPsxData } from "@/lib/psx/market-hours";
 import { getMemoryCache, setMemoryCache } from "@/lib/cache/memory";
-import { getRedis } from "@/lib/cache/redis";
+import { getRedis, getRedisClients } from "@/lib/cache/redis";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getGlobalMarketData, type MarketUniverse } from "@/lib/services/global-markets";
 import { getMarketStrategyData } from "@/lib/services/market-strategy";
@@ -16,6 +16,7 @@ import {
 import { getMarketRows, refreshMarketWatch } from "@/lib/services/prices";
 import { getMufapFunds } from "@/lib/services/mufap";
 import { getPublicMarketPageData } from "@/lib/services/public-market-page";
+import { archiveStockFundamentals } from "@/lib/services/stock-fundamentals";
 import { createNotification, runSystemNotificationJobs } from "@/lib/services/system-notifications";
 import { getYoutubeVideos } from "@/lib/services/youtube";
 import type { Quote } from "@/lib/types";
@@ -28,6 +29,13 @@ export interface BackendWarmupOptions {
   force?: boolean;
   forcePsxRefresh?: boolean;
 }
+
+const FUNDAMENTALS_ARCHIVE_CURSOR_KEY = "stock-fundamentals:archive-cursor:v1";
+const FUNDAMENTALS_WARMUP_LIMIT: Record<BackendWarmupTrigger, number> = {
+  cron: 8,
+  login: 2,
+  manual: 4,
+};
 
 export async function runBackendWarmup({
   trigger,
@@ -85,6 +93,7 @@ export async function runBackendWarmup({
 
   if (!isSupabaseAdminConfigured) {
     result.publicCaches = await warmPublicCaches({ includePsx: psxRefreshAllowed });
+    result.fundamentalsArchive = await warmFundamentalsArchive(trigger);
     result.note = "Demo mode — cache warmed, no DB writes (add Supabase keys to persist).";
     return result;
   }
@@ -201,6 +210,7 @@ export async function runBackendWarmup({
   }
 
   result.publicCaches = await warmPublicCaches({ includePsx: psxRefreshAllowed });
+  result.fundamentalsArchive = await warmFundamentalsArchive(trigger);
   return result;
 }
 
@@ -231,6 +241,38 @@ async function warmPublicCaches({ includePsx }: { includePsx: boolean }) {
     ok: results[index].status === "fulfilled",
     error: results[index].status === "rejected" ? String(results[index].reason) : undefined,
   }));
+}
+
+async function warmFundamentalsArchive(trigger: BackendWarmupTrigger) {
+  const limit = FUNDAMENTALS_WARMUP_LIMIT[trigger];
+  if (!limit) {
+    return {
+      ok: false,
+      skipped: true,
+      reason: "archive-warmup-disabled",
+    };
+  }
+
+  try {
+    const offset = await readFundamentalsArchiveCursor();
+    const result = await archiveStockFundamentals({ offset, limit });
+    await writeFundamentalsArchiveCursor(result.nextOffset ?? 0);
+    return {
+      ok: true,
+      offset,
+      limit,
+      stored: result.stored,
+      partial: result.partial.length,
+      failed: result.failed.length,
+      nextOffset: result.nextOffset,
+      finishedAt: result.finishedAt,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 async function claimWarmupSlot({
@@ -283,4 +325,34 @@ function isoDateInPkt(date: Date): string {
     day: "2-digit",
   });
   return fmt.format(date);
+}
+
+async function readFundamentalsArchiveCursor() {
+  const memory = getMemoryCache<number>(FUNDAMENTALS_ARCHIVE_CURSOR_KEY);
+  if (typeof memory === "number" && Number.isFinite(memory) && memory >= 0) {
+    return Math.floor(memory);
+  }
+
+  for (const redis of getRedisClients()) {
+    try {
+      const value = await redis.get<number | string>(FUNDAMENTALS_ARCHIVE_CURSOR_KEY);
+      const parsed = Number(value);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        setMemoryCache(FUNDAMENTALS_ARCHIVE_CURSOR_KEY, Math.floor(parsed), 24 * 60 * 60);
+        return Math.floor(parsed);
+      }
+    } catch {
+      // Continue to the next cache layer.
+    }
+  }
+
+  return 0;
+}
+
+async function writeFundamentalsArchiveCursor(offset: number) {
+  const nextOffset = Math.max(0, Math.floor(offset));
+  setMemoryCache(FUNDAMENTALS_ARCHIVE_CURSOR_KEY, nextOffset, 24 * 60 * 60);
+  await Promise.allSettled(
+    getRedisClients().map((redis) => redis.set(FUNDAMENTALS_ARCHIVE_CURSOR_KEY, nextOffset))
+  );
 }
