@@ -191,6 +191,71 @@
     color: transparent;
   }
 
+  /* Tight emerald->teal->sky gradient for headings on light/dark surfaces. */
+  .text-gradient-emerald {
+    background-image: linear-gradient(100deg, #059669 0%, #14b8a6 50%, #0ea5e9 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  .dark .text-gradient-emerald {
+    background-image: linear-gradient(100deg, #34d399 0%, #2dd4bf 50%, #38bdf8 100%);
+  }
+  .text-gradient-violet {
+    background-image: linear-gradient(100deg, #7c3aed 0%, #d946ef 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  .dark .text-gradient-violet {
+    background-image: linear-gradient(100deg, #a78bfa 0%, #e879f9 100%);
+  }
+
+  /* Soft brand "aurora" mesh for hero bands & page headers — additive over any
+     surface, so it reads the same in light and dark. Sky · emerald · amber. */
+  .bg-brand-mesh {
+    background-image:
+      radial-gradient(62% 86% at 0% 0%, color-mix(in oklch, var(--primary) 22%, transparent), transparent 72%),
+      radial-gradient(52% 72% at 100% 4%, oklch(0.7 0.16 235 / 0.16), transparent 70%),
+      radial-gradient(64% 92% at 100% 100%, oklch(0.78 0.16 78 / 0.13), transparent 72%);
+  }
+  /* Faint variant for large surfaces where the mesh should only whisper. */
+  .bg-brand-mesh-faint {
+    background-image:
+      radial-gradient(60% 80% at 0% 0%, color-mix(in oklch, var(--primary) 12%, transparent), transparent 72%),
+      radial-gradient(50% 70% at 100% 0%, oklch(0.7 0.16 235 / 0.09), transparent 72%);
+  }
+
+  /* Soft elevation for cards/panels — layered, low-contrast, theme-aware. */
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px oklch(0.2 0.02 220 / 0.06),
+      0 8px 24px -12px oklch(0.2 0.02 220 / 0.18);
+  }
+  .dark .shadow-soft {
+    box-shadow:
+      0 1px 2px oklch(0 0 0 / 0.4),
+      0 12px 32px -14px oklch(0 0 0 / 0.6);
+  }
+  .shadow-soft-lg {
+    box-shadow:
+      0 2px 4px oklch(0.2 0.02 220 / 0.06),
+      0 20px 48px -18px oklch(0.2 0.02 220 / 0.24);
+  }
+  .dark .shadow-soft-lg {
+    box-shadow:
+      0 2px 6px oklch(0 0 0 / 0.45),
+      0 28px 60px -20px oklch(0 0 0 / 0.7);
+  }
+
+  /* Gradient hairline border for "feature" cards (primary -> sky -> amber). */
+  .border-gradient-brand {
+    border: 1px solid transparent;
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      linear-gradient(120deg, color-mix(in oklch, var(--primary) 60%, transparent), oklch(0.7 0.13 235 / 0.5) 50%, oklch(0.78 0.15 78 / 0.5)) border-box;
+  }
+
   /* Faint engineering grid for dark hero/CTA surfaces. */
   .bg-grid-faint {
     background-image:

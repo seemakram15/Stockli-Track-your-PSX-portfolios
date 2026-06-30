@@ -241,7 +241,7 @@ function NavDropdown({
         aria-expanded={open}
         className={cn(
           "inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-          active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          active ? "bg-primary/10 text-primary ring-1 ring-primary/15" : "text-muted-foreground hover:bg-muted hover:text-foreground"
         )}
       >
         {label}
@@ -356,7 +356,7 @@ function MarketDropdown({
         aria-expanded={open}
         className={cn(
           "inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-          active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          active ? "bg-primary/10 text-primary ring-1 ring-primary/15" : "text-muted-foreground hover:bg-muted hover:text-foreground"
         )}
       >
         Market
@@ -464,7 +464,7 @@ function DesktopNavLink({
       aria-current={active ? "page" : undefined}
       className={cn(
         "inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold transition-colors",
-        active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+        active ? "bg-primary/10 text-primary ring-1 ring-primary/15" : "text-muted-foreground hover:bg-muted hover:text-foreground"
       )}
     >
       {Icon ? <PendingIcon Icon={Icon} active={active} /> : null}

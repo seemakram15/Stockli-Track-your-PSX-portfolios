@@ -15,6 +15,7 @@ import { SmartBackLink } from "@/components/smart-back-link";
 import { CacheStatusBadge } from "@/components/cache/cache-status-badge";
 import { MarketStatusBadge } from "@/components/status-badges";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { IconChip } from "@/components/ui/accent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PLCalendar } from "@/components/charts/pl-calendar";
 import { formatDate, formatNumber, formatPKR, formatPercent, plColorClass } from "@/lib/format";
@@ -98,6 +99,8 @@ export function CachedPortfolioDetailPage({
           className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         />
         <PageHeader
+          icon={<Wallet />}
+          accent="primary"
           title={pf.name}
           description={pf.description ?? undefined}
           actions={
@@ -175,8 +178,8 @@ export function CachedPortfolioDetailPage({
           <RealizedHistory positions={pf.realizedPositions ?? []} />
 
           <Card>
-            <CardHeader className="flex-col items-start gap-2 sm:flex-row">
-              <CalendarClock className="mt-0.5 size-5 text-primary" />
+            <CardHeader className="flex-row items-start gap-3">
+              <IconChip accent="sky"><CalendarClock /></IconChip>
               <div>
                 <CardTitle>Portfolio gain / loss calendar</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -205,8 +208,8 @@ export function CachedPortfolioDetailPage({
 function RealizedHistory({ positions }: { positions: RealizedPositionPL[] }) {
   return (
     <Card>
-      <CardHeader className="flex-col items-start gap-2 sm:flex-row">
-        <TrendingUp className="mt-0.5 size-5 text-primary" />
+      <CardHeader className="flex-row items-start gap-3">
+        <IconChip accent="violet"><TrendingUp /></IconChip>
         <div>
           <CardTitle>Realized gain / loss history</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">

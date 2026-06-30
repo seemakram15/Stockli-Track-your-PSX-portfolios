@@ -60,7 +60,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
             <p className="mt-10 inline-flex items-center gap-2 text-xs text-white/55">
               <ShieldCheck className="size-4 text-emerald-300" />
-              Per-user access · row-level security · data delayed ~15 min
+              Per-user access · row-level security · data delayed ~10 min
             </p>
           </div>
         </div>
@@ -68,7 +68,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       {/* Form area */}
       <div className="relative flex min-h-screen flex-col bg-background">
-        <header className="flex items-center justify-between px-4 py-5 sm:px-8">
+        {/* Soft brand wash so the form side feels part of the same world. */}
+        <div className="pointer-events-none absolute inset-0 bg-brand-mesh-faint opacity-70" />
+        <div className="pointer-events-none absolute inset-0 bg-grid-faint opacity-[0.04] dark:opacity-[0.06] [mask-image:radial-gradient(70%_60%_at_50%_0%,black,transparent)]" />
+
+        <header className="relative z-10 flex items-center justify-between px-4 py-5 sm:px-8">
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -83,9 +87,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex flex-1 items-center justify-center px-4 pb-12 sm:px-8">
+        <main className="relative z-10 flex flex-1 items-center justify-center px-4 pb-12 sm:px-8">
           <div className="w-full max-w-md">{children}</div>
         </main>
+        <footer className="relative z-10 flex items-center justify-center gap-2 px-4 pb-6 text-xs text-muted-foreground sm:px-8">
+          <ShieldCheck className="size-3.5 text-emerald-500" />
+          Secure accounts · row-level security · data delayed ~10 min
+        </footer>
       </div>
     </div>
   );

@@ -25,6 +25,7 @@ import {
   signUp,
   type AuthState,
 } from "@/lib/actions/auth";
+import { ACCOUNT_WARMUP_FLAG } from "@/components/auth/account-warmup";
 
 function Field({
   label,
@@ -182,6 +183,17 @@ export function AuthForm({
       <Button
         type="submit"
         disabled={pending}
+        onClick={() => {
+          // Arm the post-sign-in "Setting your account" warm-up; it runs once on
+          // the dashboard and pre-caches heavy pages to the device.
+          if (mode === "login") {
+            try {
+              window.sessionStorage.setItem(ACCOUNT_WARMUP_FLAG, "1");
+            } catch {
+              // sessionStorage may be unavailable; warm-up is best-effort.
+            }
+          }
+        }}
         className="h-11 w-full gap-2 bg-gradient-to-r from-emerald-500 to-emerald-400 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:from-emerald-500 hover:to-emerald-300 hover:shadow-emerald-500/35"
       >
         {pending && <Loader2 className="size-4 animate-spin" />}

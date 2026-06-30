@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { IconChip } from "@/components/ui/accent";
 import {
   sendBroadcastNotification,
   type AdminActionState,
@@ -81,14 +82,20 @@ export function BroadcastNotificationForm({ demo }: { demo?: boolean }) {
             Use an internal path. Users who tap the notification will open this screen.
           </p>
         </div>
-        <Button type="submit" disabled={pending || demo} className="h-9">
+        <Button
+          type="submit"
+          disabled={pending || demo}
+          className="h-9 gap-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 font-semibold text-white shadow-md shadow-violet-500/25 transition-all hover:from-violet-500 hover:to-fuchsia-400 hover:shadow-violet-500/35"
+        >
           {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           Send to all
         </Button>
       </div>
 
-      <div className="flex items-start gap-2 rounded-xl border border-border bg-muted/35 p-3 text-xs text-muted-foreground">
-        <BellRing className="mt-0.5 size-4 shrink-0 text-primary" />
+      <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/35 p-3 text-xs text-muted-foreground">
+        <IconChip accent="violet" size="sm">
+          <BellRing />
+        </IconChip>
         <p>
           This sends an in-app notification to all users. Desktop and installed-app push
           delivery is sent only to users who allowed notifications on their device.

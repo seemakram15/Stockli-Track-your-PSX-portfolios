@@ -128,7 +128,7 @@ export function MarketLeaderboard({
                     <Radio className="size-3.5 animate-pulse" /> Live · PKR
                   </>
                 ) : (
-                  "PKR · delayed ~15 min"
+                  "PKR · delayed ~10 min"
                 )}
               </span>
             </div>

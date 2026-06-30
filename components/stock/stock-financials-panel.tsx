@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { IconChip } from "@/components/ui/accent";
 import {
   Dialog,
   DialogContent,
@@ -103,19 +104,19 @@ export function StockFinancialsPanel({
   const displayName = data?.company?.name ?? companyName ?? normalizedSymbol;
 
   return (
-    <Card className="overflow-hidden border-primary/20 bg-background shadow-sm">
-      <CardHeader className="gap-3 border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-5 sm:px-6">
+    <Card className="overflow-hidden">
+      <CardHeader className="gap-3 border-b bg-gradient-to-r from-sky-500/10 via-indigo-500/5 to-transparent px-4 py-5 sm:px-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-              <TableProperties className="size-5" />
-            </span>
+            <IconChip accent="sky" variant="gradient" size="lg" className="mt-0.5">
+              <TableProperties />
+            </IconChip>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <CardTitle className="text-xl font-bold tracking-tight sm:text-2xl">
                   Financial fundamentals
                 </CardTitle>
-                <Badge variant="secondary" className="rounded-full">
+                <Badge variant="info" className="rounded-full">
                   {normalizedSymbol}
                 </Badge>
               </div>
@@ -149,11 +150,11 @@ export function StockFinancialsPanel({
       </CardHeader>
       <CardContent className="px-4 py-5 sm:px-6">
         {!data ? (
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+          <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-5">
             <div className="flex items-start gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-                <Loader2 className="size-5 animate-spin" />
-              </span>
+              <IconChip accent="sky" variant="gradient" size="lg">
+                <Loader2 className="animate-spin" />
+              </IconChip>
               <div className="min-w-0">
                 <p className="text-lg font-semibold text-foreground">
                   Loading {displayName} fundamentals
@@ -166,7 +167,7 @@ export function StockFinancialsPanel({
             </div>
             <div className="mt-5 space-y-3">
               <div className="h-2 overflow-hidden rounded-full bg-background">
-                <div className="h-full w-2/5 animate-pulse rounded-full bg-primary/70" />
+                <div className="h-full w-2/5 animate-pulse rounded-full bg-gradient-to-r from-sky-500 to-indigo-400" />
               </div>
               <div className="grid gap-3 lg:grid-cols-3">
                 <div className="h-24 rounded-2xl bg-background/80 shadow-sm" />
@@ -395,7 +396,7 @@ function FinancialPeriodFilter({
   const mode = periods.some((period) => /qfy|quarter/i.test(period)) ? "Quarterly" : "Annual";
 
   return (
-    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm">
+    <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 shadow-soft">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-sm font-semibold">Period and year filter</p>
@@ -498,14 +499,21 @@ function Highlights({ metrics }: { metrics: FinancialMetric[] }) {
       {metrics.map((metric) => (
         <div
           key={`${metric.label}-${metric.value}`}
-          className="rounded-lg border bg-card p-3 shadow-sm"
+          className={cn(
+            "rounded-xl border p-3 shadow-soft transition-shadow hover:shadow-soft-lg",
+            metric.tone === "positive"
+              ? "border-emerald-500/20 bg-emerald-500/5"
+              : metric.tone === "negative"
+                ? "border-rose-500/20 bg-rose-500/5"
+                : "border-border bg-card"
+          )}
         >
           <p className="text-xs text-muted-foreground">{metric.label}</p>
           <p
             className={cn(
               "mt-1 text-sm font-semibold tabular-nums [overflow-wrap:anywhere]",
-              metric.tone === "positive" && "text-emerald-600",
-              metric.tone === "negative" && "text-red-600"
+              metric.tone === "positive" && "text-gain",
+              metric.tone === "negative" && "text-loss"
             )}
           >
             {metric.value}
@@ -810,15 +818,15 @@ function PeerComparisonDialog({
         </DialogHeader>
         <div className="p-5">
           {loading ? (
-            <div className="space-y-5 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+            <div className="space-y-5 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-5">
               <div className="flex items-start gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-                  <Loader2 className="size-5 animate-spin" />
-                </span>
+                <IconChip accent="sky" variant="gradient" size="lg">
+                  <Loader2 className="animate-spin" />
+                </IconChip>
                 <div className="min-w-0">
                   <p className="text-lg font-semibold text-foreground">{progress.title}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{progress.description}</p>
-                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-primary">
+                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-sky-600 dark:text-sky-400">
                     Metric: {row.label}
                   </p>
                 </div>
@@ -832,7 +840,7 @@ function PeerComparisonDialog({
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-background">
                   <div
-                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-indigo-400 transition-all duration-500"
                     style={{ width: `${progress.percent}%` }}
                   />
                 </div>
@@ -1242,7 +1250,7 @@ function StatusPill({
     <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground shadow-sm">
       <Database className="size-3" />
       {isRefreshing ? "Refreshing fundamentals..." : cachedAt ? "Fundamentals cached" : "Loading cache..."}
-      {isFromDeviceCache ? <span className="text-primary">device</span> : null}
+      {isFromDeviceCache ? <span className="text-sky-600 dark:text-sky-400">device</span> : null}
     </span>
   );
 }

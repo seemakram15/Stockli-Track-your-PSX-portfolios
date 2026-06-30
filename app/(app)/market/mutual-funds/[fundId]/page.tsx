@@ -1,10 +1,21 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ExternalLink } from "lucide-react";
+import {
+  BadgePercent,
+  BarChart3,
+  CalendarClock,
+  Coins,
+  ExternalLink,
+  LineChart,
+  PieChart,
+  Wallet,
+} from "lucide-react";
 import { getMufapFundById } from "@/lib/services/mufap";
 import { PageHeader } from "@/components/page-header";
 import { SmartBackLink } from "@/components/smart-back-link";
+import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
+import { IconChip } from "@/components/ui/accent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AmcBrandMark } from "@/components/market/amc-brand-mark";
 import {
@@ -32,6 +43,9 @@ export default async function MutualFundDetailPage({
       <SmartBackLink fallbackHref="/market/mutual-funds" label="Back to funds" />
 
       <PageHeader
+        icon={<BadgePercent />}
+        eyebrow="Fund profile"
+        accent="amber"
         title={fund.name}
         description={`${fund.amc} · ${fund.type}`}
         actions={
@@ -47,15 +61,16 @@ export default async function MutualFundDetailPage({
       />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Metric label="NAV" value={formatNumber(fund.nav, 4)} />
-        <Metric label="1 day" value={formatPercent(fund.d1)} tone={fund.d1} />
-        <Metric label="MTD" value={formatPercent(fund.mtd)} tone={fund.mtd} />
-        <Metric label="Rs 100k P/L" value={formatPKR(fund.profitOn100k, { sign: true })} tone={fund.profitOn100k} />
+        <StatCard label="NAV" value={formatNumber(fund.nav, 4)} accent="amber" icon={<Coins className="size-4" />} />
+        <StatCard label="1 day" value={formatPercent(fund.d1)} tone={toneOf(fund.d1)} accent="sky" icon={<CalendarClock className="size-4" />} />
+        <StatCard label="MTD" value={formatPercent(fund.mtd)} tone={toneOf(fund.mtd)} accent="violet" icon={<LineChart className="size-4" />} />
+        <StatCard label="Rs 100k P/L" value={formatPKR(fund.profitOn100k, { sign: true })} tone={toneOf(fund.profitOn100k)} accent="emerald" icon={<Wallet className="size-4" />} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconChip accent="violet" variant="gradient"><LineChart /></IconChip>
             <CardTitle>Returns</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -92,7 +107,8 @@ export default async function MutualFundDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconChip accent="teal" variant="gradient"><PieChart /></IconChip>
             <CardTitle>Asset allocation</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -120,7 +136,8 @@ export default async function MutualFundDetailPage({
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconChip accent="sky" variant="gradient"><BarChart3 /></IconChip>
             <CardTitle>Holdings / stocks</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -157,25 +174,11 @@ export default async function MutualFundDetailPage({
   );
 }
 
-function Metric({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: number | null;
-}) {
-  return (
-    <Card>
-      <CardContent className="min-w-0 p-3 sm:p-4">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={cn("mt-2 text-lg font-bold tabular-nums [overflow-wrap:anywhere] sm:text-2xl", plColorClass(tone))}>
-          {value}
-        </p>
-      </CardContent>
-    </Card>
-  );
+function toneOf(value: number | null): "gain" | "loss" | "default" {
+  if (value == null || Number.isNaN(value)) return "default";
+  if (value > 0) return "gain";
+  if (value < 0) return "loss";
+  return "default";
 }
 
 function Return({ label, value }: { label: string; value: number | null }) {

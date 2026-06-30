@@ -10,7 +10,7 @@ export const PRICE_CACHE_TTL_SECONDS = 60;
 export const CLIENT_REFRESH_MS = 30_000;
 
 /** How fragile the free data is — surfaced to the user. */
-export const DATA_DELAY_LABEL = "Delayed ~15 min";
+export const DATA_DELAY_LABEL = "Delayed ~10 min";
 
 /** Base currency. PSX trades in PKR only. */
 export const BASE_CURRENCY = "PKR";

@@ -1,14 +1,14 @@
 "use client";
 
-import { ExternalLink, Target } from "lucide-react";
+import { Award, ExternalLink, Target, TrendingDown, TrendingUp } from "lucide-react";
 import { CacheStatusBadge } from "@/components/cache/cache-status-badge";
 import { EmptyState } from "@/components/empty-state";
 import { PageLoadingState } from "@/components/loading/page-loading-state";
 import { MarketStrategyBoard } from "@/components/market/market-strategy-board";
 import { PageHeader } from "@/components/page-header";
+import { StatCard } from "@/components/stat-card";
 import { DataDelayBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { formatDateTime, formatNumber, formatPKR, formatSigned, plColorClass } from "@/lib/format";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import { shouldRefreshPsxData } from "@/lib/psx/market-hours";
@@ -28,12 +28,10 @@ export function CachedMarketStrategyPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title={
-          <span className="flex items-center gap-2">
-            <Target className="size-7 text-primary" />
-            Funds Daily Returns Report
-          </span>
-        }
+        icon={<Target />}
+        eyebrow="Funds daily returns"
+        accent="violet"
+        title="Funds Daily Returns Report"
         description={
           data
             ? `Estimated fund returns per ${formatPKR(data.investmentAmount)} from MUFAP daily performance.`
@@ -66,7 +64,7 @@ export function CachedMarketStrategyPage() {
             {data.indexBadges.map((index) => (
               <span
                 key={index.symbol}
-                className="rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium shadow-sm"
+                className="rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium shadow-soft"
               >
                 <span className="text-muted-foreground">{index.symbol}</span>{" "}
                 <span className="tabular-nums">{formatNumber(index.current, 0)}</span>{" "}
@@ -80,15 +78,35 @@ export function CachedMarketStrategyPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Metric label="Average estimate" value={formatPKR(data.summary.avgEstimatedReturn, { sign: true })} tone={data.summary.avgEstimatedReturn} />
-            <Metric label="Positive funds" value={String(data.summary.positiveCount)} tone={1} />
-            <Metric label="Negative funds" value={String(data.summary.negativeCount)} tone={-1} />
-            <Metric
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <StatCard
+              label="Average estimate"
+              value={formatPKR(data.summary.avgEstimatedReturn, { sign: true })}
+              tone={toneOf(data.summary.avgEstimatedReturn)}
+              accent="violet"
+              icon={<Target className="size-4" />}
+            />
+            <StatCard
+              label="Positive funds"
+              value={String(data.summary.positiveCount)}
+              tone="gain"
+              accent="emerald"
+              icon={<TrendingUp className="size-4" />}
+            />
+            <StatCard
+              label="Negative funds"
+              value={String(data.summary.negativeCount)}
+              tone="loss"
+              accent="rose"
+              icon={<TrendingDown className="size-4" />}
+            />
+            <StatCard
               label="Best fund"
               value={data.summary.best ? formatPKR(data.summary.best.estimatedReturn, { sign: true }) : "-"}
-              tone={data.summary.best?.estimatedReturn}
-              caption={data.summary.best?.name}
+              tone={toneOf(data.summary.best?.estimatedReturn)}
+              accent="amber"
+              icon={<Award className="size-4" />}
+              sub={data.summary.best?.name ? <span className="truncate text-muted-foreground">{data.summary.best.name}</span> : undefined}
             />
           </div>
 
@@ -110,26 +128,9 @@ export function CachedMarketStrategyPage() {
   );
 }
 
-function Metric({
-  label,
-  value,
-  tone,
-  caption,
-}: {
-  label: string;
-  value: string;
-  tone?: number | null;
-  caption?: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="min-w-0 p-3 sm:p-4">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={cn("mt-2 text-lg font-bold tabular-nums [overflow-wrap:anywhere] sm:text-2xl", plColorClass(tone))}>
-          {value}
-        </p>
-        {caption ? <p className="mt-1 truncate text-xs text-muted-foreground">{caption}</p> : null}
-      </CardContent>
-    </Card>
-  );
+function toneOf(value: number | null | undefined): "gain" | "loss" | "default" {
+  if (value == null || Number.isNaN(value)) return "default";
+  if (value > 0) return "gain";
+  if (value < 0) return "loss";
+  return "default";
 }

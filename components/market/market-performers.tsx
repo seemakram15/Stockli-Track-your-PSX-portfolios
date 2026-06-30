@@ -1,6 +1,7 @@
 import type * as React from "react";
 import Link from "next/link";
 import { Activity, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { IconChip, type Accent } from "@/components/ui/accent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -24,7 +25,8 @@ export function MarketPerformers({
   return (
     <Card>
       {showHeader && (
-        <CardHeader>
+        <CardHeader className="flex-row items-center gap-3">
+          <IconChip accent="sky" variant="gradient"><Activity /></IconChip>
           <CardTitle>Market Performers</CardTitle>
         </CardHeader>
       )}
@@ -32,17 +34,20 @@ export function MarketPerformers({
         <div className="flex snap-x gap-5 overflow-x-auto pb-2 scrollbar-thin lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0">
           <PerformerTable
             title="Top Active Stocks"
-            icon={<Activity className="size-4 text-primary" />}
+            icon={<Activity />}
+            accent="sky"
             rows={data.active}
           />
           <PerformerTable
             title="Top Advancers"
-            icon={<ArrowUpRight className="size-4 text-gain" />}
+            icon={<ArrowUpRight />}
+            accent="emerald"
             rows={data.advancers}
           />
           <PerformerTable
             title="Top Decliners"
-            icon={<ArrowDownRight className="size-4 text-loss" />}
+            icon={<ArrowDownRight />}
+            accent="rose"
             rows={data.decliners}
           />
         </div>
@@ -54,16 +59,18 @@ export function MarketPerformers({
 function PerformerTable({
   title,
   icon,
+  accent,
   rows,
 }: {
   title: string;
   icon: React.ReactNode;
+  accent: Accent;
   rows: MarketPerformer[];
 }) {
   return (
-    <div className="min-w-[calc(100vw-5rem)] snap-start rounded-xl border border-border lg:min-w-0">
-      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2">
-        {icon}
+    <div className="min-w-[calc(100vw-5rem)] snap-start overflow-hidden rounded-xl border border-border shadow-soft lg:min-w-0">
+      <div className="flex items-center gap-2.5 border-b border-border bg-muted/30 px-3 py-2.5">
+        <IconChip accent={accent} variant="gradient" size="sm">{icon}</IconChip>
         <h3 className="text-sm font-semibold uppercase tracking-wide">{title}</h3>
       </div>
       <div className="space-y-2 p-3 sm:hidden">

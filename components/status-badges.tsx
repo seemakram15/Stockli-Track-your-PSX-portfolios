@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { DATA_DELAY_LABEL } from "@/lib/constants";
 import type { MarketStatus } from "@/lib/psx/market-hours";
 
-/** "Delayed ~15 min" pill — sets honest expectations about the free feed. */
+/** "Delayed ~10 min" pill — sets honest expectations about the free feed. */
 export function DataDelayBadge({ className }: { className?: string }) {
   return (
     <span
@@ -11,7 +11,7 @@ export function DataDelayBadge({ className }: { className?: string }) {
         "inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground",
         className
       )}
-      title="Free PSX data is delayed, not real-time. Cached ~15 minutes."
+      title="Free PSX data is delayed, not real-time. Cached ~10 minutes."
     >
       <Clock className="size-3" aria-hidden />
       {DATA_DELAY_LABEL}
@@ -22,9 +22,17 @@ export function DataDelayBadge({ className }: { className?: string }) {
 const STATUS_STYLES: Record<MarketStatus, string> = {
   open: "text-gain",
   closed: "text-muted-foreground",
-  "pre-open": "text-chart-3",
+  "pre-open": "text-amber-600 dark:text-amber-400",
   weekend: "text-muted-foreground",
   holiday: "text-muted-foreground",
+};
+
+const STATUS_WRAP: Record<MarketStatus, string> = {
+  open: "border-gain/30 bg-gain/10",
+  closed: "border-border bg-muted/40",
+  "pre-open": "border-amber-500/30 bg-amber-500/10",
+  weekend: "border-border bg-muted/40",
+  holiday: "border-border bg-muted/40",
 };
 
 export function MarketStatusBadge({
@@ -39,7 +47,8 @@ export function MarketStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+        STATUS_WRAP[status],
         className
       )}
     >

@@ -29,6 +29,9 @@ export default async function WatchlistPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
+        icon={<Star />}
+        eyebrow="Following"
+        accent="amber"
         title="Watchlist"
         description="Tickers you're following but don't own yet."
         actions={<DataDelayBadge />}

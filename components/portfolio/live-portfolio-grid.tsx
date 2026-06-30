@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ChevronRight, Wallet } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { IconChip } from "@/components/ui/accent";
 import { ChangeBadge } from "@/components/change-badge";
 import { useLiveHoldings } from "@/lib/hooks/use-live-holdings";
 import { computeSummary } from "@/lib/services/metrics";
@@ -27,12 +28,12 @@ export function LivePortfolioGrid({
 
         return (
           <Link key={p.id} href={`/portfolios/${p.id}`}>
-            <Card className="group h-full gap-0 p-5 transition-colors hover:border-primary/40">
+            <Card className="group h-full gap-0 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg hover:ring-primary/30">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Wallet className="size-4.5" />
-                  </span>
+                  <IconChip accent="primary" variant="gradient">
+                    <Wallet />
+                  </IconChip>
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{p.name}</p>
                     <p className="text-xs text-muted-foreground">

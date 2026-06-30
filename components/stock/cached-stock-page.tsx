@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { CalendarRange, TrendingUp } from "lucide-react";
+import { CalendarRange, LineChart, TrendingUp, Wallet } from "lucide-react";
 import { AddTradeDialog } from "@/components/portfolio/add-trade-dialog";
 import { Badge } from "@/components/ui/badge";
 import { CacheStatusBadge } from "@/components/cache/cache-status-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { IconChip } from "@/components/ui/accent";
 import { CreateAlertDialog } from "@/components/alerts/create-alert-dialog";
 import { DataDelayBadge, MarketStatusBadge } from "@/components/status-badges";
 import { EmptyState } from "@/components/empty-state";
@@ -15,6 +16,7 @@ import { PLCalendar } from "@/components/charts/pl-calendar";
 import { PriceChart } from "@/components/charts/price-chart";
 import { SmartBackLink } from "@/components/smart-back-link";
 import { StockFinancialsPanel } from "@/components/stock/stock-financials-panel";
+import { StockLogo } from "@/components/stock/stock-logo";
 import { WatchButton } from "@/components/watch-button";
 import { useLiveHoldings } from "@/lib/hooks/use-live-holdings";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
@@ -93,13 +95,19 @@ function StockPageView({
     <div className="mx-auto max-w-7xl space-y-6">
       <SmartBackLink fallbackHref="/market" label="Back" />
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">{symbol}</h1>
-            {ticker?.sector && <Badge variant="secondary">{ticker.sector}</Badge>}
+      <div className="relative flex flex-col gap-4 overflow-hidden rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/10 sm:p-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="pointer-events-none absolute inset-0 bg-brand-mesh-faint" aria-hidden />
+        <div className="relative">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <StockLogo symbol={symbol} name={ticker?.company_name} size="lg" className="mt-0.5" />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-bold tracking-tight">{symbol}</h1>
+                {ticker?.sector && <Badge variant="info">{ticker.sector}</Badge>}
+              </div>
+              <p className="mt-1 text-muted-foreground">{ticker?.company_name ?? symbol}</p>
+            </div>
           </div>
-          <p className="mt-1 text-muted-foreground">{ticker?.company_name ?? symbol}</p>
           <div className="mt-3">
             <LiveQuote symbol={symbol} initial={quote} />
           </div>
@@ -109,7 +117,7 @@ function StockPageView({
             </p>
           ) : null}
         </div>
-        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <div className="relative grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <MarketStatusBadge
             status={data.market.status}
             label={data.market.label}
@@ -140,7 +148,10 @@ function StockPageView({
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader className="flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>Price</CardTitle>
+            <div className="flex items-center gap-3">
+              <IconChip accent="emerald"><LineChart /></IconChip>
+              <CardTitle>Price</CardTitle>
+            </div>
             <DataDelayBadge />
           </CardHeader>
           <CardContent>
@@ -150,7 +161,8 @@ function StockPageView({
 
         <div className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center gap-3">
+              <IconChip accent="sky"><CalendarRange /></IconChip>
               <CardTitle className="text-base">Today</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
@@ -176,7 +188,8 @@ function StockPageView({
 
           {hasPosition && (
             <Card>
-              <CardHeader>
+              <CardHeader className="flex-row items-center gap-3">
+                <IconChip accent="violet"><Wallet /></IconChip>
                 <CardTitle className="text-base">Your position</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
@@ -216,8 +229,8 @@ function StockPageView({
 
       <Card>
         <CardHeader className="flex-col items-start gap-2 sm:flex-row sm:justify-between">
-          <div className="flex items-start gap-2">
-            <CalendarRange className="mt-0.5 size-5 text-primary" />
+          <div className="flex items-start gap-3">
+            <IconChip accent="emerald"><CalendarRange /></IconChip>
             <div>
               <CardTitle>Daily gain / loss calendar</CardTitle>
               <CardDescription>

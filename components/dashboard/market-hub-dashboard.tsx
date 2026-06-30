@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import useSWR from "swr";
 import {
   ArrowDown,
   ArrowRight,
@@ -21,6 +20,14 @@ import {
 import { IndexTickerStrip, type DashboardTickerItem } from "@/components/dashboard/index-ticker-strip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AccentPill, IconChip, ACCENT_GRADIENT, type Accent } from "@/components/ui/accent";
+import { ChangeBadge } from "@/components/change-badge";
+import { usePersistentResource, type CachedRecord } from "@/lib/hooks/use-persistent-resource";
+import { shouldRefreshPsxData } from "@/lib/psx/market-hours";
+import {
+  isPortfolioCacheFresh,
+  PORTFOLIO_MUTATION_EVENT,
+} from "@/lib/cache/portfolio-mutations";
 import {
   formatMarketPrice,
   formatNumber,
@@ -32,8 +39,6 @@ import {
 import { cn } from "@/lib/utils";
 
 const REFRESH_MS = 60_000;
-
-type ApiEnvelope<T> = { data: T };
 
 interface DashboardData {
   dashboard: {
@@ -132,53 +137,75 @@ interface FeaturedMarketMove {
   changePct: number | null;
 }
 
-const fetcher = async <T,>(url: string): Promise<T> => {
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-  const json = (await res.json()) as ApiEnvelope<T>;
-  return json.data;
-};
-
 export function MarketHubDashboard({ userId }: { userId: string }) {
-  const portfolio = useHubSWR<DashboardData>("/api/private/dashboard", userId);
-  const psx = useHubSWR<PublicMarketData>("/api/public/market");
-  const us = useHubSWR<GlobalMarketData>("/api/public/global-market/us");
-  const india = useHubSWR<GlobalMarketData>("/api/public/global-market/india");
-  const world = useHubSWR<GlobalMarketData>("/api/public/global-market/world");
-  const commodities = useHubSWR<GlobalMarketData>("/api/public/global-market/commodities");
-  const oil = useHubSWR<GlobalMarketData>("/api/public/global-market/oil");
-  const crypto = useHubSWR<GlobalMarketData>("/api/public/global-market/crypto");
+  // While PSX is open we poll live (10-min delayed feed); once it closes we
+  // freeze on the device-cached snapshot taken during the session and stop
+  // hitting the network until the next pre-open (09:15) — see usePublicHub.
+  const cacheClosedOnly = React.useCallback(() => !shouldRefreshPsxData(), []);
+  const acceptPortfolioCache = React.useCallback(
+    (record: CachedRecord<DashboardData>) =>
+      cacheClosedOnly() && isPortfolioCacheFresh(record, userId),
+    [cacheClosedOnly, userId]
+  );
+
+  const portfolio = usePersistentResource<DashboardData>({
+    cacheKey: `private:dashboard:${userId}`,
+    url: "/api/private/dashboard",
+    refreshInterval: REFRESH_MS,
+    pauseWhen: cacheClosedOnly,
+    acceptCacheWhen: acceptPortfolioCache,
+  });
+  const psx = usePublicHub<PublicMarketData>("public:psx-market", "/api/public/market", cacheClosedOnly);
+  const us = usePublicHub<GlobalMarketData>("public:global-market:us", "/api/public/global-market/us", cacheClosedOnly);
+  const india = usePublicHub<GlobalMarketData>("public:global-market:india", "/api/public/global-market/india", cacheClosedOnly);
+  const world = usePublicHub<GlobalMarketData>("public:global-market:world", "/api/public/global-market/world", cacheClosedOnly);
+  const commodities = usePublicHub<GlobalMarketData>("public:global-market:commodities", "/api/public/global-market/commodities", cacheClosedOnly);
+  const oil = usePublicHub<GlobalMarketData>("public:global-market:oil", "/api/public/global-market/oil", cacheClosedOnly);
+  const crypto = usePublicHub<GlobalMarketData>("public:global-market:crypto", "/api/public/global-market/crypto", cacheClosedOnly);
+
+  // Refresh the portfolio band the instant a holding/portfolio is added,
+  // removed or edited — even while the market is closed and the rest of the
+  // dashboard stays on the frozen snapshot. Keeps the device cache in sync too.
+  const refreshPortfolioRef = React.useRef(portfolio.refreshNow);
+  refreshPortfolioRef.current = portfolio.refreshNow;
+  React.useEffect(() => {
+    const onMutation = () => {
+      void refreshPortfolioRef.current();
+    };
+    window.addEventListener(PORTFOLIO_MUTATION_EVENT, onMutation);
+    return () => window.removeEventListener(PORTFOLIO_MUTATION_EVENT, onMutation);
+  }, []);
 
   const data = {
-    portfolio: portfolio.data,
-    psx: psx.data,
-    us: us.data,
-    india: india.data,
-    world: world.data,
-    commodities: commodities.data,
-    oil: oil.data,
-    crypto: crypto.data,
+    portfolio: portfolio.data ?? undefined,
+    psx: psx.data ?? undefined,
+    us: us.data ?? undefined,
+    india: india.data ?? undefined,
+    world: world.data ?? undefined,
+    commodities: commodities.data ?? undefined,
+    oil: oil.data ?? undefined,
+    crypto: crypto.data ?? undefined,
   };
   const refreshing = [
-    portfolio.isValidating,
-    psx.isValidating,
-    us.isValidating,
-    india.isValidating,
-    world.isValidating,
-    commodities.isValidating,
-    oil.isValidating,
-    crypto.isValidating,
+    portfolio.isRefreshing,
+    psx.isRefreshing,
+    us.isRefreshing,
+    india.isRefreshing,
+    world.isRefreshing,
+    commodities.isRefreshing,
+    oil.isRefreshing,
+    crypto.isRefreshing,
   ].some(Boolean);
 
   const refreshAll = React.useCallback(() => {
-    void portfolio.mutate();
-    void psx.mutate();
-    void us.mutate();
-    void india.mutate();
-    void world.mutate();
-    void commodities.mutate();
-    void oil.mutate();
-    void crypto.mutate();
+    void portfolio.refreshNow();
+    void psx.refreshNow();
+    void us.refreshNow();
+    void india.refreshNow();
+    void world.refreshNow();
+    void commodities.refreshNow();
+    void oil.refreshNow();
+    void crypto.refreshNow();
   }, [commodities, crypto, india, oil, portfolio, psx, us, world]);
 
   const kse100 = data.psx?.detail ?? data.psx?.cards.find((card) => card.symbol === "KSE100") ?? null;
@@ -219,6 +246,7 @@ export function MarketHubDashboard({ userId }: { userId: string }) {
       <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <DashboardMarketCard
           href="/market"
+          accent="primary"
           icon={<Landmark className="size-5" />}
           title="PSX market"
           eyebrow="Indices"
@@ -227,6 +255,7 @@ export function MarketHubDashboard({ userId }: { userId: string }) {
         />
         <DashboardMarketCard
           href="/market/us"
+          accent="sky"
           icon={<LineChart className="size-5" />}
           title="USA stocks"
           eyebrow="Famous names"
@@ -235,6 +264,7 @@ export function MarketHubDashboard({ userId }: { userId: string }) {
         />
         <DashboardMarketCard
           href="/market/world"
+          accent="indigo"
           icon={<Globe2 className="size-5" />}
           title="World indices"
           eyebrow="Famous global indices"
@@ -243,6 +273,7 @@ export function MarketHubDashboard({ userId }: { userId: string }) {
         />
         <DashboardMarketCard
           href="/market/commodities"
+          accent="amber"
           icon={<Gem className="size-5" />}
           title="Commodities"
           eyebrow="Metals and futures"
@@ -251,6 +282,7 @@ export function MarketHubDashboard({ userId }: { userId: string }) {
         />
         <DashboardMarketCard
           href="/market/oil"
+          accent="orange"
           icon={<Droplets className="size-5" />}
           title="Oil market"
           eyebrow="Energy futures"
@@ -259,6 +291,7 @@ export function MarketHubDashboard({ userId }: { userId: string }) {
         />
         <DashboardMarketCard
           href="/market/crypto"
+          accent="violet"
           icon={<Bitcoin className="size-5" />}
           title="Crypto market"
           eyebrow="BTC, ETH, SOL, BNB, SUI"
@@ -270,16 +303,22 @@ export function MarketHubDashboard({ userId }: { userId: string }) {
   );
 }
 
-function useHubSWR<T>(url: string, userId?: string) {
-  const key = userId ? ([url, userId] as const) : url;
-  return useSWR<T>(key, (value: string | readonly [string, string]) => {
-    if (typeof value === "string") return fetcher<T>(value);
-    return fetcher<T>(value[0]);
-  }, {
+/**
+ * Public market hub resource: device-cached, polls live only while PSX is in a
+ * trading session, otherwise serves the frozen snapshot from IndexedDB so the
+ * dashboard loads instantly and stops re-fetching after the close.
+ */
+function usePublicHub<T>(
+  cacheKey: string,
+  url: string,
+  cacheClosedOnly: () => boolean
+) {
+  return usePersistentResource<T>({
+    cacheKey,
+    url,
     refreshInterval: REFRESH_MS,
-    revalidateOnFocus: true,
-    keepPreviousData: false,
-    shouldRetryOnError: false,
+    pauseWhen: cacheClosedOnly,
+    acceptCacheWhen: cacheClosedOnly,
   });
 }
 
@@ -293,67 +332,109 @@ function PortfolioOverviewBand({
   onRefresh: () => void;
 }) {
   const summary = data?.dashboard.summary;
-  const stats = [
+  const stats: Array<{
+    label: string;
+    value: string;
+    tone: number | null;
+    pl: boolean;
+    pct?: number | null;
+    accent: Accent;
+    icon: React.ReactNode;
+  }> = [
     {
       label: "Total value",
       value: formatPKR(summary?.totalValue ?? null),
       tone: null,
-      icon: <Wallet className="size-4" />,
+      pl: false,
+      accent: "primary",
+      icon: <Wallet />,
     },
     {
       label: "Day P/L",
       value: formatPKR(summary?.dayPL ?? null, { sign: true }),
       tone: summary?.dayPL ?? null,
-      icon: <ArrowUp className="size-4" />,
+      pl: true,
+      pct: summary?.dayPLPct ?? null,
+      accent: "sky",
+      icon: <ArrowUp />,
     },
     {
       label: "Total P/L",
       value: formatPKR(summary?.totalPL ?? null, { sign: true }),
       tone: summary?.totalPL ?? null,
-      icon: <LineChart className="size-4" />,
+      pl: true,
+      pct: summary?.totalPLPct ?? null,
+      accent: "violet",
+      icon: <LineChart />,
     },
     {
       label: "Invested",
       value: formatPKR(summary?.totalInvested ?? null),
       tone: null,
-      icon: <Coins className="size-4" />,
+      pl: false,
+      accent: "amber",
+      icon: <Coins />,
     },
   ];
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Portfolio overview</p>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-3xl">
-            Your portfolio command center
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {summary?.holdingsCount ?? 0} positions across your workspaces, with live P/L and market movement.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" className="h-9 px-3 text-sm">
-            <Link href="/portfolios">Open portfolios</Link>
-          </Button>
-          <Button type="button" onClick={onRefresh} variant="outline" className="h-9 px-3 text-sm">
-            <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
-            Refresh
-          </Button>
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="flex min-h-24 min-w-0 flex-col justify-between rounded-xl border border-border bg-background p-3 sm:min-h-28 sm:p-4">
-            <div className="flex min-w-0 items-center justify-between gap-1.5 text-muted-foreground">
-              <span className="min-w-0 text-sm font-normal">{stat.label}</span>
-              <span className="shrink-0">{stat.icon}</span>
-            </div>
-            <p className={cn("mt-3 break-words text-base font-medium leading-tight tabular-nums sm:text-xl", plColorClass(stat.tone))}>
-              {stat.value}
+    <section className="relative overflow-hidden rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/10 sm:p-6">
+      <div className="pointer-events-none absolute inset-0 bg-brand-mesh" aria-hidden />
+      <div className="relative">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <AccentPill accent="primary">
+              <span className="size-1.5 animate-pulse rounded-full bg-current" />
+              Portfolio overview
+            </AccentPill>
+            <h1 className="mt-2.5 text-2xl font-bold tracking-tight sm:text-3xl">
+              Your portfolio <span className="text-gradient-emerald">command center</span>
+            </h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {summary?.holdingsCount ?? 0} positions across your workspaces, with live P/L and market movement.
             </p>
           </div>
-        ))}
+          <div className="flex flex-wrap gap-2">
+            <Button asChild className="h-9 gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-400 px-3.5 text-sm text-white shadow-sm shadow-emerald-500/25 hover:from-emerald-500 hover:to-emerald-300 hover:text-white">
+              <Link href="/portfolios">
+                <Wallet className="size-4" />
+                Open portfolios
+              </Link>
+            </Button>
+            <Button type="button" onClick={onRefresh} variant="outline" className="h-9 gap-1.5 bg-card/70 px-3 text-sm backdrop-blur">
+              <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="flex min-h-[6.5rem] min-w-0 flex-col justify-between rounded-2xl bg-card/70 p-3 shadow-soft ring-1 ring-border backdrop-blur sm:min-h-28 sm:p-4"
+            >
+              <div className="flex min-w-0 items-start justify-between gap-1.5">
+                <span className="min-w-0 text-xs font-medium text-muted-foreground sm:text-sm">{stat.label}</span>
+                <IconChip accent={stat.accent} size="sm" className="-mt-0.5">
+                  {stat.icon}
+                </IconChip>
+              </div>
+              <div className="mt-2">
+                <p
+                  className={cn(
+                    "break-words text-base font-semibold leading-tight tabular-nums sm:text-xl",
+                    stat.pl ? plColorClass(stat.tone) : "text-foreground"
+                  )}
+                >
+                  {stat.value}
+                </p>
+                {stat.pl && stat.pct != null && (
+                  <ChangeBadge pct={stat.pct} className="mt-1 text-xs" />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -366,6 +447,7 @@ function DashboardMarketCard({
   eyebrow,
   featured,
   rows,
+  accent,
 }: {
   href: string;
   icon: React.ReactNode;
@@ -373,17 +455,18 @@ function DashboardMarketCard({
   eyebrow: string;
   featured: FeaturedMarketMove | null;
   rows: DashboardRow[];
+  accent: Accent;
 }) {
   const hasMotion = rows.length >= 5;
   const visibleRows = rows.length ? rows : [];
   const loopRows = hasMotion ? [...visibleRows, ...visibleRows] : visibleRows;
 
   return (
-    <Card className="h-full min-h-[28rem] overflow-hidden sm:min-h-[34rem]">
+    <Card className="h-full min-h-[28rem] overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg sm:min-h-[34rem]">
       <CardHeader className="pb-2 sm:pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-2 sm:gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:size-11 sm:rounded-2xl">
+            <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl sm:size-11 sm:rounded-2xl [&>svg]:size-5", ACCENT_GRADIENT[accent])}>
               {icon}
             </div>
             <div className="min-w-0">

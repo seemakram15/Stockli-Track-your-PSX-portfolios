@@ -4,6 +4,7 @@ import {
   getGlobalIndexConstituents,
   getGlobalIndexTitle,
 } from "@/lib/services/global-index-constituents";
+import { Layers } from "lucide-react";
 import { type MarketUniverse } from "@/lib/services/global-markets";
 import { GlobalIndexConstituentsTable } from "@/components/market/global-index-constituents-table";
 import { PageHeader } from "@/components/page-header";
@@ -37,6 +38,9 @@ export default async function GlobalIndexConstituentsPage({
     <div className="mx-auto max-w-7xl space-y-6">
       <SmartBackLink fallbackHref={`/market/${market}`} label="Back to market" />
       <PageHeader
+        icon={<Layers />}
+        eyebrow="Index constituents"
+        accent="sky"
         title={data.title}
         description={`${data.description} · ${data.symbol}`}
       />

@@ -68,6 +68,9 @@ export function CachedPortfoliosPage({ userId }: { userId: string }) {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
+        icon={<Briefcase />}
+        eyebrow="Your workspaces"
+        accent="primary"
         title="Portfolios"
         description="Group your positions and track each one's performance."
         actions={

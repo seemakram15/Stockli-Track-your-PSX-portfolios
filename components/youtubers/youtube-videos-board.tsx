@@ -10,6 +10,7 @@ import {
   Search,
   Users,
 } from "lucide-react";
+import { IconChip } from "@/components/ui/accent";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterPanel } from "@/components/ui/filter-panel";
@@ -118,7 +119,9 @@ export function YoutubeVideosBoard({ data }: { data: YoutubeVideosData }) {
       ) : (
         <Card>
           <CardContent className="flex min-h-44 flex-col items-center justify-center text-center">
-            <PlaySquare className="size-10 text-muted-foreground" />
+            <IconChip accent="rose" variant="gradient" size="lg">
+              <PlaySquare />
+            </IconChip>
             <h3 className="mt-3 font-semibold">No videos found</h3>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
               Try another channel or clear the search filter.
@@ -223,7 +226,7 @@ function ChannelPill({
 
 function VideoCard({ video, onWatch }: { video: YoutubeVideo; onWatch: () => void }) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+    <article className="overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg hover:ring-rose-500/30">
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <Avatar name={video.channelName} src={video.channelAvatarUrl} />
         <div className="min-w-0 flex-1">
@@ -236,7 +239,9 @@ function VideoCard({ video, onWatch }: { video: YoutubeVideo; onWatch: () => voi
             Subscribers
           </p>
         </div>
-        <PlaySquare className="size-5 shrink-0 text-[#ff0000]" />
+        <IconChip accent="rose" variant="gradient" size="sm">
+          <PlaySquare />
+        </IconChip>
       </div>
 
       <button
@@ -270,24 +275,28 @@ function VideoCard({ video, onWatch }: { video: YoutubeVideo; onWatch: () => voi
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
           {video.publishedText ? (
             <span className="inline-flex items-center gap-1.5">
-              <Clock3 className="size-3.5" />
+              <Clock3 className="size-3.5 text-sky-500 dark:text-sky-400" />
               {video.publishedText}
             </span>
           ) : null}
           {video.views ? (
             <span className="inline-flex items-center gap-1.5">
-              <Eye className="size-3.5" />
+              <Eye className="size-3.5 text-violet-500 dark:text-violet-400" />
               {video.views}
             </span>
           ) : null}
           <span className="inline-flex items-center gap-1.5">
-            <Users className="size-3.5" />
+            <Users className="size-3.5 text-rose-500 dark:text-rose-400" />
             {video.subscriberCount}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Button type="button" onClick={onWatch}>
+          <Button
+            type="button"
+            onClick={onWatch}
+            className="bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-500/25 hover:from-rose-500 hover:to-pink-400 hover:text-white"
+          >
             <Play className="size-4" />
             Watch
           </Button>

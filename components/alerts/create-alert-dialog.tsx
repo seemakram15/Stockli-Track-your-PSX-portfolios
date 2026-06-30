@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { IconChip } from "@/components/ui/accent";
 import { SymbolField } from "@/components/portfolio/symbol-field";
 import { createAlert, type AlertActionState } from "@/lib/actions/alerts";
 import { effectiveQuotePrice } from "@/lib/services/metrics";
@@ -100,9 +101,14 @@ export function CreateAlertDialog({
       <DialogContent>
         <form action={action}>
           <DialogHeader>
-            <DialogTitle>New price alert</DialogTitle>
+            <div className="mb-1 flex items-center gap-3">
+              <IconChip accent="rose" variant="gradient">
+                <Bell />
+              </IconChip>
+              <DialogTitle>New price alert</DialogTitle>
+            </div>
             <DialogDescription>
-              Evaluated on each price refresh (~15 min) while the market is open.
+              Evaluated on each price refresh (~10 min) while the market is open.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -143,7 +149,11 @@ export function CreateAlertDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
+            <Button
+              type="submit"
+              disabled={pending}
+              className="bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-500/25 hover:from-rose-500 hover:to-rose-400 hover:text-white"
+            >
               {pending && <Loader2 className="size-4 animate-spin" />}
               Create alert
             </Button>

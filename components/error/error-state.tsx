@@ -32,8 +32,8 @@ export function ErrorState({
         className
       )}
     >
-      <section className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-sm sm:p-8">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-loss/10 text-loss">
+      <section className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-soft-lg sm:p-8">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-loss/10 text-loss ring-1 ring-loss/20">
           <AlertTriangle className="size-7" />
         </div>
 

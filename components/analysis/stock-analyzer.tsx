@@ -4,13 +4,16 @@ import * as React from "react";
 import {
   ArrowRight,
   BarChart3,
+  Brain,
   CheckCircle2,
   GitCompareArrows,
   LineChart,
   Loader2,
+  RefreshCw,
   Scale,
   Search,
   ShieldCheck,
+  Sparkles,
   TrendingUp,
 } from "lucide-react";
 import {
@@ -42,6 +45,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AccentPill, IconChip, type Accent } from "@/components/ui/accent";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import type { StockFinancialsData } from "@/lib/types/stock-fundamentals";
 import { cn } from "@/lib/utils";
@@ -113,10 +117,10 @@ type CompareAiPayload = {
   generatedAt: string;
 };
 
-const POSITIVE = "#059669";
-const NEGATIVE = "#e11d48";
-const BLUE = "#2563eb";
-const GOLD = "#d99a00";
+const POSITIVE = "#10b981";
+const NEGATIVE = "#f43f5e";
+const BLUE = "#0ea5e9";
+const GOLD = "#f59e0b";
 
 export function StockAnalyzer() {
   const [mode, setMode] = React.useState<AnalyzerMode>("analyze");
@@ -200,21 +204,26 @@ export function StockAnalyzer() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <section className="rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,rgba(5,150,105,0.16),transparent_35%),linear-gradient(135deg,rgba(248,244,235,0.9),rgba(255,255,255,0.96))] px-4 py-8 text-center shadow-sm sm:px-8 sm:py-12">
-        <Badge className="mx-auto h-9 gap-2 rounded-full bg-primary/10 px-5 text-sm font-semibold text-primary">
-          <TrendingUp className="size-4" />
-          Free PSX stock analysis for Pakistani investors
-        </Badge>
-        <h1 className="mx-auto mt-5 max-w-4xl text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
-          Understand any PSX stock in plain English
-        </h1>
-        <p className="mx-auto mt-4 max-w-3xl text-lg leading-8 text-muted-foreground">
-          Pick a company with a ready fundamentals archive and Stockli turns its cached statements,
-          price movement, dividend history and peer-style metrics into a simple investment story.
-        </p>
+      <section className="relative overflow-hidden rounded-3xl bg-card px-4 py-8 text-center shadow-soft ring-1 ring-foreground/10 sm:px-8 sm:py-12">
+        <div className="pointer-events-none absolute inset-0 bg-brand-mesh" aria-hidden />
+        <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-violet-500/15 blur-3xl" aria-hidden />
+        <div className="relative">
+          <AccentPill accent="violet" className="mx-auto">
+            <Brain />
+            AI-powered PSX stock analysis for Pakistani investors
+          </AccentPill>
+          <h1 className="mx-auto mt-5 max-w-4xl text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
+            Understand any PSX stock{" "}
+            <span className="text-gradient-violet">in plain English</span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-3xl text-lg leading-8 text-muted-foreground">
+            Pick a company with a ready fundamentals archive and Stockli turns its cached statements,
+            price movement, dividend history and peer-style metrics into a simple investment story.
+          </p>
+        </div>
       </section>
 
-      <Card className="overflow-hidden border-primary/20">
+      <Card className="overflow-hidden">
         <CardContent className="space-y-5 p-4 sm:p-6">
           <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4">
             <div
@@ -257,7 +266,7 @@ export function StockAnalyzer() {
                   className={cn(
                     "h-11 rounded-xl px-2 text-sm font-semibold transition sm:text-base",
                     universe === item
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-sm shadow-violet-500/25"
                       : "text-muted-foreground hover:bg-muted"
                   )}
                 >
@@ -267,7 +276,8 @@ export function StockAnalyzer() {
             </div>
 
             <div className="w-full max-w-xl">
-              <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="mb-2 flex items-center justify-center gap-1.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Sparkles className="size-3.5 text-violet-500" />
                 AI model for grounded explanation
               </p>
               <div className="grid grid-cols-2 gap-1 rounded-2xl border bg-background p-1">
@@ -279,7 +289,7 @@ export function StockAnalyzer() {
                     className={cn(
                       "h-11 rounded-xl px-2 text-sm font-semibold transition sm:text-base",
                       aiModel === model
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                        ? "bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-sm shadow-violet-500/25"
                         : "text-muted-foreground hover:bg-muted"
                     )}
                   >
@@ -305,7 +315,7 @@ export function StockAnalyzer() {
                 size="lg"
                 disabled={!selectedSymbol || analyzerFinancials.isLoading}
                 onClick={analyzeSelected}
-                className="h-12 px-8 text-base"
+                className="h-12 gap-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 px-8 text-base text-white shadow-md shadow-violet-500/25 hover:from-violet-500 hover:to-fuchsia-400 hover:text-white"
               >
                 {analyzerFinancials.isLoading ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -339,7 +349,7 @@ export function StockAnalyzer() {
                 type="button"
                 size="lg"
                 disabled={!compareA || !compareB || compareA === compareB}
-                className="h-12 px-8 text-base"
+                className="h-12 gap-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 px-8 text-base text-white shadow-md shadow-violet-500/25 hover:from-violet-500 hover:to-fuchsia-400 hover:text-white"
               >
                 <Scale className="size-4" />
                 Compare
@@ -354,8 +364,8 @@ export function StockAnalyzer() {
                 ["2", "Click Analyze", "We read Stockli's ready fundamentals archive and market data."],
                 ["3", "Read the Results", "Get simple signals, charts and dividend context."],
               ].map(([step, title, copy]) => (
-                <div key={step} className="rounded-2xl border bg-card p-5 text-center shadow-sm">
-                  <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
+                <div key={step} className="rounded-2xl border bg-card p-5 text-center shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-soft-lg">
+                  <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-lg font-bold text-white shadow-sm shadow-violet-500/30">
                     {step}
                   </span>
                   <h3 className="mt-4 text-lg font-semibold">{title}</h3>
@@ -418,10 +428,10 @@ function StockPicker({
           className="h-12 pl-10 text-base"
         />
       </div>
-      <div className="max-h-56 overflow-y-auto rounded-2xl border bg-card p-1 shadow-sm">
+      <div className="max-h-56 overflow-y-auto rounded-2xl border bg-card p-1 shadow-soft">
         {loading ? (
           <div className="flex items-center justify-center gap-2 p-4 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin text-primary" />
+            <Loader2 className="size-4 animate-spin text-violet-500" />
             Loading ready stocks...
           </div>
         ) : companies.length ? (
@@ -435,7 +445,7 @@ function StockPicker({
               }}
               className={cn(
                 "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-muted",
-                value === company.symbol && "bg-primary/10 text-primary"
+                value === company.symbol && "bg-violet-500/10 text-violet-600 dark:text-violet-300"
               )}
             >
               <span className="min-w-0">
@@ -472,7 +482,7 @@ function AnalyzeResult({
     return (
       <Card>
         <CardContent className="flex min-h-56 items-center justify-center gap-3 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin text-primary" />
+          <Loader2 className="size-5 animate-spin text-violet-500" />
           Loading stock analysis...
         </CardContent>
       </Card>
@@ -498,40 +508,43 @@ function AnalyzeResult({
 
   return (
     <div className="space-y-5">
-      <Card className="overflow-hidden border-primary/15 bg-gradient-to-br from-background via-background to-primary/5">
+      <Card variant="feature" className="overflow-hidden">
         <CardContent className="grid gap-5 p-5 lg:grid-cols-[1.25fr_0.75fr]">
           <div>
             <div className="flex flex-wrap items-center gap-2">
+              <IconChip accent="emerald" variant="gradient">
+                <TrendingUp />
+              </IconChip>
               <h2 className="text-2xl font-bold">{summary.name}</h2>
               <Badge variant="outline">{summary.symbol}</Badge>
-              <Badge className="bg-primary/10 text-primary">{summary.sector}</Badge>
+              <Badge variant="success">{summary.sector}</Badge>
             </div>
-            <p className="mt-3 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+            <p className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm leading-6 text-foreground/90">
               {summary.businessText}
             </p>
           </div>
-          <div className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="rounded-2xl border bg-card p-4 shadow-soft">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Current price
             </p>
-            <p className="mt-2 text-3xl font-semibold">
+            <p className="mt-2 text-3xl font-semibold tabular-nums">
               {price != null ? `Rs ${formatNumber(price)}` : "Preparing"}
             </p>
             {dayChange != null || dayChangePct != null ? (
               <p
                 className={cn(
-                  "mt-1 text-sm font-medium",
-                  priceTone === "positive" ? "text-primary" : "text-destructive"
+                  "mt-1 text-sm font-medium tabular-nums",
+                  priceTone === "positive" ? "text-gain" : "text-loss"
                 )}
               >
                 {formatSigned(dayChange)} {dayChangePct != null ? `(${formatSigned(dayChangePct)}%)` : ""}
               </p>
             ) : null}
             <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-              <MiniMetric label="P/E" value={formatMaybe(summary.pe, "x")} />
-              <MiniMetric label="P/B" value={formatMaybe(summary.pbv, "x")} />
+              <MiniMetric label="P/E" value={formatMaybe(summary.pe, "x")} accent="sky" />
+              <MiniMetric label="P/B" value={formatMaybe(summary.pbv, "x")} accent="indigo" />
               <MiniMetric label="EPS" value={formatMaybe(summary.eps)} />
-              <MiniMetric label="ROE" value={formatMaybe(summary.roe, "%")} />
+              <MiniMetric label="ROE" value={formatMaybe(summary.roe, "%")} accent="emerald" />
             </div>
           </div>
         </CardContent>
@@ -581,35 +594,34 @@ function AnalyzeResult({
 
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="size-5 text-primary" />
-              Final verdict
-            </CardTitle>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconChip accent="emerald"><ShieldCheck /></IconChip>
+            <CardTitle>Final verdict</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-2xl border bg-primary/5 p-4">
-              <p className="text-lg font-semibold text-primary">{summary.verdict}</p>
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <p className="text-lg font-semibold text-gain">{summary.verdict}</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 This verdict is a plain-English read of cached fundamentals. Use it as a starting
                 point, then review company notices, sector news and your risk tolerance.
               </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
-              <MiniMetric label="Health score" value={`${summary.healthScore}/100`} />
-              <MiniMetric label="Payout ratio" value={formatMaybe(summary.payoutRatio, "%")} />
-              <MiniMetric label="Revenue growth" value={formatMaybe(summary.revenueGrowth, "%")} />
-              <MiniMetric label="EPS growth" value={formatMaybe(summary.epsGrowth, "%")} />
+              <MiniMetric label="Health score" value={`${summary.healthScore}/100`} accent="emerald" />
+              <MiniMetric label="Payout ratio" value={formatMaybe(summary.payoutRatio, "%")} accent="amber" />
+              <MiniMetric label="Revenue growth" value={formatMaybe(summary.revenueGrowth, "%")} accent="sky" />
+              <MiniMetric label="EPS growth" value={formatMaybe(summary.epsGrowth, "%")} accent="violet" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconChip accent="amber"><CheckCircle2 /></IconChip>
             <CardTitle>Dividend check</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 rounded-2xl bg-muted p-4 text-center">
-              <CheckCircle2 className="mx-auto size-8 text-primary" />
+            <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-center">
+              <CheckCircle2 className="mx-auto size-8 text-amber-500" />
               <p className="mt-2 text-xl font-semibold">
                 {(summary.dps ?? 0) > 0 ? "Pays dividends" : "No recent dividend found"}
               </p>
@@ -640,7 +652,7 @@ function CompareResult({
     return (
       <Card>
         <CardContent className="flex min-h-40 items-center justify-center gap-3 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin text-primary" />
+          <Loader2 className="size-5 animate-spin text-violet-500" />
           Loading comparison...
         </CardContent>
       </Card>
@@ -690,7 +702,8 @@ function CompareResult({
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center gap-3">
+          <IconChip accent="indigo"><Scale /></IconChip>
           <CardTitle>Side-by-side scorecard</CardTitle>
         </CardHeader>
         <CardContent>
@@ -708,10 +721,10 @@ function CompareResult({
                 {rows.map((row) => (
                   <tr key={row.label} className="border-b">
                     <td className="px-3 py-3 font-medium">{row.label}</td>
-                    <td className={cn("px-3 py-3", row.winner === "first" && "font-semibold text-primary")}>
+                    <td className={cn("px-3 py-3 tabular-nums", row.winner === "first" && "font-semibold text-gain")}>
                       {row.first}
                     </td>
-                    <td className={cn("px-3 py-3", row.winner === "second" && "font-semibold text-primary")}>
+                    <td className={cn("px-3 py-3 tabular-nums", row.winner === "second" && "font-semibold text-gain")}>
                       {row.second}
                     </td>
                     <td className="px-3 py-3 text-muted-foreground">{row.note}</td>
@@ -725,13 +738,14 @@ function CompareResult({
 
       <CompareAiInsightCard first={first} second={second} model={aiModel} />
 
-      <Card className="border-primary/20">
+      <Card variant="feature">
         <CardContent className="grid gap-5 p-5 lg:grid-cols-[0.75fr_1.25fr]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <AccentPill accent="emerald">
+              <Sparkles />
               Plain-English result
-            </p>
-            <h3 className="mt-2 text-3xl font-bold">{winner}</h3>
+            </AccentPill>
+            <h3 className="mt-2 text-3xl font-bold text-gradient-emerald w-fit">{winner}</h3>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {winner === "Balanced match"
                 ? "Both stocks have mixed strengths. Compare sector cycle, dividend certainty and your holding period before deciding."
@@ -763,20 +777,20 @@ function CompareResult({
 
 function CompareStockCard({ summary, wins }: { summary: AnalyzerSummary; wins: number }) {
   return (
-    <Card>
+    <Card className="transition-all hover:-translate-y-0.5 hover:shadow-soft-lg">
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-2xl font-bold">{summary.symbol}</p>
             <p className="text-sm text-muted-foreground">{summary.name}</p>
           </div>
-          <Badge className="bg-primary/10 text-primary">{wins} wins</Badge>
+          <Badge variant="success">{wins} wins</Badge>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-2">
           <MiniMetric label="Price" value={summary.quote?.current ? `Rs ${formatNumber(summary.quote.current)}` : "N/A"} />
-          <MiniMetric label="Health" value={`${summary.healthScore}/100`} />
-          <MiniMetric label="P/E" value={formatMaybe(summary.pe, "x")} />
-          <MiniMetric label="Dividend" value={formatMaybe(summary.dividendYield, "%")} />
+          <MiniMetric label="Health" value={`${summary.healthScore}/100`} accent="emerald" />
+          <MiniMetric label="P/E" value={formatMaybe(summary.pe, "x")} accent="sky" />
+          <MiniMetric label="Dividend" value={formatMaybe(summary.dividendYield, "%")} accent="amber" />
         </div>
       </CardContent>
     </Card>
@@ -806,24 +820,30 @@ function AnalyzeAiInsightCard({
   const { data, loading, error, cache, refresh } = useStockAnalyzerAi<AnalyzeAiPayload>(requestBody);
 
   return (
-    <Card className="border-primary/20">
-      <CardHeader className="flex flex-col gap-3 border-b bg-primary/5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <CardTitle className="flex flex-wrap items-center gap-2">
-            AI stock explanation
-            <Badge variant="outline">{formatAiModelName(model)}</Badge>
-          </CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Grounded on cached fundamentals for {summary.symbol}. Refresh only if you want a new
-            pass from the selected model.
-          </p>
+    <Card variant="feature" className="relative overflow-hidden">
+      <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-violet-500/15 blur-3xl" aria-hidden />
+      <CardHeader className="relative flex flex-col gap-3 border-b bg-gradient-to-r from-violet-500/10 via-fuchsia-500/5 to-transparent sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <IconChip accent="violet" variant="gradient" size="lg" className="mt-0.5">
+            <Brain />
+          </IconChip>
+          <div className="min-w-0">
+            <CardTitle className="flex flex-wrap items-center gap-2">
+              AI stock explanation
+              <Badge variant="violet">{formatAiModelName(model)}</Badge>
+            </CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Grounded on cached fundamentals for {summary.symbol}. Refresh only if you want a new
+              pass from the selected model.
+            </p>
+          </div>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>
           {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshLabel />}
           Refresh AI
         </Button>
       </CardHeader>
-      <CardContent className="space-y-5 p-5">
+      <CardContent className="relative space-y-5 p-5">
         {loading && !data ? (
           <AiLoadingState message={`Generating ${summary.symbol} explanation...`} />
         ) : error ? (
@@ -834,9 +854,9 @@ function AnalyzeAiInsightCard({
           />
         ) : data ? (
           <>
-            <div className="rounded-2xl border bg-background p-4 shadow-sm">
+            <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4 shadow-soft">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-primary/10 text-primary">{data.insight.confidence} confidence</Badge>
+                <Badge variant="violet">{data.insight.confidence} confidence</Badge>
                 <Badge variant="outline">{cache?.status ?? "fresh"}</Badge>
               </div>
               <h3 className="mt-3 text-xl font-semibold">{data.insight.headline}</h3>
@@ -853,8 +873,11 @@ function AnalyzeAiInsightCard({
               <AiTextCard title="Dividend read" text={data.insight.dividendView} />
             </div>
 
-            <div className="rounded-2xl border bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-              <p className="font-semibold">AI suggestion</p>
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm leading-6 text-foreground/90">
+              <p className="flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-300">
+                <Sparkles className="size-4" />
+                AI suggestion
+              </p>
               <p className="mt-2">{data.insight.suggestion}</p>
             </div>
           </>
@@ -892,24 +915,30 @@ function CompareAiInsightCard({
     useStockAnalyzerAi<CompareAiPayload>(requestBody);
 
   return (
-    <Card className="border-primary/20">
-      <CardHeader className="flex flex-col gap-3 border-b bg-primary/5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <CardTitle className="flex flex-wrap items-center gap-2">
-            AI comparison
-            <Badge variant="outline">{formatAiModelName(model)}</Badge>
-          </CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
-            A grounded text comparison for {first.symbol} and {second.symbol} using cached
-            fundamentals only.
-          </p>
+    <Card variant="feature" className="relative overflow-hidden">
+      <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-violet-500/15 blur-3xl" aria-hidden />
+      <CardHeader className="relative flex flex-col gap-3 border-b bg-gradient-to-r from-violet-500/10 via-fuchsia-500/5 to-transparent sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <IconChip accent="violet" variant="gradient" size="lg" className="mt-0.5">
+            <Brain />
+          </IconChip>
+          <div className="min-w-0">
+            <CardTitle className="flex flex-wrap items-center gap-2">
+              AI comparison
+              <Badge variant="violet">{formatAiModelName(model)}</Badge>
+            </CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              A grounded text comparison for {first.symbol} and {second.symbol} using cached
+              fundamentals only.
+            </p>
+          </div>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>
           {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshLabel />}
           Refresh AI
         </Button>
       </CardHeader>
-      <CardContent className="space-y-5 p-5">
+      <CardContent className="relative space-y-5 p-5">
         {loading && !data ? (
           <AiLoadingState message={`Comparing ${first.symbol} and ${second.symbol}...`} />
         ) : error ? (
@@ -920,11 +949,11 @@ function CompareAiInsightCard({
           />
         ) : data ? (
           <>
-            <div className="rounded-2xl border bg-background p-4 shadow-sm">
+            <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4 shadow-soft">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-primary/10 text-primary">{data.insight.confidence} confidence</Badge>
+                <Badge variant="violet">{data.insight.confidence} confidence</Badge>
                 <Badge variant="outline">{cache?.status ?? "fresh"}</Badge>
-                <Badge variant="secondary">Winner: {data.insight.winner}</Badge>
+                <Badge variant="success">Winner: {data.insight.winner}</Badge>
               </div>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">{data.insight.summary}</p>
             </div>
@@ -937,8 +966,11 @@ function CompareAiInsightCard({
 
             <AiBulletCard title="Shared watchouts" tone="warning" items={data.insight.watchouts} />
 
-            <div className="rounded-2xl border bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-              <p className="font-semibold">AI suggestion</p>
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm leading-6 text-foreground/90">
+              <p className="flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-300">
+                <Sparkles className="size-4" />
+                AI suggestion
+              </p>
               <p className="mt-2">{data.insight.suggestion}</p>
             </div>
           </>
@@ -961,12 +993,20 @@ function AiBulletCard({
     <div
       className={cn(
         "rounded-2xl border p-4",
-        tone === "positive" && "border-primary/25 bg-primary/5",
-        tone === "warning" && "border-amber-200 bg-amber-50",
+        tone === "positive" && "border-emerald-500/25 bg-emerald-500/5",
+        tone === "warning" && "border-amber-500/25 bg-amber-500/5",
         tone === "neutral" && "bg-background"
       )}
     >
-      <p className="text-sm font-semibold">{title}</p>
+      <p
+        className={cn(
+          "text-sm font-semibold",
+          tone === "positive" && "text-gain",
+          tone === "warning" && "text-amber-600 dark:text-amber-300"
+        )}
+      >
+        {title}
+      </p>
       <div className="mt-3 space-y-2">
         {items.map((item, index) => (
           <p key={`${title}-${index}`} className="text-sm leading-6 text-muted-foreground">
@@ -990,7 +1030,7 @@ function AiTextCard({ title, text }: { title: string; text: string }) {
 function AiLoadingState({ message }: { message: string }) {
   return (
     <div className="flex min-h-44 flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-      <Loader2 className="size-6 animate-spin text-primary" />
+      <Loader2 className="size-6 animate-spin text-violet-500" />
       <p className="text-sm">{message}</p>
     </div>
   );
@@ -1018,7 +1058,7 @@ function AiErrorState({
 }
 
 function RefreshLabel() {
-  return <span>Refresh</span>;
+  return <RefreshCw className="size-4" />;
 }
 
 function SignalCard({
@@ -1035,18 +1075,27 @@ function SignalCard({
   const positive = status === "cheap" || status === "healthy";
   const negative = status === "expensive" || status === "risky";
   return (
-    <Card className={cn("border", positive && "border-primary/25", negative && "border-destructive/20")}>
+    <Card
+      className={cn(
+        "transition-all hover:-translate-y-0.5 hover:shadow-soft-lg",
+        positive && "border-emerald-500/25 bg-emerald-500/5",
+        negative && "border-rose-500/25 bg-rose-500/5"
+      )}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <p className="text-sm font-semibold text-muted-foreground">{title}</p>
-          <Badge
-            variant={negative ? "destructive" : "outline"}
-            className={cn(positive && "bg-primary/10 text-primary")}
-          >
+          <Badge variant={negative ? "loss" : positive ? "gain" : "outline"}>
             {status}
           </Badge>
         </div>
-        <p className={cn("mt-3 text-2xl font-semibold", positive && "text-primary", negative && "text-destructive")}>
+        <p
+          className={cn(
+            "mt-3 text-2xl font-semibold tabular-nums",
+            positive && "text-gain",
+            negative && "text-loss"
+          )}
+        >
           {value}
         </p>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">{note}</p>
@@ -1068,12 +1117,14 @@ function ChartCard({
 }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          {type === "line" ? <LineChart className="size-5 text-primary" /> : <BarChart3 className="size-5 text-primary" />}
-          {title}
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">{subtitle}</p>
+      <CardHeader className="flex-row items-start gap-3">
+        <IconChip accent={type === "line" ? "emerald" : "sky"}>
+          {type === "line" ? <LineChart /> : <BarChart3 />}
+        </IconChip>
+        <div className="min-w-0">
+          <CardTitle>{title}</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+        </div>
       </CardHeader>
       <CardContent>
         {series.length ? (
@@ -1110,11 +1161,19 @@ function ChartCard({
   );
 }
 
-function MiniMetric({ label, value }: { label: string; value: string }) {
+const MINI_METRIC_VALUE: Partial<Record<Accent, string>> = {
+  sky: "text-sky-600 dark:text-sky-300",
+  indigo: "text-indigo-600 dark:text-indigo-300",
+  emerald: "text-emerald-600 dark:text-emerald-300",
+  amber: "text-amber-600 dark:text-amber-300",
+  violet: "text-violet-600 dark:text-violet-300",
+};
+
+function MiniMetric({ label, value, accent }: { label: string; value: string; accent?: Accent }) {
   return (
     <div className="rounded-xl border bg-background p-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 font-semibold">{value}</p>
+      <p className={cn("mt-1 font-semibold tabular-nums", accent && MINI_METRIC_VALUE[accent])}>{value}</p>
     </div>
   );
 }

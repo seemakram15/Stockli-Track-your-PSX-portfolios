@@ -1,13 +1,31 @@
 "use client";
 
+import {
+  Bitcoin,
+  Droplets,
+  Gem,
+  Globe2,
+  LineChart,
+  type LucideIcon,
+} from "lucide-react";
 import { CacheStatusBadge } from "@/components/cache/cache-status-badge";
 import { EmptyState } from "@/components/empty-state";
 import { PageLoadingState } from "@/components/loading/page-loading-state";
 import { GlobalMarketBoard } from "@/components/market/global-market-board";
 import { PageHeader } from "@/components/page-header";
 import { DataDelayBadge } from "@/components/status-badges";
+import { type Accent } from "@/components/ui/accent";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import type { GlobalMarketData, MarketUniverse } from "@/lib/services/global-markets";
+
+const MARKET_THEME: Record<MarketUniverse, { accent: Accent; eyebrow: string; Icon: LucideIcon }> = {
+  us: { accent: "sky", eyebrow: "USA markets", Icon: LineChart },
+  india: { accent: "rose", eyebrow: "India markets", Icon: LineChart },
+  world: { accent: "indigo", eyebrow: "World indices", Icon: Globe2 },
+  commodities: { accent: "amber", eyebrow: "Commodities", Icon: Gem },
+  oil: { accent: "orange", eyebrow: "Energy", Icon: Droplets },
+  crypto: { accent: "violet", eyebrow: "Crypto", Icon: Bitcoin },
+};
 
 export function CachedGlobalMarketPage({
   market,
@@ -18,6 +36,8 @@ export function CachedGlobalMarketPage({
   title: string;
   description: string;
 }) {
+  const theme = MARKET_THEME[market] ?? MARKET_THEME.world;
+  const ThemeIcon = theme.Icon;
   const { data, error, isLoading, isRefreshing, isFromDeviceCache, cachedAt } =
     usePersistentResource<GlobalMarketData>({
       cacheKey: `public:global-market:${market}`,
@@ -28,6 +48,9 @@ export function CachedGlobalMarketPage({
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
+        icon={<ThemeIcon />}
+        eyebrow={theme.eyebrow}
+        accent={theme.accent}
         title={data?.title ?? title}
         description={data?.description ?? description}
         actions={
@@ -44,7 +67,7 @@ export function CachedGlobalMarketPage({
       />
 
       {data ? (
-        <GlobalMarketBoard data={data} showMap={market === "world"} />
+        <GlobalMarketBoard data={data} showMap={market === "world"} accent={theme.accent} />
       ) : isLoading ? (
         <PageLoadingState message={`Loading ${title}...`} variant="global-market" />
       ) : (
