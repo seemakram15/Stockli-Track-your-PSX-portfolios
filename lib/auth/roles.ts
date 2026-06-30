@@ -2,6 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { isDemoMode } from "@/lib/config";
 import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/auth/current-user";
 import { DEMO_USER } from "@/lib/demo/data";
 
 export type Role = "user" | "superadmin";
@@ -22,11 +23,9 @@ export async function getSessionContext(): Promise<SessionContext> {
       role: "user",
     };
   }
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) return { user: null, role: "user" };
+  const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
     .select("role, display_name")
@@ -51,11 +50,9 @@ export async function getSessionContext(): Promise<SessionContext> {
  */
 export async function getCurrentRole(): Promise<Role> {
   if (isDemoMode) return "user";
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) return "user";
+  const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
     .select("role")

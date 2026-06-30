@@ -14,6 +14,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { IconChip } from "@/components/ui/accent";
+import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterPanel } from "@/components/ui/filter-panel";
@@ -161,21 +163,24 @@ export function MufapFundsBoard({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric label="Visible funds" value={rows.length.toLocaleString("en-US")} />
-        <Metric label="AMCs shown" value={summary.amcCount.toLocaleString("en-US")} />
-        <Metric label="Priced NAVs" value={summary.pricedCount.toLocaleString("en-US")} />
-        <Metric label="Fund classes" value={summary.classCount.toLocaleString("en-US")} />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <StatCard label="Visible funds" value={rows.length.toLocaleString("en-US")} accent="amber" icon={<BarChart3 className="size-4" />} />
+        <StatCard label="AMCs shown" value={summary.amcCount.toLocaleString("en-US")} accent="sky" icon={<BadgePercent className="size-4" />} />
+        <StatCard label="Priced NAVs" value={summary.pricedCount.toLocaleString("en-US")} accent="emerald" icon={<Coins className="size-4" />} />
+        <StatCard label="Fund classes" value={summary.classCount.toLocaleString("en-US")} accent="violet" icon={<PieChart className="size-4" />} />
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader className="gap-5 border-b border-border bg-gradient-to-br from-card via-card to-primary/5">
+      <Card variant="feature" className="overflow-hidden">
+        <CardHeader className="gap-5 border-b border-border bg-gradient-to-br from-card via-card to-amber-500/5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <CardTitle>{title}</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
-                MUFAP official data · updated {formatDateTime(data.updatedAt)}
-              </p>
+            <div className="flex items-center gap-3">
+              <IconChip accent="amber" variant="gradient"><BadgePercent /></IconChip>
+              <div>
+                <CardTitle>{title}</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  MUFAP official data · updated {formatDateTime(data.updatedAt)}
+                </p>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={() => window.location.reload()}>
@@ -275,7 +280,7 @@ export function MufapFundsBoard({
                             <Icon
                               className={cn(
                                 "size-4",
-                                strategy === item.value ? "text-primary-foreground" : "text-muted-foreground"
+                                strategy === item.value ? "text-white" : "text-muted-foreground"
                               )}
                             />
                           }
@@ -293,7 +298,7 @@ export function MufapFundsBoard({
           {groups.map((group) => (
             <section
               key={group.label}
-              className="overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
+              className="overflow-hidden rounded-2xl border border-border bg-background shadow-soft transition-shadow hover:shadow-soft-lg"
             >
               <div className="flex flex-col gap-3 border-b border-border bg-muted/25 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
@@ -484,8 +489,8 @@ function FilterPill({
       className={cn(
         "flex h-11 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 text-sm font-semibold shadow-sm transition-colors",
         active
-          ? "border-[#2554d9] bg-[#2554d9] text-white"
-          : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent"
+          ? "border-transparent bg-gradient-to-r from-amber-500 to-orange-400 text-white shadow-sm shadow-amber-500/25"
+          : "border-border bg-card text-foreground hover:border-amber-500/40 hover:bg-accent"
       )}
     >
       <span className="flex min-w-0 items-center gap-2">
@@ -511,27 +516,6 @@ function ReturnCell({ value }: { value: number | null }) {
     <TableCell className={cn("text-right font-medium tabular-nums", plColorClass(value))}>
       {formatPercent(value)}
     </TableCell>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: number | null;
-}) {
-  return (
-    <Card>
-      <CardContent className="min-w-0 p-3 sm:p-4">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={cn("mt-2 text-lg font-bold tabular-nums [overflow-wrap:anywhere] sm:text-2xl", tone == null ? "text-foreground" : plColorClass(tone))}>
-          {value}
-        </p>
-      </CardContent>
-    </Card>
   );
 }
 

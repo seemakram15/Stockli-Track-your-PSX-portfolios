@@ -31,7 +31,10 @@ export function ResetPasswordForm({ email }: { email?: string | null }) {
           </div>
         </div>
 
-        <Button asChild className="h-11 w-full">
+        <Button
+          asChild
+          className="h-11 w-full gap-2 bg-gradient-to-r from-emerald-500 to-emerald-400 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:from-emerald-500 hover:to-emerald-300 hover:shadow-emerald-500/35"
+        >
           <Link href="/dashboard">Open dashboard</Link>
         </Button>
       </div>
@@ -73,7 +76,11 @@ export function ResetPasswordForm({ email }: { email?: string | null }) {
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="h-11 w-full gap-2">
+      <Button
+        type="submit"
+        disabled={pending}
+        className="h-11 w-full gap-2 bg-gradient-to-r from-emerald-500 to-emerald-400 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:from-emerald-500 hover:to-emerald-300 hover:shadow-emerald-500/35"
+      >
         {pending ? <Loader2 className="size-4 animate-spin" /> : null}
         Save new password
       </Button>

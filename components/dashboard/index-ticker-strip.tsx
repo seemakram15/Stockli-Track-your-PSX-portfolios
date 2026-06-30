@@ -25,7 +25,7 @@ export function IndexTickerStrip({
   const desktopLoop = [...desktopRows, ...desktopRows];
 
   return (
-    <div className="flex overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+    <div className="flex overflow-hidden rounded-xl bg-card shadow-soft ring-1 ring-foreground/10">
       {headline && (
         <div className="z-20 hidden shrink-0 items-center border-r border-border bg-card px-3 py-2 sm:px-4 md:flex">
           <TickerItem item={headline} featured />

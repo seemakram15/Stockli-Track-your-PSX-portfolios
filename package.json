@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "audit:fundamentals": "node scripts/audit-fundamentals-cache.mjs",
     "archive:fundamentals": "node scripts/archive-fundamentals.mjs",
     "supabase:auth-email:check": "node scripts/configure-supabase-auth-email.mjs --dry-run",

@@ -113,7 +113,7 @@ export function NavLinks({
                 className={cn(
                   "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
                   marketActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
@@ -191,7 +191,7 @@ export function NavLinks({
             className={cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               active
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
             )}
           >
@@ -237,7 +237,7 @@ function MobileNavGroup({
         className={cn(
           "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
           active
-            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            ? "bg-primary/10 text-primary"
             : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
         )}
       >
@@ -329,7 +329,7 @@ function MarketNavItems({
                 className={cn(
                   "group flex w-full min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
                   childActive
-                    ? "bg-sidebar-accent/70 text-sidebar-accent-foreground"
+                    ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
@@ -411,7 +411,7 @@ function MarketNavLink({
       className={cn(
         "group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
       )}
     >

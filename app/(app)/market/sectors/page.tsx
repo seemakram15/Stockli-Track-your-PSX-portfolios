@@ -32,12 +32,15 @@ export default async function SectorPerformancePage({
       <SmartBackLink fallbackHref="/market" label="Back to market" />
 
       <PageHeader
+        icon={<BarChart3 />}
+        eyebrow="Sector performance"
+        accent="teal"
         title="Sector Performance"
         description={`Choose an index to group its stocks by sector. ${selectedLabel} is currently selected.`}
         actions={<DataDelayBadge />}
       />
 
-      <Card className="overflow-hidden border-primary/20 bg-background shadow-sm">
+      <Card variant="feature" className="overflow-hidden">
         <CardContent className="flex flex-wrap gap-2 p-3 sm:p-4">
           {MARKET_SECTOR_INDEXES.map((option) => {
             const active = option.symbol === selectedIndex;
@@ -49,8 +52,8 @@ export default async function SectorPerformancePage({
                 className={cn(
                   "inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition",
                   active
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                    : "border-border bg-background hover:border-primary/40 hover:bg-muted/40"
+                    ? "border-transparent bg-gradient-to-r from-teal-500 to-cyan-400 text-white shadow-sm shadow-teal-500/25"
+                    : "border-border bg-background hover:border-teal-500/40 hover:bg-muted/40"
                 )}
               >
                 {option.label}

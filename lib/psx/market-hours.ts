@@ -177,6 +177,17 @@ export function shouldRefreshPsxData(date: Date = new Date()): boolean {
   );
 }
 
+/**
+ * Identifier for the current trading "cycle" — the Pakistan-local date while a
+ * session is live (pre-open onward), otherwise "". Clients compare this against
+ * a stored value to detect the moment a new session begins (e.g. 09:15 next
+ * trading day) and drop the previous day's frozen device-cache snapshot.
+ */
+export function psxSessionCycleId(date: Date = new Date()): string {
+  if (!shouldRefreshPsxData(date)) return "";
+  return pktDateString(pktParts(date));
+}
+
 export function marketStatus(date: Date = new Date()): {
   status: MarketStatus;
   label: string;

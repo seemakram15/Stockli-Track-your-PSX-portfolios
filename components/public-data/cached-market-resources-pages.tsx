@@ -17,6 +17,8 @@ import { EmptyState } from "@/components/empty-state";
 import { PageLoadingState } from "@/components/loading/page-loading-state";
 import { PageHeader } from "@/components/page-header";
 import { DataDelayBadge } from "@/components/status-badges";
+import { AccentPill, IconChip, type Accent } from "@/components/ui/accent";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -68,6 +70,9 @@ export function CachedUsefulLinksPage() {
       <PageHeader
         title="Useful links"
         description="Curated economy, sector, rating and research resources for Pakistan market analysis."
+        icon={<Link2 />}
+        eyebrow="Research toolkit"
+        accent="indigo"
         actions={
           <CacheStatusBadge
             updatedAt={data?.updatedAt}
@@ -86,10 +91,12 @@ export function CachedUsefulLinksPage() {
       {groups.length ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {groups.map((group) => (
-            <Card key={group.title} className="overflow-hidden">
+            <Card key={group.title} variant="feature" className="overflow-hidden">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Link2 className="size-5 text-primary" />
+                <CardTitle className="flex items-center gap-2.5 text-lg">
+                  <IconChip accent="indigo" variant="gradient" size="sm">
+                    <Link2 />
+                  </IconChip>
                   {group.title}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">{group.description}</p>
@@ -168,7 +175,9 @@ export function CachedBoardMeetingsPage() {
     <ResourceShell
       title="Board meetings"
       description="Upcoming board meetings with date, time and agenda."
-      icon={<CalendarDays className="size-6" />}
+      icon={<CalendarDays />}
+      accent="sky"
+      eyebrow="Corporate calendar"
       resource={resource}
     >
       <SearchBox value={query} onChange={setQuery} placeholder="Search company, symbol or agenda..." />
@@ -230,7 +239,9 @@ export function CachedBookClosuresPage() {
     <ResourceShell
       title="Book closures"
       description="Book closure dates with payouts only, so cash and entitlement events stay visible."
-      icon={<Gift className="size-6" />}
+      icon={<Gift />}
+      accent="amber"
+      eyebrow="Entitlements"
       resource={resource}
     >
       <SearchBox value={query} onChange={setQuery} placeholder="Search symbol, company or payout..." />
@@ -247,8 +258,8 @@ export function CachedBookClosuresPage() {
                 <TableCell className="max-w-sm whitespace-normal">{row.company}</TableCell>
                 <TableCell>{formatDate(row.bookClosureFrom) || row.bookClosureFrom}</TableCell>
                 <TableCell>{formatDate(row.bookClosureTo) || row.bookClosureTo}</TableCell>
-                <TableCell className="font-semibold text-primary">{payout.dividend}</TableCell>
-                <TableCell className="font-semibold text-primary">{payout.right}</TableCell>
+                <TableCell className="font-semibold text-gain">{payout.dividend}</TableCell>
+                <TableCell className="font-semibold text-amber-600 dark:text-amber-400">{payout.right}</TableCell>
               </>
             );
           }}
@@ -284,7 +295,9 @@ export function CachedDividendHistoryPage() {
     <ResourceShell
       title="Dividend history"
       description="Payout history from official PSX data when available, with cached fallback records."
-      icon={<History className="size-6" />}
+      icon={<History />}
+      accent="emerald"
+      eyebrow="Payout records"
       resource={resource}
     >
       <SearchBox value={query} onChange={setQuery} placeholder="Search symbol, payout or date..." />
@@ -296,7 +309,7 @@ export function CachedDividendHistoryPage() {
           renderDesktop={(row) => (
             <>
               <TableCell className="font-semibold">{row.symbol}</TableCell>
-              <TableCell className="font-semibold text-primary">{normalizePayoutLabel(row.payout)}</TableCell>
+              <TableCell className="font-semibold text-gain">{normalizePayoutLabel(row.payout)}</TableCell>
               <TableCell>{formatDate(row.creditedOn) || row.creditedOn}</TableCell>
             </>
           )}
@@ -340,6 +353,9 @@ export function CachedPivotPointsPage() {
       <PageHeader
         title="Stock pivot points"
         description="Classic support and resistance levels calculated from latest PSX high, low and previous close."
+        icon={<Target />}
+        eyebrow="Technical levels"
+        accent="teal"
         actions={
           <>
             <CacheStatusBadge
@@ -379,8 +395,10 @@ export function CachedPivotPointsPage() {
       {rows.length ? (
         <Card>
           <CardHeader className="border-b">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Target className="size-5 text-primary" />
+            <CardTitle className="flex items-center gap-2.5 text-lg">
+              <IconChip accent="teal" variant="gradient" size="sm">
+                <Target />
+              </IconChip>
               Pivot levels
             </CardTitle>
             <p className="text-sm text-muted-foreground">{resource.data?.method}</p>
@@ -514,6 +532,8 @@ function ResourceShell<T>({
   title,
   description,
   icon,
+  accent,
+  eyebrow,
   resource,
   sourceUrl,
   children,
@@ -521,6 +541,8 @@ function ResourceShell<T>({
   title: string;
   description: string;
   icon: React.ReactNode;
+  accent: Accent;
+  eyebrow: string;
   resource: {
     data?: T | null;
     isRefreshing: boolean;
@@ -539,6 +561,9 @@ function ResourceShell<T>({
       <PageHeader
         title={title}
         description={description}
+        icon={icon}
+        eyebrow={eyebrow}
+        accent={accent}
         actions={
           <>
             <CacheStatusBadge
@@ -559,18 +584,20 @@ function ResourceShell<T>({
           </>
         }
       />
-      <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-        <div className="mb-4 flex items-center gap-3">
-          <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            {icon}
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <p className="text-sm text-muted-foreground">Search, filter and open the latest cached rows.</p>
+      <Card>
+        <CardHeader className="pb-0">
+          <div className="flex items-center gap-3">
+            <IconChip accent={accent} variant="gradient">
+              {icon}
+            </IconChip>
+            <div>
+              <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+              <p className="text-sm text-muted-foreground">Search, filter and open the latest cached rows.</p>
+            </div>
           </div>
-        </div>
-        <div className="space-y-4">{children}</div>
-      </div>
+        </CardHeader>
+        <CardContent className="space-y-4">{children}</CardContent>
+      </Card>
     </div>
   );
 }
@@ -602,20 +629,20 @@ function SearchBox({
 function LinkCard({ link }: { link: UsefulLinksData["groups"][number]["links"][number] }) {
   const isInternal = link.href.startsWith("/");
   const content = (
-    <span className="group flex h-full min-h-28 flex-col rounded-xl border border-border bg-background p-4 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-sm">
+    <span className="group flex h-full min-h-28 flex-col rounded-xl bg-card p-4 shadow-soft ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg hover:ring-indigo-500/30">
       <span className="mb-3 flex items-center justify-between gap-3">
-        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+        <Badge variant="info" className="bg-indigo-500/12 text-indigo-600 dark:text-indigo-300">
           {link.category}
-        </span>
+        </Badge>
         {link.official ? (
-          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-            Official
-          </span>
+          <Badge variant="success">Official</Badge>
         ) : null}
       </span>
       <span className="flex items-start justify-between gap-2">
         <span className="font-semibold text-foreground">{link.title}</span>
-        {isInternal ? null : <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted-foreground" />}
+        {isInternal ? null : (
+          <ExternalLink className="mt-0.5 size-4 shrink-0 text-indigo-500 transition-transform group-hover:translate-x-0.5 dark:text-indigo-400" />
+        )}
       </span>
       <span className="mt-1 text-sm leading-relaxed text-muted-foreground">{link.description}</span>
     </span>
@@ -698,15 +725,15 @@ function MobileDataCard({
   details: Array<[string, string]>;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-background p-4 shadow-sm">
+    <div className="rounded-xl bg-card p-4 shadow-soft ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{eyebrow}</p>
-          <h3 className="mt-1 truncate text-lg font-semibold">{title}</h3>
+          <AccentPill accent="sky">{eyebrow}</AccentPill>
+          <h3 className="mt-1.5 truncate text-lg font-semibold">{title}</h3>
         </div>
-        <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+        <Badge variant="info" className="shrink-0 px-3 py-1 text-sm">
           {value}
-        </span>
+        </Badge>
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         {details.map(([label, detail]) => (
@@ -722,16 +749,16 @@ function MobileDataCard({
 
 function CompactDividendCard({ row }: { row: DividendHistoryData["rows"][number] }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3 shadow-sm">
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-card p-3 shadow-soft ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg">
       <div className="min-w-0">
         <p className="truncate text-base font-semibold">{row.symbol}</p>
         <p className="truncate text-xs text-muted-foreground">
           {formatDate(row.creditedOn) || row.creditedOn}
         </p>
       </div>
-      <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+      <Badge variant="gain" className="shrink-0 px-3 py-1 text-sm">
         {normalizePayoutLabel(row.payout)}
-      </span>
+      </Badge>
     </div>
   );
 }
@@ -739,7 +766,7 @@ function CompactDividendCard({ row }: { row: DividendHistoryData["rows"][number]
 function CompactBookClosureCard({ row }: { row: BookClosuresData["rows"][number] }) {
   const payout = splitBookPayout(row.payout);
   return (
-    <div className="rounded-xl border border-border bg-background p-3 shadow-sm">
+    <div className="rounded-xl bg-card p-3 shadow-soft ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-base font-semibold">{row.symbol}</p>
@@ -752,14 +779,14 @@ function CompactBookClosureCard({ row }: { row: BookClosuresData["rows"][number]
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {payout.dividend !== "—" ? (
-          <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+          <Badge variant="gain" className="px-3 py-1 text-sm">
             {payout.dividend}
-          </span>
+          </Badge>
         ) : null}
         {payout.right !== "—" ? (
-          <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+          <Badge variant="amber" className="px-3 py-1 text-sm">
             {payout.right}
-          </span>
+          </Badge>
         ) : null}
       </div>
     </div>

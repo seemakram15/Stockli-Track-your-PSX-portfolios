@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDownUp, Globe2, Search } from "lucide-react";
+import { ArrowDownUp, Globe2, Search, TrendingDown, TrendingUp, Trophy } from "lucide-react";
 import Link from "next/link";
+import { IconChip, type Accent } from "@/components/ui/accent";
+import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { Input } from "@/components/ui/input";
@@ -37,9 +39,11 @@ type SortKey = "name" | "price" | "changePct" | "volume" | "type" | "country";
 export function GlobalMarketBoard({
   data,
   showMap = false,
+  accent = "indigo",
 }: {
   data: GlobalMarketData;
   showMap?: boolean;
+  accent?: Accent;
 }) {
   const [query, setQuery] = React.useState("");
   const [type, setType] = React.useState("all");
@@ -88,13 +92,33 @@ export function GlobalMarketBoard({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <MetricCard label="Average move" value={formatPercent(data.summary.avgChangePct)} tone={data.summary.avgChangePct} />
-        <MetricCard label="Advancers" value={String(data.summary.advancers)} tone={1} />
-        <MetricCard label="Decliners" value={String(data.summary.decliners)} tone={-1} />
-        <MetricCard
+        <StatCard
+          label="Average move"
+          value={formatPercent(data.summary.avgChangePct)}
+          tone={toneFor(data.summary.avgChangePct)}
+          accent={accent}
+          icon={<Globe2 className="size-4" />}
+        />
+        <StatCard
+          label="Advancers"
+          value={String(data.summary.advancers)}
+          tone="gain"
+          accent="emerald"
+          icon={<TrendingUp className="size-4" />}
+        />
+        <StatCard
+          label="Decliners"
+          value={String(data.summary.decliners)}
+          tone="loss"
+          accent="rose"
+          icon={<TrendingDown className="size-4" />}
+        />
+        <StatCard
           label="Best move"
           value={data.summary.best ? `${shortMarketLabel(data.summary.best)} ${formatPercent(data.summary.best.changePct)}` : "—"}
-          tone={data.summary.best?.changePct}
+          tone={toneFor(data.summary.best?.changePct)}
+          accent="violet"
+          icon={<Trophy className="size-4" />}
         />
       </div>
 
@@ -103,11 +127,14 @@ export function GlobalMarketBoard({
       <Card>
         <CardHeader className="gap-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <CardTitle>Markets</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {data.sourceLabel}
-              </p>
+            <div className="flex items-center gap-3">
+              <IconChip accent={accent} variant="gradient"><Globe2 /></IconChip>
+              <div>
+                <CardTitle>Markets</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {data.sourceLabel}
+                </p>
+              </div>
             </div>
             <a
               href={data.sourceUrl}
@@ -325,11 +352,11 @@ function WorldMarketMap({ quotes }: { quotes: GlobalMarketQuote[] }) {
   const decliners = topMoved(markers, "loss");
 
   return (
-    <Card className="overflow-hidden border-primary/15">
-      <CardHeader className="border-b border-border bg-gradient-to-br from-card via-card to-primary/5">
+    <Card variant="feature" className="overflow-hidden">
+      <CardHeader className="border-b border-border bg-gradient-to-br from-card via-card to-indigo-500/5">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <Globe2 className="size-5 text-primary" />
+          <div className="flex items-center gap-2.5">
+            <IconChip accent="indigo" variant="gradient"><Globe2 /></IconChip>
             <CardTitle>World market heat map</CardTitle>
           </div>
           <p className="text-sm text-muted-foreground">Major country indices by one-day move</p>
@@ -501,25 +528,11 @@ function heatTone(value: number | null, part: "chip" | "glow") {
     : "border-white/20 bg-white/10 text-white";
 }
 
-function MetricCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: number | null;
-}) {
-  return (
-    <Card>
-      <CardContent className="min-w-0 p-3 sm:p-4">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={cn("mt-2 text-lg font-bold tabular-nums [overflow-wrap:anywhere] sm:text-2xl", plColorClass(tone))}>
-          {value}
-        </p>
-      </CardContent>
-    </Card>
-  );
+function toneFor(value: number | null | undefined): "gain" | "loss" | "default" {
+  if (value == null || Number.isNaN(value)) return "default";
+  if (value > 0) return "gain";
+  if (value < 0) return "loss";
+  return "default";
 }
 
 function SortableHead({

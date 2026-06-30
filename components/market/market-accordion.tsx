@@ -1,10 +1,13 @@
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
+import { IconChip, type Accent } from "@/components/ui/accent";
 import { cn } from "@/lib/utils";
 
 export function MarketAccordion({
   title,
   meta,
+  icon,
+  accent = "emerald",
   open,
   defaultOpen = true,
   onOpenChange,
@@ -15,6 +18,8 @@ export function MarketAccordion({
 }: {
   title: React.ReactNode;
   meta?: React.ReactNode;
+  icon?: React.ReactNode;
+  accent?: Accent;
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -38,7 +43,7 @@ export function MarketAccordion({
         onOpenChange?.(next);
       }}
       className={cn(
-        "group overflow-hidden rounded-2xl border border-border bg-card shadow-sm",
+        "group overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-shadow hover:shadow-soft-lg",
         "open:bg-card",
         className
       )}
@@ -49,9 +54,16 @@ export function MarketAccordion({
           summaryClassName
         )}
       >
-        <div className="min-w-0">
-          <h2 className="truncate text-lg font-semibold tracking-tight">{title}</h2>
-          {meta && <div className="mt-1 text-xs text-muted-foreground">{meta}</div>}
+        <div className="flex min-w-0 items-center gap-3">
+          {icon && (
+            <IconChip accent={accent} variant="gradient" size="sm" className="hidden sm:inline-flex">
+              {icon}
+            </IconChip>
+          )}
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-semibold tracking-tight">{title}</h2>
+            {meta && <div className="mt-1 text-xs text-muted-foreground">{meta}</div>}
+          </div>
         </div>
         <ChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>

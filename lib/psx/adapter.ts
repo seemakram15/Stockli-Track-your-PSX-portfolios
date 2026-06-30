@@ -26,7 +26,7 @@ import { sectorName } from "./sectors";
  *   /timeseries/eod/{SYM}    → JSON [[ts, close, volume], ...] (~5yr)
  *   /timeseries/int/{SYM}    → JSON [[ts, price, volume], ...] (current session)
  *
- * Data is delayed (~15 min), undocumented and HTML-fragile, so every call
+ * Data is delayed (~10 min), undocumented and HTML-fragile, so every call
  * retries with backoff and falls back to deterministic mock data on failure.
  */
 export interface PsxDataSource {

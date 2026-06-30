@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowDownUp, Search } from "lucide-react";
+import { ArrowDownUp, Search, Target } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
+import { IconChip } from "@/components/ui/accent";
 import { AmcBrandMark } from "@/components/market/amc-brand-mark";
 import {
   Table,
@@ -99,14 +100,17 @@ export function MarketStrategyBoard({ data }: { data: MarketStrategyData }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="border-b border-border bg-gradient-to-br from-card via-card to-primary/5 p-4 sm:p-5">
+    <div className="overflow-hidden rounded-2xl border-gradient-brand bg-card shadow-soft-lg">
+      <div className="border-b border-border bg-gradient-to-br from-card via-card to-violet-500/5 p-4 sm:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold tracking-normal">Estimated fund returns</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Color rows by estimated return per {formatPKR(data.investmentAmount)}. Green is gain, red is loss.
-            </p>
+          <div className="flex items-center gap-3">
+            <IconChip accent="violet" variant="gradient" size="lg"><Target /></IconChip>
+            <div>
+              <h2 className="text-xl font-semibold tracking-normal">Estimated fund returns</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Color rows by estimated return per {formatPKR(data.investmentAmount)}. Green is gain, red is loss.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -162,7 +166,7 @@ export function MarketStrategyBoard({ data }: { data: MarketStrategyData }) {
         {groups.map((group) => (
           <section
             key={group.label}
-            className="overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
+            className="overflow-hidden rounded-2xl border border-border bg-background shadow-soft transition-shadow hover:shadow-soft-lg"
           >
             <div className="flex flex-col gap-3 border-b border-border bg-muted/25 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-3">

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Card } from "@/components/ui/card";
+import { IconChip, type Accent } from "@/components/ui/accent";
 import { cn } from "@/lib/utils";
 
 interface StatCardProps {
@@ -8,21 +9,35 @@ interface StatCardProps {
   /** Secondary line under the value (e.g. a ChangeBadge). */
   sub?: React.ReactNode;
   icon?: React.ReactNode;
+  /** Colour family for the icon chip. */
+  accent?: Accent;
   /** Tints the value text by P/L direction. */
   tone?: "default" | "gain" | "loss";
   className?: string;
 }
 
-export function StatCard({ label, value, sub, icon, tone = "default", className }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  sub,
+  icon,
+  accent = "primary",
+  tone = "default",
+  className,
+}: StatCardProps) {
   return (
     <Card className={cn("min-w-0 gap-0 p-3 sm:p-5", className)}>
-      <div className="flex min-w-0 items-center justify-between gap-2">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        {icon && <span className="text-muted-foreground">{icon}</span>}
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <p className="min-w-0 text-sm font-medium text-muted-foreground">{label}</p>
+        {icon && (
+          <IconChip accent={accent} size="sm" className="-mt-0.5">
+            {icon}
+          </IconChip>
+        )}
       </div>
       <p
         className={cn(
-          "mt-2 text-lg font-semibold tracking-tight tabular-nums [overflow-wrap:anywhere] sm:text-2xl",
+          "mt-3 text-lg font-semibold tracking-tight tabular-nums [overflow-wrap:anywhere] sm:text-2xl",
           tone === "gain" && "text-gain",
           tone === "loss" && "text-loss"
         )}
