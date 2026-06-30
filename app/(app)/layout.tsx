@@ -17,7 +17,6 @@ import {
   RouteTransitionProvider,
   RouteTransitionViewport,
 } from "@/components/navigation/route-transition-provider";
-import { FundamentalsDeviceCachePrompt } from "@/components/stock/fundamentals-device-cache";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -41,7 +40,6 @@ export default async function AppLayout({
       <div className="min-h-screen bg-background">
         <BackgroundCacheWarmup />
         <ConsentManager />
-        <FundamentalsDeviceCachePrompt userId={user.id} />
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-[100] flex h-[calc(3.5rem+env(safe-area-inset-top))] min-w-0 items-center gap-1.5 border-b border-border bg-background/85 px-3 pt-[env(safe-area-inset-top)] backdrop-blur sm:h-[calc(4rem+env(safe-area-inset-top))] sm:gap-2 sm:px-6 lg:h-16 lg:gap-3 lg:px-8 lg:pt-0">
             <div className="flex min-w-0 flex-1 items-center gap-2">

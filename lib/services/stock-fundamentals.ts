@@ -23,6 +23,8 @@ const FINANCIALS_CACHE_TTL_SECONDS = 6 * 60 * 60;
 const FINANCIALS_CACHE_STALE_SECONDS = 5 * 365 * 24 * 60 * 60;
 const COMPANY_LIST_TTL_SECONDS = 7 * 24 * 60 * 60;
 const COMPANY_LIST_STALE_SECONDS = 365 * 24 * 60 * 60;
+const READY_COMPANY_LIST_TTL_SECONDS = 30 * 60;
+const READY_COMPANY_LIST_STALE_SECONDS = 24 * 60 * 60;
 const ARCHIVE_BATCH_SIZE = 1;
 const FINANCIAL_FETCH_ATTEMPTS = 3;
 const FUNDAMENTALS_CACHE_KEY_PREFIX = "stock-fundamentals:v4:";
@@ -61,6 +63,15 @@ export type StockFinancialsCacheResult = {
   value: StockFinancialsData;
   status: CacheStatus;
   storedAt: string;
+};
+
+type NormalizedFundamentalsCompany = {
+  id: number;
+  symbol: string;
+  name: string;
+  sector: string;
+  sectorId: number | null;
+  image: string | null;
 };
 
 export type StockFinancialsRefreshResult = {
@@ -125,17 +136,6 @@ export async function getStockFinancials(symbolRaw: string) {
 
   const cached = await readStockFinancialsSnapshot(symbol);
   if (cached?.value) {
-    if (!hasCompleteFinancialData(cached.value)) {
-      const repaired = await refreshStockFinancials(symbol);
-      if (repaired?.value) {
-        return {
-          value: repaired.value,
-          status: Date.now() < cached.freshUntil ? "fresh" : "stale",
-          storedAt: repaired.storedAt,
-        } satisfies StockFinancialsCacheResult;
-      }
-    }
-
     return {
       value: cached.value,
       status: Date.now() < cached.freshUntil ? "fresh" : "stale",
@@ -152,8 +152,9 @@ export async function getStockFinancials(symbolRaw: string) {
     } satisfies StockFinancialsCacheResult;
   }
 
+  const company = await resolveCompany(symbol);
   return {
-    value: buildPreparingFinancials(symbol),
+    value: buildPreparingFinancials(symbol, company),
     status: "miss",
     storedAt: new Date().toISOString(),
   } satisfies StockFinancialsCacheResult;
@@ -257,6 +258,9 @@ export async function getStockFinancialPeerComparison({
   const metric = metricLabel.trim().slice(0, 120);
   if (!symbol || !metric || tabId === "overview") return null;
 
+  const snapshot = await readStockFinancialsSnapshot(symbol);
+  if (!snapshot?.value || !hasCompleteFinancialData(snapshot.value)) return null;
+
   const value = await buildCachedStockFinancialPeerComparison(symbol, tabId, metric);
   return {
     value,
@@ -265,28 +269,16 @@ export async function getStockFinancialPeerComparison({
   } satisfies { value: StockFinancialPeerComparison; status: CacheStatus; storedAt: string };
 }
 
-export async function getStockFundamentalsCompanies() {
-  const companies = await getFundamentalsCompanies();
-  return companies
-    .map((company) => ({
-      id: company.id,
-      symbol: normalizeSymbol(company.symbol || company.label2),
-      name: company.name || company.label || company.symbol || company.label2,
-      sector: company.sector || "Unknown",
-      image: company.image ?? null,
-    }))
-    .filter(
-      (
-        company
-      ): company is {
-        id: number;
-        symbol: string;
-        name: string;
-        sector: string;
-        image: string | null;
-      } => Boolean(company.symbol)
-    )
-    .sort((a, b) => a.symbol.localeCompare(b.symbol));
+export async function getStockFundamentalsCompanies({
+  readyOnly = false,
+}: {
+  readyOnly?: boolean;
+} = {}) {
+  const normalized = normalizeFundamentalsCompanies(await getFundamentalsCompanies());
+  if (!readyOnly) return normalized;
+
+  const readySymbols = new Set(await getReadyFundamentalsCompanySymbols(normalized));
+  return normalized.filter((company) => readySymbols.has(company.symbol));
 }
 
 export async function getArchivedStockFinancialsBatch({
@@ -296,14 +288,14 @@ export async function getArchivedStockFinancialsBatch({
   offset?: number;
   limit?: number;
 } = {}) {
-  const companies = await getStockFundamentalsCompanies();
+  const companies = await getStockFundamentalsCompanies({ readyOnly: true });
   const safeOffset = Math.max(0, offset);
-  const safeLimit = Math.min(Math.max(1, limit), 50);
+  const safeLimit = Math.min(Math.max(1, limit), 100);
   const window = companies.slice(safeOffset, safeOffset + safeLimit);
   const records = (
     await Promise.all(
       window.map(async (company) => {
-        const snapshot = await getCompleteArchivedSnapshot(company.symbol);
+        const snapshot = await readStockFinancialsSnapshot(company.symbol);
         if (!snapshot?.value || !hasCompleteFinancialData(snapshot.value)) return null;
         return {
           symbol: company.symbol,
@@ -532,21 +524,28 @@ async function buildCachedStockFinancialPeerComparison(
     };
   }
 
-  const companies = await getFundamentalsCompanies();
-  const sectorCompanies = companies
-    .filter((candidate) =>
-      currentCompany.sector_id
-        ? candidate.sector_id === currentCompany.sector_id
-        : candidate.sector?.toUpperCase() === currentCompany.sector?.toUpperCase()
-    );
+  const companies = normalizeFundamentalsCompanies(await getFundamentalsCompanies());
+  const readySymbols = new Set(await getReadyFundamentalsCompanySymbols(companies));
+  const currentSectorId = currentCompany.sector_id ?? null;
+  const currentSector = (currentCompany.sector || "").trim().toUpperCase();
   const peers = [
-    currentCompany,
-    ...sectorCompanies.filter((candidate) => candidate.id !== currentCompany.id),
+    {
+      id: currentCompany.id,
+      symbol,
+      name: currentCompany.name || currentCompany.label || symbol,
+      sector: currentCompany.sector || "Unknown",
+      image: currentCompany.image ?? currentSnapshot?.value.company?.image ?? null,
+    },
+    ...companies.filter((candidate) => {
+      if (candidate.symbol === symbol || !readySymbols.has(candidate.symbol)) return false;
+      if (currentSectorId) return candidate.sectorId === currentSectorId;
+      return candidate.sector.trim().toUpperCase() === currentSector;
+    }),
   ].slice(0, 24);
 
   const peerRows = (
     await mapLimit(peers, 8, async (peer): Promise<StockFinancialPeerRow | null> => {
-      const peerSymbol = normalizeSymbol(peer.symbol || peer.label2);
+      const peerSymbol = normalizeSymbol(peer.symbol);
       if (!peerSymbol) return null;
       const snapshot = await readStockFinancialsSnapshot(peerSymbol);
       const tab = snapshot?.value.tabs[tabId];
@@ -555,8 +554,8 @@ async function buildCachedStockFinancialPeerComparison(
 
       return {
         symbol: peerSymbol,
-        companyName: peer.name || peer.label || peerSymbol,
-        sector: peer.sector || currentCompany.sector || "Unknown",
+        companyName: peer.name || peerSymbol,
+        sector: peer.sector || "Unknown",
         image: peer.image ?? snapshot?.value.company?.image ?? null,
         values: row.values,
         sparkline: row.sparkline,
@@ -592,6 +591,50 @@ async function getFundamentalsCompanies(): Promise<FundamentalsCompany[]> {
     staleSeconds: COMPANY_LIST_STALE_SECONDS,
     load: () => fundamentalsFetch<FundamentalsCompany[]>("/companylistwithids"),
     isUsable: (value) => Array.isArray(value) && value.length > 0,
+  });
+  return cached.value;
+}
+
+function normalizeFundamentalsCompanies(
+  companies: FundamentalsCompany[]
+): NormalizedFundamentalsCompany[] {
+  const normalized: NormalizedFundamentalsCompany[] = [];
+  for (const company of companies) {
+    const symbol = normalizeSymbol(company.symbol || company.label2);
+    if (!symbol) continue;
+    normalized.push({
+      id: company.id,
+      symbol,
+      name: company.name || company.label || company.symbol || company.label2,
+      sector: company.sector || "Unknown",
+      sectorId: typeof company.sector_id === "number" ? company.sector_id : null,
+      image: company.image ?? null,
+    });
+  }
+  return normalized.sort((a, b) => a.symbol.localeCompare(b.symbol));
+}
+
+async function getReadyFundamentalsCompanySymbols(
+  companies: NormalizedFundamentalsCompany[]
+): Promise<string[]> {
+  const cached = await getStaleCached({
+    key: "stock-fundamentals:companies:ready:v1",
+    ttlSeconds: READY_COMPANY_LIST_TTL_SECONDS,
+    staleSeconds: READY_COMPANY_LIST_STALE_SECONDS,
+    load: async () => {
+      const archivedSymbols = await readAllArchivedStockFinancialSymbols();
+      if (archivedSymbols.length > 0) {
+        const companySymbols = new Set(companies.map((company) => company.symbol));
+        return archivedSymbols.filter((symbol) => companySymbols.has(symbol));
+      }
+
+      const ready = await mapLimit(companies, 12, async (company) => {
+        const snapshot = await readStockFinancialsSnapshot(company.symbol);
+        return snapshot?.value && hasCompleteFinancialData(snapshot.value) ? company.symbol : null;
+      });
+      return ready.filter((symbol): symbol is string => Boolean(symbol)).sort((a, b) => a.localeCompare(b));
+    },
+    isUsable: Array.isArray,
   });
   return cached.value;
 }
@@ -774,6 +817,35 @@ async function readAllIncompleteStockFinancials() {
   return sortIncompleteRecords(Array.from(records.values()));
 }
 
+async function readAllArchivedStockFinancialSymbols() {
+  const symbols = new Set<string>();
+  for (const redis of getRedisClients()) {
+    try {
+      let cursor = 0;
+      do {
+        const scanResult = await (redis as unknown as {
+          scan: (
+            cursor: number,
+            options: { match: string; count: number }
+          ) => Promise<[number, string[]]>;
+        }).scan(cursor, {
+          match: `${FUNDAMENTALS_CACHE_KEY_PREFIX}*`,
+          count: 200,
+        });
+        cursor = Number(scanResult[0]);
+        for (const key of scanResult[1]) {
+          const symbol = key.slice(FUNDAMENTALS_CACHE_KEY_PREFIX.length).trim().toUpperCase();
+          if (symbol) symbols.add(symbol);
+        }
+      } while (cursor !== 0);
+    } catch (error) {
+      console.warn("[fundamentals] archived snapshot scan failed:", error);
+    }
+  }
+
+  return Array.from(symbols).sort((a, b) => a.localeCompare(b));
+}
+
 function sortIncompleteRecords(records: StockFinancialsIncompleteRecord[]) {
   return records.sort((a, b) => {
     const byAttempts = a.attempts - b.attempts;
@@ -814,27 +886,6 @@ function createIncompleteRecord({
     data: attachFinancialAvailability(value, record),
   };
   return record;
-}
-
-async function getCompleteArchivedSnapshot(symbol: string) {
-  const snapshot = await readStockFinancialsSnapshot(symbol);
-  if (snapshot?.value && hasCompleteFinancialData(snapshot.value)) return snapshot;
-
-  try {
-    const refreshed = await refreshStockFinancials(symbol);
-    if (refreshed?.value && hasCompleteFinancialData(refreshed.value)) {
-      return {
-        value: refreshed.value,
-        storedAt: refreshed.storedAt,
-        freshUntil: Date.now() + FINANCIALS_CACHE_TTL_SECONDS * 1000,
-        staleUntil: Date.now() + FINANCIALS_CACHE_STALE_SECONDS * 1000,
-      } satisfies FundamentalsCacheEnvelope;
-    }
-  } catch (error) {
-    console.warn(`[fundamentals] snapshot repair failed for ${symbol}:`, error);
-  }
-
-  return snapshot;
 }
 
 async function fetchStockFinancialsWithRetries(
