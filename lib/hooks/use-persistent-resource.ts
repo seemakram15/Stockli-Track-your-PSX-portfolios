@@ -157,6 +157,26 @@ export async function writePersistentResourceCache<T>(
   return record;
 }
 
+export async function writePersistentResourceCacheBatch(
+  entries: Array<{
+    cacheKey: string;
+    value: unknown;
+    savedAt?: string;
+  }>
+): Promise<number> {
+  if (entries.length === 0) return 0;
+
+  const records = entries.map(({ cacheKey, value, savedAt }) => ({
+    key: cacheKey,
+    value,
+    savedAt: savedAt ?? new Date().toISOString(),
+  }));
+
+  records.forEach((record) => writeMemoryCached(record));
+  await writeCachedBatch(records);
+  return records.length;
+}
+
 export async function deletePersistentResourceCache(cacheKey: string): Promise<void> {
   MEMORY_CACHE.delete(cacheKey);
   await deleteCached(cacheKey);
@@ -206,6 +226,24 @@ async function writeCached<T>(record: CachedRecord<T>): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
       tx.objectStore(STORE_NAME).put(record);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function writeCachedBatch(records: CachedRecord<unknown>[]): Promise<void> {
+  if (typeof indexedDB === "undefined" || records.length === 0) return;
+  const db = await openCacheDb();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      records.forEach((record) => {
+        store.put(record);
+      });
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });

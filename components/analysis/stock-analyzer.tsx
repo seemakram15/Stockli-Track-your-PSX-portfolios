@@ -25,16 +25,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  buildAnalyzerSummary,
+  getPriceLikeSeries,
+  latestValueFromRows,
+  type AnalyzerSummary,
+  type MetricPoint,
+} from "@/lib/analysis/stock-analyzer";
+import {
+  STOCK_ANALYZER_AI_MODELS,
+  type StockAnalyzeAiInsight,
+  type StockAnalyzerAiModel,
+  type StockCompareAiInsight,
+} from "@/lib/analysis/stock-analyzer-ai";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
-import type {
-  FinancialTableRow,
-  StockFinancialsData,
-  StockFinancialTabId,
-} from "@/lib/types/stock-fundamentals";
+import type { StockFinancialsData } from "@/lib/types/stock-fundamentals";
 import { cn } from "@/lib/utils";
 
 type CompanyOption = {
@@ -79,38 +88,29 @@ type FinancialApiResponse = {
   cache?: { status: string; storedAt: string };
 };
 
-type MetricPoint = {
-  period: string;
-  value: number;
+type AiApiResponse<T> = {
+  data: T;
+  cache?: { status: string; storedAt: string };
 };
 
-type AnalyzerSummary = {
+type AnalyzeAiPayload = {
+  mode: "analyze";
+  model: StockAnalyzerAiModel;
   symbol: string;
-  name: string;
-  sector: string;
-  quote: IndexConstituent | null;
-  marketCap: number | null;
-  bookValue: number | null;
-  eps: number | null;
-  dps: number | null;
-  pe: number | null;
-  pbv: number | null;
-  dividendYield: number | null;
-  payoutRatio: number | null;
-  roe: number | null;
-  netMargin: number | null;
-  debtToEquity: number | null;
-  revenueGrowth: number | null;
-  epsGrowth: number | null;
-  priceToBookSignal: "cheap" | "fair" | "expensive";
-  healthScore: number;
-  riskScore: number;
-  verdict: string;
-  businessText: string;
-  revenue: MetricPoint[];
-  profit: MetricPoint[];
-  epsSeries: MetricPoint[];
-  dpsSeries: MetricPoint[];
+  companyName: string;
+  sourceUpdatedAt: string;
+  insight: StockAnalyzeAiInsight;
+  generatedAt: string;
+};
+
+type CompareAiPayload = {
+  mode: "compare";
+  model: StockAnalyzerAiModel;
+  firstSymbol: string;
+  secondSymbol: string;
+  sourceUpdatedAt: [string, string];
+  insight: StockCompareAiInsight;
+  generatedAt: string;
 };
 
 const POSITIVE = "#059669";
@@ -121,6 +121,7 @@ const GOLD = "#d99a00";
 export function StockAnalyzer() {
   const [mode, setMode] = React.useState<AnalyzerMode>("analyze");
   const [universe, setUniverse] = React.useState<Universe>("KSE100");
+  const [aiModel, setAiModel] = React.useState<StockAnalyzerAiModel>("glm-4.7-flash");
   const [query, setQuery] = React.useState("");
   const [selectedSymbol, setSelectedSymbol] = React.useState<string>("");
   const [compareA, setCompareA] = React.useState<string>("");
@@ -128,8 +129,8 @@ export function StockAnalyzer() {
   const [analyzeSymbol, setAnalyzeSymbol] = React.useState<string>("");
 
   const companiesResource = usePersistentResource<CompaniesPayload>({
-    cacheKey: "public:stock-fundamentals:companies:v1",
-    url: "/api/public/stock-fundamentals/companies",
+    cacheKey: "public:stock-fundamentals:companies:ready:v1",
+    url: "/api/public/stock-fundamentals/companies?ready=1",
     refreshInterval: 24 * 60 * 60 * 1000,
   });
   const marketResource = usePersistentResource<MarketPayload>({
@@ -208,8 +209,8 @@ export function StockAnalyzer() {
           Understand any PSX stock in plain English
         </h1>
         <p className="mx-auto mt-4 max-w-3xl text-lg leading-8 text-muted-foreground">
-          Pick a company and Stockli turns cached fundamentals, price movement, dividend history
-          and peer-style metrics into a simple investment story.
+          Pick a company with a ready fundamentals archive and Stockli turns its cached statements,
+          price movement, dividend history and peer-style metrics into a simple investment story.
         </p>
       </section>
 
@@ -263,6 +264,29 @@ export function StockAnalyzer() {
                   {item === "ALL" ? "All Stocks" : item}
                 </button>
               ))}
+            </div>
+
+            <div className="w-full max-w-xl">
+              <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                AI model for grounded explanation
+              </p>
+              <div className="grid grid-cols-2 gap-1 rounded-2xl border bg-background p-1">
+                {STOCK_ANALYZER_AI_MODELS.map((model) => (
+                  <button
+                    key={model}
+                    type="button"
+                    onClick={() => setAiModel(model)}
+                    className={cn(
+                      "h-11 rounded-xl px-2 text-sm font-semibold transition sm:text-base",
+                      aiModel === model
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    {formatAiModelName(model)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -327,7 +351,7 @@ export function StockAnalyzer() {
             <div className="grid gap-4 md:grid-cols-3">
               {[
                 ["1", "Pick a Stock", "Search and select any PSX-listed company."],
-                ["2", "Click Analyze", "We read Stockli's cached fundamentals and market data."],
+                ["2", "Click Analyze", "We read Stockli's ready fundamentals archive and market data."],
                 ["3", "Read the Results", "Get simple signals, charts and dividend context."],
               ].map(([step, title, copy]) => (
                 <div key={step} className="rounded-2xl border bg-card p-5 text-center shadow-sm">
@@ -349,6 +373,7 @@ export function StockAnalyzer() {
           error={analyzerFinancials.error}
           data={analyzerFinancials.data}
           summary={analyzeSummary}
+          aiModel={aiModel}
         />
       ) : (
         <CompareResult
@@ -356,6 +381,7 @@ export function StockAnalyzer() {
           second={compareSummaryB}
           loading={compareAFinancials.isLoading || compareBFinancials.isLoading}
           error={compareAFinancials.error || compareBFinancials.error}
+          aiModel={aiModel}
         />
       )}
     </div>
@@ -396,7 +422,7 @@ function StockPicker({
         {loading ? (
           <div className="flex items-center justify-center gap-2 p-4 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin text-primary" />
-            Loading stocks...
+            Loading ready stocks...
           </div>
         ) : companies.length ? (
           companies.slice(0, 60).map((company) => (
@@ -434,11 +460,13 @@ function AnalyzeResult({
   error,
   data,
   summary,
+  aiModel,
 }: {
   loading: boolean;
   error: string | null;
   data: StockFinancialsData | null;
   summary: AnalyzerSummary | null;
+  aiModel: StockAnalyzerAiModel;
 }) {
   if (loading) {
     return (
@@ -536,6 +564,8 @@ function AnalyzeResult({
         />
       </div>
 
+      <AnalyzeAiInsightCard summary={summary} model={aiModel} />
+
       <ChartCard
         title="Price / value history"
         subtitle="Best available cached price-like history from fundamentals."
@@ -598,11 +628,13 @@ function CompareResult({
   second,
   loading,
   error,
+  aiModel,
 }: {
   first: AnalyzerSummary | null;
   second: AnalyzerSummary | null;
   loading: boolean;
   error: string | null;
+  aiModel: StockAnalyzerAiModel;
 }) {
   if (loading) {
     return (
@@ -691,6 +723,8 @@ function CompareResult({
         </CardContent>
       </Card>
 
+      <CompareAiInsightCard first={first} second={second} model={aiModel} />
+
       <Card className="border-primary/20">
         <CardContent className="grid gap-5 p-5 lg:grid-cols-[0.75fr_1.25fr]">
           <div>
@@ -747,6 +781,244 @@ function CompareStockCard({ summary, wins }: { summary: AnalyzerSummary; wins: n
       </CardContent>
     </Card>
   );
+}
+
+function AnalyzeAiInsightCard({
+  summary,
+  model,
+}: {
+  summary: AnalyzerSummary;
+  model: StockAnalyzerAiModel;
+}) {
+  const requestBody = React.useMemo(
+    () =>
+      ({
+        mode: "analyze",
+        model,
+        symbol: summary.symbol,
+      }) satisfies {
+        mode: "analyze";
+        model: StockAnalyzerAiModel;
+        symbol: string;
+      },
+    [model, summary.symbol]
+  );
+  const { data, loading, error, cache, refresh } = useStockAnalyzerAi<AnalyzeAiPayload>(requestBody);
+
+  return (
+    <Card className="border-primary/20">
+      <CardHeader className="flex flex-col gap-3 border-b bg-primary/5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            AI stock explanation
+            <Badge variant="outline">{formatAiModelName(model)}</Badge>
+          </CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Grounded on cached fundamentals for {summary.symbol}. Refresh only if you want a new
+            pass from the selected model.
+          </p>
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshLabel />}
+          Refresh AI
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-5 p-5">
+        {loading && !data ? (
+          <AiLoadingState message={`Generating ${summary.symbol} explanation...`} />
+        ) : error ? (
+          <AiErrorState
+            error={error}
+            fallback={`Deterministic verdict: ${summary.verdict}`}
+            onRetry={refresh}
+          />
+        ) : data ? (
+          <>
+            <div className="rounded-2xl border bg-background p-4 shadow-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-primary/10 text-primary">{data.insight.confidence} confidence</Badge>
+                <Badge variant="outline">{cache?.status ?? "fresh"}</Badge>
+              </div>
+              <h3 className="mt-3 text-xl font-semibold">{data.insight.headline}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{data.insight.summary}</p>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <AiBulletCard title="What looks strong" tone="positive" items={data.insight.strengths} />
+              <AiBulletCard title="What to watch" tone="warning" items={data.insight.risks} />
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <AiTextCard title="Valuation read" text={data.insight.valuationView} />
+              <AiTextCard title="Dividend read" text={data.insight.dividendView} />
+            </div>
+
+            <div className="rounded-2xl border bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+              <p className="font-semibold">AI suggestion</p>
+              <p className="mt-2">{data.insight.suggestion}</p>
+            </div>
+          </>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CompareAiInsightCard({
+  first,
+  second,
+  model,
+}: {
+  first: AnalyzerSummary;
+  second: AnalyzerSummary;
+  model: StockAnalyzerAiModel;
+}) {
+  const requestBody = React.useMemo(
+    () =>
+      ({
+        mode: "compare",
+        model,
+        firstSymbol: first.symbol,
+        secondSymbol: second.symbol,
+      }) satisfies {
+        mode: "compare";
+        model: StockAnalyzerAiModel;
+        firstSymbol: string;
+        secondSymbol: string;
+      },
+    [first.symbol, model, second.symbol]
+  );
+  const { data, loading, error, cache, refresh } =
+    useStockAnalyzerAi<CompareAiPayload>(requestBody);
+
+  return (
+    <Card className="border-primary/20">
+      <CardHeader className="flex flex-col gap-3 border-b bg-primary/5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            AI comparison
+            <Badge variant="outline">{formatAiModelName(model)}</Badge>
+          </CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            A grounded text comparison for {first.symbol} and {second.symbol} using cached
+            fundamentals only.
+          </p>
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshLabel />}
+          Refresh AI
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-5 p-5">
+        {loading && !data ? (
+          <AiLoadingState message={`Comparing ${first.symbol} and ${second.symbol}...`} />
+        ) : error ? (
+          <AiErrorState
+            error={error}
+            fallback={`Deterministic score: ${first.symbol} health ${first.healthScore}/100, ${second.symbol} health ${second.healthScore}/100.`}
+            onRetry={refresh}
+          />
+        ) : data ? (
+          <>
+            <div className="rounded-2xl border bg-background p-4 shadow-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-primary/10 text-primary">{data.insight.confidence} confidence</Badge>
+                <Badge variant="outline">{cache?.status ?? "fresh"}</Badge>
+                <Badge variant="secondary">Winner: {data.insight.winner}</Badge>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{data.insight.summary}</p>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-3">
+              <AiBulletCard title="Why this one leads" tone="positive" items={data.insight.whyWinner} />
+              <AiBulletCard title={`${first.symbol} strengths`} tone="neutral" items={data.insight.firstStrengths} />
+              <AiBulletCard title={`${second.symbol} strengths`} tone="neutral" items={data.insight.secondStrengths} />
+            </div>
+
+            <AiBulletCard title="Shared watchouts" tone="warning" items={data.insight.watchouts} />
+
+            <div className="rounded-2xl border bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+              <p className="font-semibold">AI suggestion</p>
+              <p className="mt-2">{data.insight.suggestion}</p>
+            </div>
+          </>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AiBulletCard({
+  title,
+  items,
+  tone,
+}: {
+  title: string;
+  items: string[];
+  tone: "positive" | "warning" | "neutral";
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border p-4",
+        tone === "positive" && "border-primary/25 bg-primary/5",
+        tone === "warning" && "border-amber-200 bg-amber-50",
+        tone === "neutral" && "bg-background"
+      )}
+    >
+      <p className="text-sm font-semibold">{title}</p>
+      <div className="mt-3 space-y-2">
+        {items.map((item, index) => (
+          <p key={`${title}-${index}`} className="text-sm leading-6 text-muted-foreground">
+            {item}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AiTextCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="rounded-2xl border bg-background p-4">
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p>
+    </div>
+  );
+}
+
+function AiLoadingState({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-44 flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+      <Loader2 className="size-6 animate-spin text-primary" />
+      <p className="text-sm">{message}</p>
+    </div>
+  );
+}
+
+function AiErrorState({
+  error,
+  fallback,
+  onRetry,
+}: {
+  error: string;
+  fallback: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
+      <p className="font-semibold text-destructive">AI explanation is unavailable</p>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{error}</p>
+      <p className="mt-3 text-sm leading-6 text-muted-foreground">{fallback}</p>
+      <Button type="button" variant="outline" size="sm" onClick={onRetry} className="mt-4">
+        Try again
+      </Button>
+    </div>
+  );
+}
+
+function RefreshLabel() {
+  return <span>Refresh</span>;
 }
 
 function SignalCard({
@@ -925,138 +1197,80 @@ function useIndexConstituents(symbol: string) {
   return { constituents };
 }
 
-function buildAnalyzerSummary(data: StockFinancialsData, quote: IndexConstituent | null): AnalyzerSummary {
-  const company = data.company;
-  const revenue = findSeries(data, [/^net sales$/i, /^sales$/i, /revenue/i]);
-  const profit = findSeries(data, [/^profit after tax$/i, /profit after tax a\/t company owners/i, /net income/i]);
-  const epsSeries = findSeries(data, [/^eps - basic$/i, /^eps \(pkr\)$/i, /^eps$/i]);
-  const dpsSeries = findSeries(data, [/^dps/i, /dividend per share/i]);
-  const bookValue = latestMetric(data, [/^bvps/i, /book value/i]);
-  const eps = latestFromSeries(epsSeries);
-  const dps = latestFromSeries(dpsSeries);
-  const pe = latestMetric(data, [/^per \(x\)$/i, /^pe$/i, /^p\/e/i]);
-  const pbv = latestMetric(data, [/^pbv$/i, /^p\/b/i]);
-  const dividendYield = latestMetric(data, [/div yield/i, /dividend yield/i]);
-  const roe = latestMetric(data, [/^roe/i, /return on equity/i]);
-  const netMargin = latestMetric(data, [/net margin/i]);
-  const debtToEquity = latestMetric(data, [/debt to equity/i]);
-  const marketCap = latestMetric(data, [/market cap/i]);
-  const payoutRatio = eps && dps ? (dps / eps) * 100 : null;
-  const revenueGrowth = growth(revenue);
-  const epsGrowth = growth(epsSeries);
-  const price = quote?.current ?? latestValueFromRows(data, [/current price/i, /^close/i]);
-  const priceToBookSignal =
-    price && bookValue ? (price / bookValue < 1.2 ? "cheap" : price / bookValue > 3 ? "expensive" : "fair") : "fair";
-  const healthScore = clamp(
-    50 +
-      scorePositive(roe, 15, 10) +
-      scorePositive(netMargin, 10, 10) +
-      scorePositive(revenueGrowth, 5, 10) +
-      scorePositive(epsGrowth, 5, 10) +
-      scoreNegative(debtToEquity, 100, 10) +
-      scorePositive(dividendYield, 4, 5),
-    0,
-    100
-  );
-  const riskScore = clamp(
-    45 +
-      scorePositive(debtToEquity, 100, 20) +
-      scorePositive(pe, 25, 10) +
-      (priceToBookSignal === "expensive" ? 15 : 0) -
-      scorePositive(roe, 15, 10),
-    0,
-    100
-  );
-  const verdict =
-    healthScore >= 72
-      ? "Healthy fundamentals with a constructive risk profile."
-      : healthScore >= 55
-        ? "Mixed but usable fundamentals. Watch valuation and earnings trend."
-        : "Weak or incomplete fundamentals. Treat this as a higher-risk candidate.";
+function useStockAnalyzerAi<T>(body: Record<string, unknown> | null) {
+  const [data, setData] = React.useState<T | null>(null);
+  const [cache, setCache] = React.useState<AiApiResponse<T>["cache"] | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [refreshNonce, setRefreshNonce] = React.useState(0);
+  const serializedBody = body ? JSON.stringify(body) : null;
+
+  React.useEffect(() => {
+    if (!serializedBody) {
+      setData(null);
+      setCache(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetch("/api/public/stock-analyzer/ai", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: serializedBody,
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = (await response.json()) as AiApiResponse<T> & { error?: string };
+        if (!response.ok || !payload.data) {
+          throw new Error(payload.error ?? "AI insight is unavailable right now.");
+        }
+        return payload;
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setData(payload.data);
+        setCache(payload.cache ?? null);
+      })
+      .catch((fetchError: unknown) => {
+        if (cancelled) return;
+        if ((fetchError as Error).name === "AbortError") return;
+        setError(
+          fetchError instanceof Error ? fetchError.message : "AI insight is unavailable right now."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [refreshNonce, serializedBody]);
 
   return {
-    symbol: data.symbol,
-    name: company?.name ?? data.symbol,
-    sector: company?.sector ?? "Unknown",
-    quote,
-    marketCap,
-    bookValue,
-    eps,
-    dps,
-    pe,
-    pbv,
-    dividendYield,
-    payoutRatio,
-    roe,
-    netMargin,
-    debtToEquity,
-    revenueGrowth,
-    epsGrowth,
-    priceToBookSignal,
-    healthScore: Math.round(healthScore),
-    riskScore: Math.round(riskScore),
-    verdict,
-    businessText: buildBusinessText(data),
-    revenue,
-    profit,
-    epsSeries,
-    dpsSeries,
+    data,
+    cache,
+    loading,
+    error,
+    refresh: () => setRefreshNonce((current) => current + 1),
   };
 }
 
-function buildBusinessText(data: StockFinancialsData) {
-  const name = data.company?.name ?? data.symbol;
-  const sector = data.company?.sector ?? "its sector";
-  const latest = data.tabs.latest?.status === "ok" ? "recent reported results" : "cached financial records";
-  return `${name} operates in ${sector}. This analysis reads ${latest}, statement history, ratios and market movement to explain profitability, valuation, debt pressure and dividend behavior in simple language.`;
-}
-
-function findSeries(data: StockFinancialsData, patterns: RegExp[]): MetricPoint[] {
-  const row = findRow(data, patterns);
-  if (!row) return [];
-  return Object.entries(row.values)
-    .map(([period, raw]) => ({ period, value: parseNumber(raw) }))
-    .filter((point): point is MetricPoint => point.value != null)
-    .slice(-8);
-}
-
-function latestMetric(data: StockFinancialsData, patterns: RegExp[]) {
-  const series = findSeries(data, patterns);
-  return latestFromSeries(series);
-}
-
-function latestFromSeries(series: MetricPoint[]) {
-  return series.length ? series[series.length - 1].value : null;
-}
-
-function latestValueFromRows(data: StockFinancialsData, patterns: RegExp[]) {
-  return latestMetric(data, patterns);
-}
-
-function findRow(data: StockFinancialsData, patterns: RegExp[]): FinancialTableRow | null {
-  const tabs: StockFinancialTabId[] = ["overview", "latest", "income", "balance", "cashflow", "ratios"];
-  for (const tab of tabs) {
-    for (const table of data.tabs[tab]?.tables ?? []) {
-      for (const row of table.rows) {
-        if (row.isSection) continue;
-        if (patterns.some((pattern) => pattern.test(row.label))) return row;
-      }
-    }
-  }
-  return null;
-}
-
-function getPriceLikeSeries(data: StockFinancialsData) {
-  const priceSeries = findSeries(data, [/^close \(pkr\)$/i, /^close$/i, /adjusted stock prices/i]);
-  return priceSeries.length ? priceSeries : findSeries(data, [/^eps/i]);
-}
-
-function growth(series: MetricPoint[]) {
-  if (series.length < 2) return null;
-  const first = series.find((point) => point.value !== 0)?.value;
-  const last = latestFromSeries(series);
-  if (!first || last == null) return null;
-  return ((last - first) / Math.abs(first)) * 100;
+function formatAiModelName(model: StockAnalyzerAiModel) {
+  return model
+    .split("-")
+    .map((part, index) => (index === 0 ? part.toUpperCase() : `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`))
+    .join("-");
 }
 
 function makeCompareRow(
@@ -1083,17 +1297,6 @@ function makeCompareRow(
   return { label, first, second, winner, note };
 }
 
-function parseNumber(value: string | number | null | undefined) {
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (value == null) return null;
-  const text = String(value).trim();
-  if (!text || text === "-" || text.toLowerCase() === "n/a") return null;
-  const negative = /^\(.+\)$/.test(text) || text.startsWith("-");
-  const parsed = Number(text.replace(/[(),%xA-Za-z\s]/g, ""));
-  if (!Number.isFinite(parsed)) return null;
-  return negative ? -Math.abs(parsed) : parsed;
-}
-
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: Math.abs(value) < 10 ? 2 : 0,
@@ -1114,18 +1317,4 @@ function formatMaybe(value: number | null, suffix = "") {
 function formatSigned(value: number | null | undefined) {
   if (value == null) return "";
   return `${value >= 0 ? "+" : "-"}${formatNumber(Math.abs(value))}`;
-}
-
-function scorePositive(value: number | null, threshold: number, points: number) {
-  if (value == null) return 0;
-  return value >= threshold ? points : value > 0 ? points / 2 : -points / 2;
-}
-
-function scoreNegative(value: number | null, threshold: number, points: number) {
-  if (value == null) return 0;
-  return value <= threshold ? points : -points;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }
