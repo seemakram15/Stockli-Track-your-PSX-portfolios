@@ -2,11 +2,14 @@ import "server-only";
 
 import { z } from "zod";
 import {
+  buildAnalyzerComparison,
   buildAnalyzerSummary,
+  type AnalyzerComparison,
   type AnalyzerSummary,
-  type MetricPoint,
 } from "@/lib/analysis/stock-analyzer";
 import {
+  buildDeterministicAnalyzeInsight,
+  buildDeterministicCompareInsight,
   STOCK_ANALYZER_AI_MODELS,
   type StockAnalyzeAiInsight,
   type StockAnalyzerAiModel,
@@ -30,22 +33,37 @@ export class StockAnalyzerAiError extends Error {
 }
 
 const analyzeInsightSchema = z.object({
-  headline: z.string().min(1).max(160),
-  summary: z.string().min(1).max(800),
+  headline: z.string().min(1).max(180),
+  summary: z.string().min(1).max(900),
   strengths: z.array(z.string().min(1).max(220)).min(1).max(4),
   risks: z.array(z.string().min(1).max(220)).min(1).max(4),
-  valuationView: z.string().min(1).max(240),
-  dividendView: z.string().min(1).max(240),
-  suggestion: z.string().min(1).max(400),
+  factorNotes: z
+    .array(
+      z.object({
+        factorId: z.string().min(1).max(40),
+        note: z.string().min(1).max(240),
+      })
+    )
+    .max(20),
+  suggestion: z.string().min(1).max(420),
   confidence: z.enum(["high", "medium", "low"]),
 });
 
 const compareInsightSchema = z.object({
   winner: z.string().min(1).max(30),
   summary: z.string().min(1).max(900),
-  whyWinner: z.array(z.string().min(1).max(220)).min(1).max(4),
+  whyWinner: z.array(z.string().min(1).max(220)).min(1).max(5),
   firstStrengths: z.array(z.string().min(1).max(220)).min(1).max(4),
   secondStrengths: z.array(z.string().min(1).max(220)).min(1).max(4),
+  factorCalls: z
+    .array(
+      z.object({
+        factorId: z.string().min(1).max(40),
+        winner: z.string().min(1).max(30),
+        note: z.string().min(1).max(240),
+      })
+    )
+    .max(20),
   watchouts: z.array(z.string().min(1).max(220)).min(1).max(4),
   suggestion: z.string().min(1).max(420),
   confidence: z.enum(["high", "medium", "low"]),
@@ -57,6 +75,7 @@ type AnalyzeAiPayload = {
   symbol: string;
   companyName: string;
   sourceUpdatedAt: string;
+  deterministic: StockAnalyzeAiInsight;
   insight: StockAnalyzeAiInsight;
   generatedAt: string;
 };
@@ -67,6 +86,7 @@ type CompareAiPayload = {
   firstSymbol: string;
   secondSymbol: string;
   sourceUpdatedAt: [string, string];
+  deterministic: StockCompareAiInsight;
   insight: StockCompareAiInsight;
   generatedAt: string;
 };
@@ -83,14 +103,15 @@ export async function getStockAnalyzeAiInsight({
   if (!stock) throw new Error(`Financial data unavailable for ${symbol}.`);
 
   const summary = buildAnalyzerSummary(stock.value, null);
+  const deterministic = buildDeterministicAnalyzeInsight(summary);
   const cacheKey = [
-    "public:stock-analyzer:ai:v1:analyze",
+    "public:stock-analyzer:ai:v2:analyze",
     model,
     summary.symbol,
     stock.value.updatedAt,
   ].join(":");
 
-  const cached = await getStaleCached<AnalyzeAiPayload>({
+  return getStaleCached<AnalyzeAiPayload>({
     key: cacheKey,
     ttlSeconds: ANALYZE_TTL_SECONDS,
     staleSeconds: ANALYZE_STALE_SECONDS,
@@ -100,13 +121,12 @@ export async function getStockAnalyzeAiInsight({
       symbol: summary.symbol,
       companyName: summary.name,
       sourceUpdatedAt: stock.value.updatedAt,
-      insight: await requestAnalyzeInsight(summary, model),
+      deterministic,
+      insight: await requestAnalyzeInsight(summary, deterministic, model),
       generatedAt: new Date().toISOString(),
     }),
     isUsable: (value) => Boolean(value?.insight?.summary),
   });
-
-  return cached;
 }
 
 export async function getStockCompareAiInsight({
@@ -130,8 +150,10 @@ export async function getStockCompareAiInsight({
 
   const first = buildAnalyzerSummary(firstStock.value, null);
   const second = buildAnalyzerSummary(secondStock.value, null);
+  const comparison = buildAnalyzerComparison(first, second);
+  const deterministic = buildDeterministicCompareInsight(first, second, comparison);
   const cacheKey = [
-    "public:stock-analyzer:ai:v1:compare",
+    "public:stock-analyzer:ai:v2:compare",
     model,
     first.symbol,
     firstStock.value.updatedAt,
@@ -139,7 +161,7 @@ export async function getStockCompareAiInsight({
     secondStock.value.updatedAt,
   ].join(":");
 
-  const cached = await getStaleCached<CompareAiPayload>({
+  return getStaleCached<CompareAiPayload>({
     key: cacheKey,
     ttlSeconds: ANALYZE_TTL_SECONDS,
     staleSeconds: ANALYZE_STALE_SECONDS,
@@ -149,13 +171,12 @@ export async function getStockCompareAiInsight({
       firstSymbol: first.symbol,
       secondSymbol: second.symbol,
       sourceUpdatedAt: [firstStock.value.updatedAt, secondStock.value.updatedAt],
-      insight: await requestCompareInsight(first, second, model),
+      deterministic,
+      insight: await requestCompareInsight(first, second, comparison, deterministic, model),
       generatedAt: new Date().toISOString(),
     }),
     isUsable: (value) => Boolean(value?.insight?.summary),
   });
-
-  return cached;
 }
 
 function assertSupportedModel(model: string): asserts model is StockAnalyzerAiModel {
@@ -164,43 +185,33 @@ function assertSupportedModel(model: string): asserts model is StockAnalyzerAiMo
   }
 }
 
-async function requestAnalyzeInsight(summary: AnalyzerSummary, model: StockAnalyzerAiModel) {
+async function requestAnalyzeInsight(
+  summary: AnalyzerSummary,
+  deterministic: StockAnalyzeAiInsight,
+  model: StockAnalyzerAiModel
+) {
   return callZaiJson({
     model,
     schema: analyzeInsightSchema,
     system:
-      "You are Stockli's grounded stock analyzer for the Pakistan Stock Exchange. You explain only from the provided data. Do not mention hidden assumptions. Never output markdown.",
-    prompt: buildAnalyzePrompt(summary),
+      "You are Stockli's grounded stock analyzer for the Pakistan Stock Exchange. Explain only from the provided data. Keep the language simple for everyday investors. Never output markdown.",
+    prompt: buildAnalyzePrompt(summary, deterministic),
   });
 }
 
 async function requestCompareInsight(
   first: AnalyzerSummary,
   second: AnalyzerSummary,
+  comparison: AnalyzerComparison,
+  deterministic: StockCompareAiInsight,
   model: StockAnalyzerAiModel
 ) {
-  const comparisons = [
-    compareMetric("Health score", first.healthScore, second.healthScore, "higher"),
-    compareMetric("Risk score", first.riskScore, second.riskScore, "lower"),
-    compareMetric("P/E ratio", first.pe, second.pe, "lower"),
-    compareMetric("P/B ratio", first.pbv, second.pbv, "lower"),
-    compareMetric("Dividend yield", first.dividendYield, second.dividendYield, "higher"),
-    compareMetric("ROE", first.roe, second.roe, "higher"),
-    compareMetric("Net margin", first.netMargin, second.netMargin, "higher"),
-    compareMetric("Debt to equity", first.debtToEquity, second.debtToEquity, "lower"),
-    compareMetric("Revenue growth", first.revenueGrowth, second.revenueGrowth, "higher"),
-    compareMetric("EPS growth", first.epsGrowth, second.epsGrowth, "higher"),
-  ];
-
-  const firstWins = comparisons.filter((row) => row.winner === "first").length;
-  const secondWins = comparisons.filter((row) => row.winner === "second").length;
-
   return callZaiJson({
     model,
     schema: compareInsightSchema,
     system:
-      "You are Stockli's grounded stock comparison assistant for the Pakistan Stock Exchange. Explain the comparison clearly, but stay inside the supplied facts. Never output markdown.",
-    prompt: buildComparePrompt(first, second, firstWins, secondWins, comparisons),
+      "You are Stockli's grounded stock comparison assistant for the Pakistan Stock Exchange. Stay inside the supplied facts, compare clearly, and never output markdown.",
+    prompt: buildComparePrompt(first, second, comparison, deterministic),
   });
 }
 
@@ -230,7 +241,7 @@ async function callZaiJson<T>({
     },
     body: JSON.stringify({
       model,
-      temperature: 0.3,
+      temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: system },
@@ -308,47 +319,48 @@ function safeJsonParse(text: string) {
   }
 }
 
-function buildAnalyzePrompt(summary: AnalyzerSummary) {
+function buildAnalyzePrompt(
+  summary: AnalyzerSummary,
+  deterministic: StockAnalyzeAiInsight
+) {
   return [
     "Return only a valid JSON object.",
-    'Required keys: headline, summary, strengths, risks, valuationView, dividendView, suggestion, confidence.',
+    "Required keys: headline, summary, strengths, risks, factorNotes, suggestion, confidence.",
     'Set confidence to only one of: "high", "medium", "low".',
+    "For factorNotes, use the factorId values exactly as provided in the factor list.",
     "Use simple, meaningful English for a retail investor in Pakistan.",
-    "Do not give absolute buy or sell guarantees.",
-    "If data is mixed, say that clearly.",
-    "Do not leave strengths or risks empty. If needed, mention data limitations.",
+    "Do not invent news, future events or hidden assumptions.",
+    "Mention both strengths and risks.",
     "Grounded stock data:",
     JSON.stringify(serializeSummary(summary)),
+    "Deterministic baseline you may improve:",
+    JSON.stringify(deterministic),
   ].join("\n");
 }
 
 function buildComparePrompt(
   first: AnalyzerSummary,
   second: AnalyzerSummary,
-  firstWins: number,
-  secondWins: number,
-  comparisons: Array<ReturnType<typeof compareMetric>>
+  comparison: AnalyzerComparison,
+  deterministic: StockCompareAiInsight
 ) {
   return [
     "Return only a valid JSON object.",
-    "Required keys: winner, summary, whyWinner, firstStrengths, secondStrengths, watchouts, suggestion, confidence.",
+    "Required keys: winner, summary, whyWinner, firstStrengths, secondStrengths, factorCalls, watchouts, suggestion, confidence.",
     'Set confidence to only one of: "high", "medium", "low".',
-    'Set winner to one of: "' + first.symbol + '", "' + second.symbol + '", or "Balanced".',
+    `Set winner to only one of: "${first.symbol}", "${second.symbol}", or "Balanced".`,
+    "For factorCalls, use the factorId values exactly as provided in the factor list.",
     "Use simple, meaningful English for a retail investor in Pakistan.",
-    "Do not invent sector stories or facts not present in the data.",
-    "Do not leave any list empty. If needed, mention data limitations.",
+    "Do not invent sector stories, news or hidden assumptions.",
+    "Keep the explanation grounded in the supplied factor results.",
     "First stock:",
     JSON.stringify(serializeSummary(first)),
     "Second stock:",
     JSON.stringify(serializeSummary(second)),
-    "Deterministic scorecard:",
-    JSON.stringify({
-      first_symbol: first.symbol,
-      second_symbol: second.symbol,
-      first_wins: firstWins,
-      second_wins: secondWins,
-      comparisons,
-    }),
+    "Deterministic head-to-head scorecard:",
+    JSON.stringify(serializeComparison(comparison)),
+    "Deterministic baseline you may improve:",
+    JSON.stringify(deterministic),
   ].join("\n");
 }
 
@@ -356,14 +368,19 @@ function normalizeInsightPayload(value: unknown) {
   if (!value || typeof value !== "object") return value;
   const record = value as Record<string, unknown>;
 
-  const strengths = coerceStringArray(
-    record.strengths ?? record.pros ?? record.positives ?? record.key_strengths
+  const factorNotes = normalizeFactorItems(
+    record.factorNotes ?? record.factor_notes ?? record.factorBreakdown ?? record.factor_breakdown
   );
-  const risks = coerceStringArray(
-    record.risks ?? record.cons ?? record.concerns ?? record.watchouts ?? record.key_risks
+  const factorCalls = normalizeFactorCalls(
+    record.factorCalls ?? record.factor_calls ?? record.factorWinners ?? record.factor_winners
   );
 
-  if ("winner" in record || "whyWinner" in record || "firstStrengths" in record || "secondStrengths" in record) {
+  if (
+    "winner" in record ||
+    "whyWinner" in record ||
+    "firstStrengths" in record ||
+    "secondStrengths" in record
+  ) {
     return {
       winner: coerceString(record.winner) ?? coerceString(record.result) ?? "Balanced",
       summary:
@@ -380,6 +397,7 @@ function normalizeInsightPayload(value: unknown) {
       secondStrengths: coerceStringArray(
         record.secondStrengths ?? record.second_strengths ?? record.stockB ?? record.secondPros
       ),
+      factorCalls,
       watchouts: coerceStringArray(
         record.watchouts ?? record.concerns ?? record.risks ?? record.sharedRisks
       ),
@@ -403,18 +421,13 @@ function normalizeInsightPayload(value: unknown) {
       coerceString(record.overview) ??
       coerceString(record.analysis) ??
       "",
-    strengths,
-    risks,
-    valuationView:
-      coerceString(record.valuationView) ??
-      coerceString(record.valuation) ??
-      coerceString(record.valuation_read) ??
-      "",
-    dividendView:
-      coerceString(record.dividendView) ??
-      coerceString(record.dividend) ??
-      coerceString(record.dividend_read) ??
-      "",
+    strengths: coerceStringArray(
+      record.strengths ?? record.pros ?? record.positives ?? record.key_strengths
+    ),
+    risks: coerceStringArray(
+      record.risks ?? record.cons ?? record.concerns ?? record.watchouts ?? record.key_risks
+    ),
+    factorNotes,
     suggestion:
       coerceString(record.suggestion) ??
       coerceString(record.recommendation) ??
@@ -428,13 +441,19 @@ function sanitizeInsightPayload(value: unknown) {
   if (!value || typeof value !== "object") return value;
   const record = value as Record<string, unknown>;
 
-  if ("winner" in record || "whyWinner" in record || "firstStrengths" in record || "secondStrengths" in record) {
+  if (
+    "winner" in record ||
+    "whyWinner" in record ||
+    "firstStrengths" in record ||
+    "secondStrengths" in record
+  ) {
     return {
       winner: limitText(record.winner, 30),
       summary: limitText(record.summary, 900),
-      whyWinner: limitList(record.whyWinner, 4, 220),
+      whyWinner: limitList(record.whyWinner, 5, 220),
       firstStrengths: limitList(record.firstStrengths, 4, 220),
       secondStrengths: limitList(record.secondStrengths, 4, 220),
+      factorCalls: limitFactorCalls(record.factorCalls),
       watchouts: limitList(record.watchouts, 4, 220),
       suggestion: limitText(record.suggestion, 420),
       confidence: coerceConfidence(record.confidence),
@@ -442,15 +461,150 @@ function sanitizeInsightPayload(value: unknown) {
   }
 
   return {
-    headline: limitText(record.headline, 160),
-    summary: limitText(record.summary, 800),
+    headline: limitText(record.headline, 180),
+    summary: limitText(record.summary, 900),
     strengths: limitList(record.strengths, 4, 220),
     risks: limitList(record.risks, 4, 220),
-    valuationView: limitText(record.valuationView, 240),
-    dividendView: limitText(record.dividendView, 240),
-    suggestion: limitText(record.suggestion, 400),
+    factorNotes: limitFactorItems(record.factorNotes),
+    suggestion: limitText(record.suggestion, 420),
     confidence: coerceConfidence(record.confidence),
   };
+}
+
+function serializeSummary(summary: AnalyzerSummary) {
+  return {
+    symbol: summary.symbol,
+    name: summary.name,
+    sector: summary.sector,
+    score: summary.totalScore,
+    verdict: summary.verdict,
+    factors_available: summary.factorsAvailable,
+    categories: summary.categoryScores.map((category) => ({
+      label: category.label,
+      score: category.score,
+      summary: category.summary,
+    })),
+    factors: summary.factors.map((factor) => ({
+      factor_id: factor.id,
+      label: factor.label,
+      value: factor.value == null ? null : roundMetric(factor.value),
+      display_value: factor.displayValue,
+      score: factor.score,
+      what_is_good: factor.whatIsGood,
+      explanation: factor.explanation,
+    })),
+    price: summary.quote?.current ?? null,
+    pe: summary.pe,
+    pbv: summary.pbv,
+    roe: summary.roe,
+    dividend_yield: summary.dividendYield,
+    revenue_trend: shrinkSeries(summary.revenue),
+    profit_trend: shrinkSeries(summary.profit),
+    eps_trend: shrinkSeries(summary.epsSeries),
+    operating_cash_flow_trend: shrinkSeries(summary.cashflowSeries),
+  };
+}
+
+function serializeComparison(comparison: AnalyzerComparison) {
+  return {
+    winner: comparison.winnerSymbol,
+    first_wins: comparison.firstWins,
+    second_wins: comparison.secondWins,
+    ties: comparison.ties,
+    summary: comparison.summary,
+    decisive_factors: comparison.decisiveFactors.map((factor) => ({
+      factor_id: factor.id,
+      label: factor.label,
+      winner: factor.winner,
+      note: factor.note,
+    })),
+    factors: comparison.factors.map((factor) => ({
+      factor_id: factor.id,
+      label: factor.label,
+      first_value: factor.firstDisplay,
+      second_value: factor.secondDisplay,
+      winner: factor.winner,
+      note: factor.note,
+    })),
+  };
+}
+
+function shrinkSeries(series: AnalyzerSummary["revenue"]) {
+  return series.slice(-4).map((point) => ({
+    period: point.period,
+    value: roundMetric(point.value),
+  }));
+}
+
+function normalizeFactorItems(value: unknown) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const record = item as Record<string, unknown>;
+        const factorId = coerceString(record.factorId ?? record.factor_id ?? record.id);
+        const note = coerceString(record.note ?? record.summary ?? record.text);
+        if (!factorId || !note) return null;
+        return { factorId, note };
+      })
+      .filter(
+        (item): item is { factorId: string; note: string } =>
+          Boolean(item?.factorId && item?.note)
+      )
+      .slice(0, 15);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([factorId, note]) => {
+        const text = coerceString(note);
+        return text ? { factorId, note: text } : null;
+      })
+      .filter(
+        (item): item is { factorId: string; note: string } =>
+          Boolean(item?.factorId && item?.note)
+      )
+      .slice(0, 15);
+  }
+
+  return [];
+}
+
+function normalizeFactorCalls(value: unknown) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const record = item as Record<string, unknown>;
+        const factorId = coerceString(record.factorId ?? record.factor_id ?? record.id);
+        const winner = coerceString(record.winner ?? record.leader);
+        const note = coerceString(record.note ?? record.summary ?? record.text);
+        if (!factorId || !winner || !note) return null;
+        return { factorId, winner, note };
+      })
+      .filter(
+        (item): item is { factorId: string; winner: string; note: string } =>
+          Boolean(item?.factorId && item?.winner && item?.note)
+      )
+      .slice(0, 15);
+  }
+
+  return [];
+}
+
+function limitFactorItems(value: unknown) {
+  return normalizeFactorItems(value).map((item) => ({
+    factorId: limitText(item.factorId, 40),
+    note: limitText(item.note, 240),
+  }));
+}
+
+function limitFactorCalls(value: unknown) {
+  return normalizeFactorCalls(value).map((item) => ({
+    factorId: limitText(item.factorId, 40),
+    winner: limitText(item.winner, 30),
+    note: limitText(item.note, 240),
+  }));
 }
 
 function coerceString(value: unknown) {
@@ -464,7 +618,7 @@ function coerceStringArray(value: unknown) {
     return value
       .map((item) => coerceString(item))
       .filter((item): item is string => Boolean(item))
-      .slice(0, 4);
+      .slice(0, 5);
   }
   const single = coerceString(value);
   return single ? [single] : [];
@@ -489,76 +643,14 @@ function limitText(value: unknown, max: number) {
 function limitList(value: unknown, maxItems: number, maxChars: number) {
   return coerceStringArray(value)
     .slice(0, maxItems)
-    .map((item) => (item.length <= maxChars ? item : `${item.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`));
-}
-
-function serializeSummary(summary: AnalyzerSummary) {
-  return {
-    symbol: summary.symbol,
-    name: summary.name,
-    sector: summary.sector,
-    deterministic_verdict: summary.verdict,
-    scores: {
-      health_score: summary.healthScore,
-      risk_score: summary.riskScore,
-      price_to_book_signal: summary.priceToBookSignal,
-    },
-    latest_metrics: {
-      pe: summary.pe,
-      pbv: summary.pbv,
-      roe: summary.roe,
-      net_margin: summary.netMargin,
-      debt_to_equity: summary.debtToEquity,
-      revenue_growth_pct: summary.revenueGrowth,
-      eps_growth_pct: summary.epsGrowth,
-      dividend_yield_pct: summary.dividendYield,
-      payout_ratio_pct: summary.payoutRatio,
-      eps: summary.eps,
-      dps: summary.dps,
-      book_value_per_share: summary.bookValue,
-      market_cap: summary.marketCap,
-    },
-    revenue_trend: shrinkSeries(summary.revenue),
-    profit_trend: shrinkSeries(summary.profit),
-    eps_trend: shrinkSeries(summary.epsSeries),
-    dividend_trend: shrinkSeries(summary.dpsSeries),
-  };
-}
-
-function shrinkSeries(series: MetricPoint[]) {
-  return series.slice(-4).map((point) => ({
-    period: point.period,
-    value: roundMetric(point.value),
-  }));
-}
-
-function compareMetric(
-  label: string,
-  first: number | null,
-  second: number | null,
-  preferred: "higher" | "lower"
-) {
-  const winner =
-    first == null || second == null || first === second
-      ? "tie"
-      : preferred === "higher"
-        ? first > second
-          ? "first"
-          : "second"
-        : first < second
-          ? "first"
-          : "second";
-
-  return {
-    label,
-    preferred,
-    first: roundMetric(first),
-    second: roundMetric(second),
-    winner,
-  };
+    .map((item) =>
+      item.length <= maxChars
+        ? item
+        : `${item.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`
+    );
 }
 
 function roundMetric(value: number | null) {
-  if (value == null) return null;
+  if (value == null || !Number.isFinite(value)) return null;
   return Math.round(value * 100) / 100;
 }
