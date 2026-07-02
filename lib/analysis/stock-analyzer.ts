@@ -98,6 +98,7 @@ export type AnalyzerSummary = {
   debtToEquity: number | null;
   revenueGrowth: number | null;
   epsGrowth: number | null;
+  priceReturn1Y: number | null;
   totalScore: number;
   healthScore: number;
   riskScore: number;
@@ -177,6 +178,7 @@ type BaseMetrics = {
   debtToEquity: number | null;
   revenueGrowth: number | null;
   epsGrowth: number | null;
+  priceReturn1Y: number | null;
   revenue: MetricPoint[];
   profit: MetricPoint[];
   epsSeries: MetricPoint[];
@@ -410,6 +412,7 @@ export function buildAnalyzerSummary(
     debtToEquity: base.debtToEquity,
     revenueGrowth: base.revenueGrowth,
     epsGrowth: base.epsGrowth,
+    priceReturn1Y: base.priceReturn1Y,
     totalScore,
     healthScore: totalScore,
     riskScore: Math.max(0, 100 - totalScore),
@@ -577,10 +580,15 @@ export function findRow(data: StockFinancialsData, patterns: RegExp[]): Financia
   return findRowInTabs(data, ["overview", "latest", "income", "balance", "cashflow", "ratios"], patterns);
 }
 
-export function getPriceLikeSeries(data: StockFinancialsData) {
-  const priceSeries = findSeries(data, [/^close \(pkr\)$/i, /^close$/i, /adjusted stock prices/i], {
+export function getHistoricalPriceSeries(data: StockFinancialsData) {
+  return findSeries(data, [/^close \(pkr\)$/i, /^close$/i, /adjusted stock prices/i], {
     tabs: ["latest", "overview"],
+    maxPoints: 24,
   });
+}
+
+export function getPriceLikeSeries(data: StockFinancialsData) {
+  const priceSeries = getHistoricalPriceSeries(data);
   if (priceSeries.length) return priceSeries;
   return findSeries(data, [/^eps$/i, /^eps - basic$/i, /^bvps$/i], {
     tabs: ["ratios", "income", "latest"],
@@ -606,6 +614,11 @@ export function growth(series: MetricPoint[]) {
   return ((last - first) / Math.abs(first)) * 100;
 }
 
+export function trailingGrowth(series: MetricPoint[], points = 2) {
+  if (series.length < points) return null;
+  return growth(series.slice(-points));
+}
+
 export function parseNumber(value: string | number | null | undefined) {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (value == null) return null;
@@ -621,6 +634,7 @@ function collectBaseMetrics(
   data: StockFinancialsData,
   quote: StockAnalyzerQuote | null
 ): BaseMetrics {
+  const priceSeries = getHistoricalPriceSeries(data);
   const revenue = annualSeries(data, ["income"], [/^net sales$/i, /^sales$/i, /revenue/i]);
   const profit = annualSeries(data, ["income"], [
     /profit after tax a\/t company owners/i,
@@ -690,6 +704,7 @@ function collectBaseMetrics(
     debtToEquity,
     revenueGrowth: growth(revenue),
     epsGrowth: growth(epsSeries),
+    priceReturn1Y: trailingGrowth(priceSeries, 2),
     revenue,
     profit,
     epsSeries,

@@ -21,6 +21,9 @@ import { getStockFinancials } from "@/lib/services/stock-fundamentals";
 
 const ANALYZE_TTL_SECONDS = 6 * 60 * 60;
 const ANALYZE_STALE_SECONDS = 24 * 60 * 60;
+const AI_REQUEST_TIMEOUT_MS = 15_000;
+const AI_REFRESH_ERROR_MESSAGE =
+  "We could not refresh the AI summary right now. Please try again in a few minutes.";
 
 export class StockAnalyzerAiError extends Error {
   statusCode: number;
@@ -71,7 +74,6 @@ const compareInsightSchema = z.object({
 
 type AnalyzeAiPayload = {
   mode: "analyze";
-  model: StockAnalyzerAiModel;
   symbol: string;
   companyName: string;
   sourceUpdatedAt: string;
@@ -82,7 +84,6 @@ type AnalyzeAiPayload = {
 
 type CompareAiPayload = {
   mode: "compare";
-  model: StockAnalyzerAiModel;
   firstSymbol: string;
   secondSymbol: string;
   sourceUpdatedAt: [string, string];
@@ -96,17 +97,15 @@ export async function getStockAnalyzeAiInsight({
   model,
 }: {
   symbol: string;
-  model: StockAnalyzerAiModel;
+  model?: StockAnalyzerAiModel;
 }) {
-  assertSupportedModel(model);
   const stock = await getStockFinancials(symbol);
   if (!stock) throw new Error(`Financial data unavailable for ${symbol}.`);
 
   const summary = buildAnalyzerSummary(stock.value, null);
   const deterministic = buildDeterministicAnalyzeInsight(summary);
   const cacheKey = [
-    "public:stock-analyzer:ai:v2:analyze",
-    model,
+    "public:stock-analyzer:ai:v3:analyze:auto",
     summary.symbol,
     stock.value.updatedAt,
   ].join(":");
@@ -117,7 +116,6 @@ export async function getStockAnalyzeAiInsight({
     staleSeconds: ANALYZE_STALE_SECONDS,
     load: async () => ({
       mode: "analyze",
-      model,
       symbol: summary.symbol,
       companyName: summary.name,
       sourceUpdatedAt: stock.value.updatedAt,
@@ -136,9 +134,8 @@ export async function getStockCompareAiInsight({
 }: {
   firstSymbol: string;
   secondSymbol: string;
-  model: StockAnalyzerAiModel;
+  model?: StockAnalyzerAiModel;
 }) {
-  assertSupportedModel(model);
   const [firstStock, secondStock] = await Promise.all([
     getStockFinancials(firstSymbol),
     getStockFinancials(secondSymbol),
@@ -153,8 +150,7 @@ export async function getStockCompareAiInsight({
   const comparison = buildAnalyzerComparison(first, second);
   const deterministic = buildDeterministicCompareInsight(first, second, comparison);
   const cacheKey = [
-    "public:stock-analyzer:ai:v2:compare",
-    model,
+    "public:stock-analyzer:ai:v3:compare:auto",
     first.symbol,
     firstStock.value.updatedAt,
     second.symbol,
@@ -167,7 +163,6 @@ export async function getStockCompareAiInsight({
     staleSeconds: ANALYZE_STALE_SECONDS,
     load: async () => ({
       mode: "compare",
-      model,
       firstSymbol: first.symbol,
       secondSymbol: second.symbol,
       sourceUpdatedAt: [firstStock.value.updatedAt, secondStock.value.updatedAt],
@@ -179,19 +174,13 @@ export async function getStockCompareAiInsight({
   });
 }
 
-function assertSupportedModel(model: string): asserts model is StockAnalyzerAiModel {
-  if (!STOCK_ANALYZER_AI_MODELS.includes(model as StockAnalyzerAiModel)) {
-    throw new Error("Unsupported AI model.");
-  }
-}
-
 async function requestAnalyzeInsight(
   summary: AnalyzerSummary,
   deterministic: StockAnalyzeAiInsight,
-  model: StockAnalyzerAiModel
+  preferredModel?: StockAnalyzerAiModel
 ) {
-  return callZaiJson({
-    model,
+  return callZaiJsonWithFallback({
+    preferredModel,
     schema: analyzeInsightSchema,
     system:
       "You are Stockli's grounded stock analyzer for the Pakistan Stock Exchange. Explain only from the provided data. Keep the language simple for everyday investors. Never output markdown.",
@@ -204,10 +193,10 @@ async function requestCompareInsight(
   second: AnalyzerSummary,
   comparison: AnalyzerComparison,
   deterministic: StockCompareAiInsight,
-  model: StockAnalyzerAiModel
+  preferredModel?: StockAnalyzerAiModel
 ) {
-  return callZaiJson({
-    model,
+  return callZaiJsonWithFallback({
+    preferredModel,
     schema: compareInsightSchema,
     system:
       "You are Stockli's grounded stock comparison assistant for the Pakistan Stock Exchange. Stay inside the supplied facts, compare clearly, and never output markdown.",
@@ -227,11 +216,11 @@ async function callZaiJson<T>({
   prompt: unknown;
 }) {
   if (!isZaiConfigured) {
-    throw new StockAnalyzerAiError(
-      "Z.AI is not configured. Add ZAI_API_KEY to enable AI stock insights.",
-      503
-    );
+    throw new StockAnalyzerAiError(AI_REFRESH_ERROR_MESSAGE, 503);
   }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
 
   const response = await fetch(`${config.ai.zaiBaseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
@@ -248,6 +237,14 @@ async function callZaiJson<T>({
         { role: "user", content: JSON.stringify(prompt) },
       ],
     }),
+    signal: controller.signal,
+  }).catch((error) => {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new StockAnalyzerAiError(AI_REFRESH_ERROR_MESSAGE, 504);
+    }
+    throw error;
+  }).finally(() => {
+    clearTimeout(timeoutId);
   });
 
   const payload = (await response.json().catch(() => null)) as
@@ -264,10 +261,7 @@ async function callZaiJson<T>({
   if (!response.ok) {
     const message = payload?.error?.message ?? "Z.AI request failed.";
     if (payload?.error?.code === "1302" || /rate limit/i.test(message)) {
-      throw new StockAnalyzerAiError(
-        "GLM rate limit reached. Please retry shortly or switch the model.",
-        429
-      );
+      throw new StockAnalyzerAiError(AI_REFRESH_ERROR_MESSAGE, 429);
     }
     throw new StockAnalyzerAiError(message, response.status >= 400 ? response.status : 502);
   }
@@ -283,6 +277,44 @@ async function callZaiJson<T>({
     );
   }
   return result.data;
+}
+
+async function callZaiJsonWithFallback<T>({
+  preferredModel,
+  schema,
+  system,
+  prompt,
+}: {
+  preferredModel?: StockAnalyzerAiModel;
+  schema: z.ZodSchema<T>;
+  system: string;
+  prompt: unknown;
+}) {
+  const attempts = buildModelAttempts(preferredModel);
+
+  for (const model of attempts) {
+    try {
+      return await callZaiJson({ model, schema, system, prompt });
+    } catch (error) {
+      if (
+        error instanceof StockAnalyzerAiError &&
+        error.statusCode >= 400 &&
+        error.statusCode < 500 &&
+        error.statusCode !== 429
+      ) {
+        continue;
+      }
+    }
+  }
+
+  throw new StockAnalyzerAiError(AI_REFRESH_ERROR_MESSAGE, 503);
+}
+
+function buildModelAttempts(preferredModel?: StockAnalyzerAiModel) {
+  const attempts = preferredModel
+    ? [preferredModel, ...STOCK_ANALYZER_AI_MODELS.filter((model) => model !== preferredModel)]
+    : [...STOCK_ANALYZER_AI_MODELS];
+  return [...new Set(attempts)];
 }
 
 function extractMessageContent(payload: {
