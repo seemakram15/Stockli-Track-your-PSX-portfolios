@@ -43,6 +43,11 @@ export const TOOL_NAV_ITEMS = [
     icon: "LineChart",
   },
   {
+    href: "/analysis/portfolio-suggestions",
+    label: "Portfolio Suggestions",
+    icon: "Target",
+  },
+  {
     href: "/analysis/fundamentals",
     label: "Fundamentals & Comparison",
     icon: "FileText",

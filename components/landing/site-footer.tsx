@@ -36,6 +36,7 @@ const COLUMNS: Array<{ title: string; links: FooterLink[] }> = [
     title: "Tools & explore",
     links: [
       { label: "Stock analyzer", href: "/analysis/stock-analyzer" },
+      { label: "Portfolio suggestions", href: "/analysis/portfolio-suggestions" },
       { label: "Fundamentals", href: "/analysis/fundamentals" },
       { label: "Pivot points", href: "/analysis/pivot-points" },
       { label: "Board meetings", href: "/explore/board-meetings" },

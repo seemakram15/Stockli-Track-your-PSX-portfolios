@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { STOCK_ANALYZER_AI_MODELS } from "@/lib/analysis/stock-analyzer-ai";
 import { isDemoMode } from "@/lib/config";
 import { normalizeSymbol } from "@/lib/security/validation";
 import { createClient } from "@/lib/supabase/server";
@@ -16,13 +15,11 @@ export const maxDuration = 60;
 
 const analyzeSchema = z.object({
   mode: z.literal("analyze"),
-  model: z.enum(STOCK_ANALYZER_AI_MODELS),
   symbol: z.string().min(1),
 });
 
 const compareSchema = z.object({
   mode: z.literal("compare"),
-  model: z.enum(STOCK_ANALYZER_AI_MODELS),
   firstSymbol: z.string().min(1),
   secondSymbol: z.string().min(1),
 });
@@ -53,7 +50,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Invalid symbol" }, { status: 400 });
       }
 
-      const cached = await getStockAnalyzeAiInsight({ symbol, model: input.model });
+      const cached = await getStockAnalyzeAiInsight({ symbol });
       return NextResponse.json(
         {
           data: cached.value,
@@ -79,7 +76,6 @@ export async function POST(request: Request) {
     const cached = await getStockCompareAiInsight({
       firstSymbol,
       secondSymbol,
-      model: input.model,
     });
     return NextResponse.json(
       {

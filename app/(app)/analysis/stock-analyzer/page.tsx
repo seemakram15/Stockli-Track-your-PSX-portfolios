@@ -4,7 +4,7 @@ import { StockAnalyzer } from "@/components/analysis/stock-analyzer";
 export const metadata: Metadata = {
   title: "Stock Analyzer · Stockli",
   description:
-    "Analyze PSX companies in plain English with fundamentals, charts, dividend checks and side-by-side stock comparison.",
+    "Analyze PSX companies in plain English with fundamentals, sector leaderboards, charts, dividend checks and side-by-side stock comparison.",
 };
 
 export default function StockAnalyzerPage() {
