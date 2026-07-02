@@ -23,6 +23,20 @@ const MODAL_AUTH_ROUTES = ["/login", "/signup", "/forgot-password"];
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const forceCanonicalHost = process.env.VERCEL_ENV === "production";
+  if (forceCanonicalHost) {
+    const requestHost = request.headers.get("host")?.toLowerCase();
+    const canonical = new URL(config.siteUrl);
+    const canonicalHost = canonical.host.toLowerCase();
+
+    if (requestHost && requestHost !== canonicalHost) {
+      const url = request.nextUrl.clone();
+      url.protocol = canonical.protocol;
+      url.host = canonical.host;
+      return NextResponse.redirect(url, 308);
+    }
+  }
+
   // Demo mode: no auth backend — let everything through.
   if (isDemoMode) {
     return NextResponse.next({ request });
