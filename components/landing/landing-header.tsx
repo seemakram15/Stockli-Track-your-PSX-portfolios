@@ -59,6 +59,7 @@ const NAV: Item[] = [
     label: "Tools",
     children: [
       { label: "Stock analyzer", href: "/analysis/stock-analyzer", icon: LineChart, tint: "text-emerald-500" },
+      { label: "Portfolio suggestions", href: "/analysis/portfolio-suggestions", icon: Target, tint: "text-violet-500" },
       { label: "Fundamentals", href: "/analysis/fundamentals", icon: FileText, tint: "text-sky-500" },
       { label: "Pivot points", href: "/analysis/pivot-points", icon: Target, tint: "text-amber-500" },
     ],

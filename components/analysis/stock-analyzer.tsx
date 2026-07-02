@@ -46,11 +46,10 @@ import {
 import {
   buildDeterministicAnalyzeInsight,
   buildDeterministicCompareInsight,
-  STOCK_ANALYZER_AI_MODELS,
   type StockAnalyzeAiInsight,
-  type StockAnalyzerAiModel,
   type StockCompareAiInsight,
 } from "@/lib/analysis/stock-analyzer-ai";
+import { SectorLeadersPanel } from "@/components/analysis/sector-leaders";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,7 +94,7 @@ type IndexConstituent = {
 };
 
 type Universe = "KSE100" | "KSE30" | "ALL";
-type AnalyzerMode = "analyze" | "compare";
+type AnalyzerMode = "analyze" | "compare" | "sectors";
 
 type FinancialApiResponse = {
   data: StockFinancialsData;
@@ -109,7 +108,6 @@ type AiApiResponse<T> = {
 
 type AnalyzeAiPayload = {
   mode: "analyze";
-  model: StockAnalyzerAiModel;
   symbol: string;
   companyName: string;
   sourceUpdatedAt: string;
@@ -120,7 +118,6 @@ type AnalyzeAiPayload = {
 
 type CompareAiPayload = {
   mode: "compare";
-  model: StockAnalyzerAiModel;
   firstSymbol: string;
   secondSymbol: string;
   sourceUpdatedAt: [string, string];
@@ -152,7 +149,6 @@ const VIOLET = "#8b5cf6";
 export function StockAnalyzer() {
   const [mode, setMode] = React.useState<AnalyzerMode>("analyze");
   const [universe, setUniverse] = React.useState<Universe>("KSE100");
-  const [aiModel, setAiModel] = React.useState<StockAnalyzerAiModel>("glm-4.7-flash");
   const [analyzeQuery, setAnalyzeQuery] = React.useState("");
   const [compareQueryA, setCompareQueryA] = React.useState("");
   const [compareQueryB, setCompareQueryB] = React.useState("");
@@ -322,8 +318,8 @@ export function StockAnalyzer() {
             <span className="text-gradient-violet">with a clearer report</span>
           </h1>
           <p className="mx-auto mt-4 max-w-3xl text-lg leading-8 text-muted-foreground">
-            Stockli turns cached fundamentals into an investor-friendly report with grouped
-            scorecards, cleaner charts, and an AI explanation grounded in the same numbers.
+            Stockli turns company financials, ratios, and price context into an investor-friendly
+            report with grouped scorecards, clearer charts, and an AI explanation in simple language.
           </p>
         </div>
       </section>
@@ -334,11 +330,12 @@ export function StockAnalyzer() {
             <div
               role="tablist"
               aria-label="Stock analyzer mode"
-              className="grid w-full grid-cols-2 gap-1 rounded-2xl border bg-muted/70 p-1"
+              className="grid w-full grid-cols-3 gap-1 rounded-2xl border bg-muted/70 p-1"
             >
               {([
                 ["analyze", LineChart, "Analyze a Stock"],
                 ["compare", GitCompareArrows, "Compare Two Stocks"],
+                ["sectors", Trophy, "Sector Leaders"],
               ] as const).map(([value, Icon, label]) => {
                 const active = mode === value;
                 return (
@@ -380,29 +377,6 @@ export function StockAnalyzer() {
               ))}
             </div>
 
-            <div className="w-full max-w-xl">
-              <p className="mb-2 flex items-center justify-center gap-1.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <Sparkles className="size-3.5 text-violet-500" />
-                AI explanation model
-              </p>
-              <div className="grid grid-cols-2 gap-1 rounded-2xl border bg-background p-1">
-                {STOCK_ANALYZER_AI_MODELS.map((model) => (
-                  <button
-                    key={model}
-                    type="button"
-                    onClick={() => setAiModel(model)}
-                    className={cn(
-                      "h-11 rounded-xl px-2 text-sm font-semibold transition sm:text-base",
-                      aiModel === model
-                        ? "bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-sm shadow-violet-500/25"
-                        : "text-muted-foreground hover:bg-muted"
-                    )}
-                  >
-                    {formatAiModelName(model)}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
           {mode === "analyze" ? (
@@ -431,7 +405,7 @@ export function StockAnalyzer() {
                 Analyze Stock
               </Button>
             </div>
-          ) : (
+          ) : mode === "compare" ? (
             <div className="grid gap-3 xl:grid-cols-[1fr_1fr_auto]">
               <StockPicker
                 companies={compareCompaniesA}
@@ -472,12 +446,20 @@ export function StockAnalyzer() {
                 Compare Stocks
               </Button>
             </div>
+          ) : (
+            <div className="rounded-[1.75rem] border bg-card/70 p-5 text-center shadow-soft">
+              <p className="text-lg font-semibold">Sector leaders are ready below</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Pick a sector, review the document-based rankings, and let the AI summarize the
+                strongest names in that industry.
+              </p>
+            </div>
           )}
 
           {!analyzeSymbol && mode === "analyze" ? (
             <EmptyWorkflow
               items={[
-                ["1", "Pick a stock", "Choose any company with ready cached fundamentals."],
+                ["1", "Pick a stock", "Choose any company with financial data ready for analysis."],
                 [
                   "2",
                   "Run the score",
@@ -518,20 +500,20 @@ export function StockAnalyzer() {
           error={analyzerFinancials.error}
           data={analyzerFinancials.data}
           summary={analyzeSummary}
-          aiModel={aiModel}
           stockName={analyzeName}
         />
-      ) : (
+      ) : mode === "compare" ? (
         <CompareResult
           first={compareSummaryA}
           second={compareSummaryB}
           comparison={comparison}
           loading={compareAFinancials.isLoading || compareBFinancials.isLoading}
           error={compareAFinancials.error || compareBFinancials.error}
-          aiModel={aiModel}
           firstName={compareNameA}
           secondName={compareNameB}
         />
+      ) : (
+        <SectorLeadersPanel allowedSymbols={universeSymbols} />
       )}
     </div>
   );
@@ -542,14 +524,12 @@ function AnalyzeResult({
   error,
   data,
   summary,
-  aiModel,
   stockName,
 }: {
   loading: boolean;
   error: string | null;
   data: StockFinancialsData | null;
   summary: AnalyzerSummary | null;
-  aiModel: StockAnalyzerAiModel;
   stockName: string;
 }) {
   const fallbackInsight = React.useMemo(
@@ -561,15 +541,13 @@ function AnalyzeResult({
       summary
         ? ({
             mode: "analyze",
-            model: aiModel,
             symbol: summary.symbol,
           } satisfies {
             mode: "analyze";
-            model: StockAnalyzerAiModel;
             symbol: string;
           })
         : null,
-    [aiModel, summary]
+    [summary]
   );
   const { data: aiData, loading: aiLoading, error: aiError, cache, refresh } =
     useStockAnalyzerAi<AnalyzeAiPayload>(requestBody);
@@ -588,12 +566,12 @@ function AnalyzeResult({
     return (
       <LoadingProgressCard
         icon={<Loader2 className="animate-spin" />}
-        heading={`Loading ${stockName} fundamentals`}
+        heading={`Loading ${stockName} financial snapshot`}
         steps={[
           {
             percent: 18,
-            title: "Opening cached fundamentals",
-            description: `We are reading the archived statements for ${stockName}.`,
+            title: "Opening company financials",
+            description: `We are reading the financial statements and key ratios for ${stockName}.`,
           },
           {
             percent: 44,
@@ -899,8 +877,7 @@ function AnalyzeResult({
 
       <AiStoryCard
         title="AI stock explanation"
-        subtitle={`Grounded on the same cached factors for ${summary.symbol}.`}
-        model={aiModel}
+        subtitle={`Built from the same financial factors and scorecards for ${summary.symbol}.`}
         loading={aiLoading}
         error={aiError}
         cacheStatus={cache?.status ?? null}
@@ -978,7 +955,6 @@ function CompareResult({
   comparison,
   loading,
   error,
-  aiModel,
   firstName,
   secondName,
 }: {
@@ -987,7 +963,6 @@ function CompareResult({
   comparison: AnalyzerComparison | null;
   loading: boolean;
   error: string | null;
-  aiModel: StockAnalyzerAiModel;
   firstName: string;
   secondName: string;
 }) {
@@ -1003,17 +978,15 @@ function CompareResult({
       first && second
         ? ({
             mode: "compare",
-            model: aiModel,
             firstSymbol: first.symbol,
             secondSymbol: second.symbol,
           } satisfies {
             mode: "compare";
-            model: StockAnalyzerAiModel;
             firstSymbol: string;
             secondSymbol: string;
           })
         : null,
-    [aiModel, first, second]
+    [first, second]
   );
   const { data: aiData, loading: aiLoading, error: aiError, cache, refresh } =
     useStockAnalyzerAi<CompareAiPayload>(requestBody);
@@ -1176,8 +1149,7 @@ function CompareResult({
 
       <AiStoryCard
         title="AI comparison"
-        subtitle={`Grounded on the same factor scorecards for ${first.symbol} and ${second.symbol}.`}
-        model={aiModel}
+        subtitle={`Built from the same factor scorecards for ${first.symbol} and ${second.symbol}.`}
         loading={aiLoading}
         error={aiError}
         cacheStatus={cache?.status ?? null}
@@ -2693,7 +2665,6 @@ function CategoryGaugeCard({
 function AiStoryCard({
   title,
   subtitle,
-  model,
   loading,
   error,
   cacheStatus,
@@ -2703,7 +2674,6 @@ function AiStoryCard({
 }: {
   title: string;
   subtitle: string;
-  model: StockAnalyzerAiModel;
   loading: boolean;
   error: string | null;
   cacheStatus: string | null;
@@ -2725,7 +2695,6 @@ function AiStoryCard({
           <div className="min-w-0">
             <CardTitle className="flex flex-wrap items-center gap-2">
               {title}
-              <Badge variant="violet">{formatAiModelName(model)}</Badge>
               {fallbackMode ? <Badge variant="outline">Fallback ready</Badge> : null}
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
@@ -3443,15 +3412,6 @@ function badgeVariantForFactor(status: AnalyzerFactor["status"]) {
   if (status === "strong" || status === "good") return "gain";
   if (status === "weak") return "loss";
   return "outline";
-}
-
-function formatAiModelName(model: StockAnalyzerAiModel) {
-  return model
-    .split("-")
-    .map((part, index) =>
-      index === 0 ? part.toUpperCase() : `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`
-    )
-    .join("-");
 }
 
 function formatNumber(value: number) {
