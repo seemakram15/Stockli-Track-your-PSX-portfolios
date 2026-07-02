@@ -48,6 +48,13 @@ function authErrorMessage(error: AuthErrorLike) {
   return message;
 }
 
+function buildLoginUrl(message: string, email?: string | null) {
+  const loginUrl = new URL("/login", config.siteUrl);
+  loginUrl.searchParams.set("authMessage", message);
+  if (email) loginUrl.searchParams.set("authEmail", email);
+  return loginUrl.toString();
+}
+
 export async function signIn(
   _prev: AuthState,
   formData: FormData
@@ -222,10 +229,9 @@ export async function updatePassword(
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { error: authErrorMessage(error) };
 
-  return {
-    message: "Password updated successfully. You can continue to your dashboard now.",
-    nextStep: "password-reset-complete",
-  };
+  const email = user.email ?? null;
+  await supabase.auth.signOut();
+  redirect(buildLoginUrl("Password updated successfully. Sign in with your new password.", email));
 }
 
 export async function signInWithGoogle(): Promise<AuthState> {
