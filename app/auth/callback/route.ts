@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return redirectAfterSuccess(type, next, data.user?.email ?? data.session?.user?.email);
+      return redirectAfterSuccess(supabase, type, next, data.user?.email ?? data.session?.user?.email);
     }
     return redirectToLoginWithError("We could not complete that sign-in link. Please try again.");
   }
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       type,
     });
     if (!error) {
-      return redirectAfterSuccess(type, next, data.user?.email);
+      return redirectAfterSuccess(supabase, type, next, data.user?.email);
     }
     return redirectToLoginWithError(callbackErrorMessage(type));
   }
@@ -53,8 +53,14 @@ function redirectToLoginWithMessage(message: string, email?: string | null) {
   return NextResponse.redirect(loginUrl);
 }
 
-function redirectAfterSuccess(type: EmailOtpType | null, next: string, email?: string | null) {
+async function redirectAfterSuccess(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  type: EmailOtpType | null,
+  next: string,
+  email?: string | null
+) {
   if (type === "signup") {
+    await supabase.auth.signOut();
     return redirectToLoginWithMessage(
       "Email verified successfully. Sign in to continue to your Stockli dashboard.",
       email

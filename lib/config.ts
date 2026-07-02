@@ -21,6 +21,10 @@ const productionSiteUrl = "https://mystockli.vercel.app";
 function normalizedSiteUrl() {
   if (process.env.NODE_ENV !== "production") return "http://localhost:3001";
 
+  if (process.env.VERCEL_ENV === "production") {
+    return productionSiteUrl;
+  }
+
   const configured = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL;
   if (!configured) return productionSiteUrl;
 
