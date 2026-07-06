@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const isDryRun = process.argv.includes("--dry-run");
-const productionSiteUrl = "https://mystockli.vercel.app";
+const productionSiteUrl = "https://mystockli.qzz.io";
 const localSiteUrl = "http://localhost:3001";
 
 async function loadDotEnv(relativePath) {

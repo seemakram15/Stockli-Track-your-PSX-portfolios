@@ -11,7 +11,7 @@ import { getSeedTicker } from "@/lib/psx/symbols";
 import { getMarketRows } from "@/lib/services/prices";
 
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; Stockli/1.0; +https://mystockli.vercel.app)";
+  "Mozilla/5.0 (compatible; Stockli/1.0; +https://mystockli.qzz.io)";
 const REQUEST_TIMEOUT_MS = 12_000;
 const DAILY_TTL_SECONDS = 30 * 60;
 const DAILY_STALE_SECONDS = 7 * 24 * 60 * 60;

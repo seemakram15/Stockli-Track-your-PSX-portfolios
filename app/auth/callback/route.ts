@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
-import { config } from "@/lib/config";
 import { safeRedirectPath } from "@/lib/security/validation";
+import { resolveSiteUrlFromRequestUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const siteUrl = resolveSiteUrlFromRequestUrl(request.url);
   const code = searchParams.get("code");
   const next = safeRedirectPath(searchParams.get("next"), "/dashboard");
   const tokenHash = searchParams.get("token_hash");
@@ -21,9 +22,15 @@ export async function GET(request: Request) {
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return redirectAfterSuccess(supabase, type, next, data.user?.email ?? data.session?.user?.email);
+      return redirectAfterSuccess(
+        supabase,
+        siteUrl,
+        type,
+        next,
+        data.user?.email ?? data.session?.user?.email
+      );
     }
-    return redirectToLoginWithError("We could not complete that sign-in link. Please try again.");
+    return redirectToLoginWithError(siteUrl, "We could not complete that sign-in link. Please try again.");
   }
 
   if (tokenHash && type) {
@@ -32,22 +39,25 @@ export async function GET(request: Request) {
       type,
     });
     if (!error) {
-      return redirectAfterSuccess(supabase, type, next, data.user?.email);
+      return redirectAfterSuccess(supabase, siteUrl, type, next, data.user?.email);
     }
-    return redirectToLoginWithError(callbackErrorMessage(type));
+    return redirectToLoginWithError(siteUrl, callbackErrorMessage(type));
   }
 
-  return redirectToLoginWithError("That auth link is invalid or expired. Please request a fresh one.");
+  return redirectToLoginWithError(
+    siteUrl,
+    "That auth link is invalid or expired. Please request a fresh one."
+  );
 }
 
-function redirectToLoginWithError(message: string) {
-  const loginUrl = new URL("/login", config.siteUrl);
+function redirectToLoginWithError(siteUrl: string, message: string) {
+  const loginUrl = new URL("/login", siteUrl);
   loginUrl.searchParams.set("authError", message);
   return NextResponse.redirect(loginUrl);
 }
 
-function redirectToLoginWithMessage(message: string, email?: string | null) {
-  const loginUrl = new URL("/login", config.siteUrl);
+function redirectToLoginWithMessage(siteUrl: string, message: string, email?: string | null) {
+  const loginUrl = new URL("/login", siteUrl);
   loginUrl.searchParams.set("authMessage", message);
   if (email) loginUrl.searchParams.set("authEmail", email);
   return NextResponse.redirect(loginUrl);
@@ -55,6 +65,7 @@ function redirectToLoginWithMessage(message: string, email?: string | null) {
 
 async function redirectAfterSuccess(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  siteUrl: string,
   type: EmailOtpType | null,
   next: string,
   email?: string | null
@@ -62,11 +73,12 @@ async function redirectAfterSuccess(
   if (type === "signup") {
     await supabase.auth.signOut();
     return redirectToLoginWithMessage(
+      siteUrl,
       "Email verified successfully. Sign in to continue to your Stockli dashboard.",
       email
     );
   }
-  return NextResponse.redirect(new URL(next, config.siteUrl));
+  return NextResponse.redirect(new URL(next, siteUrl));
 }
 
 function normalizeOtpType(value: string | null): EmailOtpType | null {
