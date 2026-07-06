@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { config, isDemoMode } from "@/lib/config";
+import { shouldForceCanonicalHost } from "@/lib/site-url";
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -25,11 +26,13 @@ export async function updateSession(request: NextRequest) {
 
   const forceCanonicalHost = process.env.VERCEL_ENV === "production";
   if (forceCanonicalHost) {
-    const requestHost = request.headers.get("host")?.toLowerCase();
+    const requestHost =
+      request.headers.get("x-forwarded-host")?.toLowerCase() ??
+      request.headers.get("host")?.toLowerCase();
     const canonical = new URL(config.siteUrl);
     const canonicalHost = canonical.host.toLowerCase();
 
-    if (requestHost && requestHost !== canonicalHost) {
+    if (requestHost && requestHost !== canonicalHost && shouldForceCanonicalHost(requestHost)) {
       const url = request.nextUrl.clone();
       url.protocol = canonical.protocol;
       url.host = canonical.host;

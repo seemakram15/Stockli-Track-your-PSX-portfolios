@@ -357,7 +357,7 @@ function coinGeckoHeaders() {
   return {
     accept: "application/json",
     "User-Agent":
-      "Mozilla/5.0 (compatible; Stockli/1.0; +https://stock-portfolio-khaki.vercel.app)",
+      "Mozilla/5.0 (compatible; Stockli/1.0; +https://mystockli.qzz.io)",
   };
 }
 
@@ -377,7 +377,7 @@ async function fetchYahooQuote(item: MarketInstrument): Promise<GlobalMarketQuot
       headers: {
         accept: "application/json",
         "User-Agent":
-          "Mozilla/5.0 (compatible; Stockli/1.0; +https://stock-portfolio-khaki.vercel.app)",
+          "Mozilla/5.0 (compatible; Stockli/1.0; +https://mystockli.qzz.io)",
       },
       next: { revalidate: 60 },
       signal: AbortSignal.timeout(5_000),

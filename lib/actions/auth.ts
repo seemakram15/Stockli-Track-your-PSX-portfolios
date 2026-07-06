@@ -1,10 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { config, isDemoMode, isSupabaseAdminConfigured } from "@/lib/config";
+import { isDemoMode, isSupabaseAdminConfigured } from "@/lib/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { safeRedirectPath } from "@/lib/security/validation";
+import { resolveRequestSiteUrl } from "@/lib/site-url";
 
 export interface AuthState {
   error?: string;
@@ -48,8 +49,12 @@ function authErrorMessage(error: AuthErrorLike) {
   return message;
 }
 
-function buildLoginUrl(message: string, email?: string | null) {
-  const loginUrl = new URL("/login", config.siteUrl);
+async function resolveAuthSiteUrl() {
+  return resolveRequestSiteUrl();
+}
+
+function buildLoginUrl(siteUrl: string, message: string, email?: string | null) {
+  const loginUrl = new URL("/login", siteUrl);
   loginUrl.searchParams.set("authMessage", message);
   if (email) loginUrl.searchParams.set("authEmail", email);
   return loginUrl.toString();
@@ -85,13 +90,14 @@ export async function signUp(
   if (password.length < 8)
     return { error: "Password must be at least 8 characters." };
 
+  const siteUrl = await resolveAuthSiteUrl();
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { display_name: displayName || email.split("@")[0] },
-      emailRedirectTo: `${config.siteUrl}/auth/callback`,
+      emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   });
   if (error) return { error: authErrorMessage(error) };
@@ -113,12 +119,13 @@ export async function resendSignupConfirmation(
   const email = String(formData.get("email") ?? "").trim();
   if (!email) return { error: "Email is required.", nextStep: "confirm-signup" };
 
+  const siteUrl = await resolveAuthSiteUrl();
   const supabase = await createClient();
   const { error } = await supabase.auth.resend({
     type: "signup",
     email,
     options: {
-      emailRedirectTo: `${config.siteUrl}/auth/callback`,
+      emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   });
 
@@ -149,6 +156,7 @@ export async function requestPasswordReset(
   const normalizedEmail = email.toLowerCase();
   const genericResetMessage =
     "If this email belongs to a Stockli account, we just sent the next step. Please check your inbox, spam, junk, or promotions within 1 to 2 minutes.";
+  const siteUrl = await resolveAuthSiteUrl();
   if (isSupabaseAdminConfigured) {
     const admin = createAdminClient();
     const { data: usersData, error: usersError } = await admin.auth.admin.listUsers({
@@ -167,7 +175,7 @@ export async function requestPasswordReset(
           type: "signup",
           email,
           options: {
-            emailRedirectTo: `${config.siteUrl}/auth/callback`,
+            emailRedirectTo: `${siteUrl}/auth/callback`,
           },
         });
 
@@ -186,7 +194,7 @@ export async function requestPasswordReset(
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${config.siteUrl}/auth/callback?next=/reset-password`,
+    redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
   });
 
   if (error) return { error: authErrorMessage(error), email };
@@ -230,16 +238,20 @@ export async function updatePassword(
   if (error) return { error: authErrorMessage(error) };
 
   const email = user.email ?? null;
+  const siteUrl = await resolveAuthSiteUrl();
   await supabase.auth.signOut();
-  redirect(buildLoginUrl("Password updated successfully. Sign in with your new password.", email));
+  redirect(
+    buildLoginUrl(siteUrl, "Password updated successfully. Sign in with your new password.", email)
+  );
 }
 
 export async function signInWithGoogle(): Promise<AuthState> {
   if (isDemoMode) return { error: DEMO_MSG };
+  const siteUrl = await resolveAuthSiteUrl();
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${config.siteUrl}/auth/callback` },
+    options: { redirectTo: `${siteUrl}/auth/callback` },
   });
   if (error) return { error: authErrorMessage(error) };
   if (data.url) redirect(data.url);
