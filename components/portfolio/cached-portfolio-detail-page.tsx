@@ -41,7 +41,7 @@ export function CachedPortfolioDetailPage({
   userId: string;
   demo?: boolean;
   }) {
-  const cacheKey = `private:portfolio:${userId}:${id}`;
+  const cacheKey = `private:portfolio:v2:${userId}:${id}`;
   const cacheClosedOnly = React.useCallback(() => !shouldRefreshPsxData(), []);
   const acceptPortfolioCache = React.useCallback(
     (record: CachedRecord<PortfolioPageData>) =>
@@ -67,6 +67,21 @@ export function CachedPortfolioDetailPage({
     window.addEventListener(PORTFOLIO_MUTATION_EVENT, onMutation);
     return () => window.removeEventListener(PORTFOLIO_MUTATION_EVENT, onMutation);
   }, [id, refreshNow]);
+
+  const currentPriceBySymbol = React.useMemo(() => {
+    const holdings = data?.portfolio.holdings ?? [];
+    const fallback = Object.fromEntries(
+      holdings.map((holding) => [
+        holding.symbol.toUpperCase(),
+        Number.isFinite(holding.livePrice) ? holding.livePrice : null,
+      ])
+    );
+
+    return {
+      ...fallback,
+      ...(data?.quoteBySymbol ?? {}),
+    };
+  }, [data]);
 
   if (!data) {
     return (
@@ -158,7 +173,10 @@ export function CachedPortfolioDetailPage({
                     <HoldingsTable holdings={holdings} rowActions={{ demo }} userId={userId} />
                   </TabsContent>
                   <TabsContent value="transactions" className="mt-2">
-                    <TransactionsPanel transactions={transactions} />
+                    <TransactionsPanel
+                      transactions={transactions}
+                      currentPriceBySymbol={currentPriceBySymbol}
+                    />
                   </TabsContent>
                 </Tabs>
               </CardContent>

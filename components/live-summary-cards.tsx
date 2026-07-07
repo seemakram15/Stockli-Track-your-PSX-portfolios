@@ -29,17 +29,6 @@ export function LiveSummaryCards({
   return (
     <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
       <StatCard
-        label={valueLabel}
-        value={formatPKR(summary.totalValue)}
-        accent="primary"
-        icon={<Wallet className="size-4" />}
-        sub={
-          <span className="text-muted-foreground">
-            {summary.holdingsCount} {holdingsLabel}
-          </span>
-        }
-      />
-      <StatCard
         label="Day's P/L"
         value={formatPKR(summary.dayPL, { sign: true })}
         tone={summary.dayPL > 0 ? "gain" : summary.dayPL < 0 ? "loss" : "default"}
@@ -54,6 +43,17 @@ export function LiveSummaryCards({
         accent="violet"
         icon={<TrendingUp className="size-4" />}
         sub={<ChangeBadge pct={summary.totalPLPct} variant="pill" />}
+      />
+      <StatCard
+        label={valueLabel}
+        value={formatPKR(summary.totalValue)}
+        accent="primary"
+        icon={<Wallet className="size-4" />}
+        sub={
+          <span className="text-muted-foreground">
+            {summary.holdingsCount} {holdingsLabel}
+          </span>
+        }
       />
       <StatCard
         label="Invested"

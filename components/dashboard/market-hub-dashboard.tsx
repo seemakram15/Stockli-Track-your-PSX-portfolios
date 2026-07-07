@@ -7,7 +7,6 @@ import {
   ArrowRight,
   ArrowUp,
   Bitcoin,
-  Coins,
   Droplets,
   Gem,
   Globe2,
@@ -18,11 +17,11 @@ import {
   Wallet,
 } from "lucide-react";
 import { IndexTickerStrip, type DashboardTickerItem } from "@/components/dashboard/index-ticker-strip";
+import { LiveSummaryCards } from "@/components/live-summary-cards";
 import { WorldMarketHeatMap } from "@/components/market/world-market-heat-map";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AccentPill, IconChip, ACCENT_GRADIENT, type Accent } from "@/components/ui/accent";
-import { ChangeBadge } from "@/components/change-badge";
+import { AccentPill, ACCENT_GRADIENT, type Accent } from "@/components/ui/accent";
 import { usePersistentResource, type CachedRecord } from "@/lib/hooks/use-persistent-resource";
 import { getMarketDisplaySymbol } from "@/lib/market-symbols";
 import { shouldRefreshPsxData } from "@/lib/psx/market-hours";
@@ -38,27 +37,19 @@ import {
   formatMarketPrice,
   formatNumber,
   formatPercent,
-  formatPKR,
   formatSigned,
   plColorClass,
 } from "@/lib/format";
+import type { HoldingWithMetrics, Portfolio, PortfolioSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const REFRESH_MS = 60_000;
 
 interface DashboardData {
   dashboard: {
-    summary: {
-      totalValue: number;
-      totalInvested: number;
-      totalPL: number;
-      totalPLPct: number;
-      dayPL: number;
-      dayPLPct: number;
-      holdingsCount: number;
-    };
-    portfolios: Array<{ id: string; name: string }>;
-    holdings: Array<{ id: string; symbol: string; dayChange: number; dayChangePct: number }>;
+    summary: PortfolioSummary;
+    portfolios: Array<Pick<Portfolio, "id" | "name">>;
+    holdings: HoldingWithMetrics[];
     topGainers: Array<{ id: string; symbol: string; dayChange: number; dayChangePct: number; livePrice: number }>;
     topLosers: Array<{ id: string; symbol: string; dayChange: number; dayChangePct: number; livePrice: number }>;
   };
@@ -315,54 +306,10 @@ function PortfolioOverviewBand({
   onRefresh: () => void;
 }) {
   const summary = data?.dashboard.summary;
-  const stats: Array<{
-    label: string;
-    value: string;
-    tone: number | null;
-    pl: boolean;
-    pct?: number | null;
-    accent: Accent;
-    icon: React.ReactNode;
-  }> = [
-    {
-      label: "Total value",
-      value: formatPKR(summary?.totalValue ?? null),
-      tone: null,
-      pl: false,
-      accent: "primary",
-      icon: <Wallet />,
-    },
-    {
-      label: "Day P/L",
-      value: formatPKR(summary?.dayPL ?? null, { sign: true }),
-      tone: summary?.dayPL ?? null,
-      pl: true,
-      pct: summary?.dayPLPct ?? null,
-      accent: "sky",
-      icon: <ArrowUp />,
-    },
-    {
-      label: "Total P/L",
-      value: formatPKR(summary?.totalPL ?? null, { sign: true }),
-      tone: summary?.totalPL ?? null,
-      pl: true,
-      pct: summary?.totalPLPct ?? null,
-      accent: "violet",
-      icon: <LineChart />,
-    },
-    {
-      label: "Invested",
-      value: formatPKR(summary?.totalInvested ?? null),
-      tone: null,
-      pl: false,
-      accent: "amber",
-      icon: <Coins />,
-    },
-  ];
 
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/10 sm:p-6">
-      <div className="pointer-events-none absolute inset-0 bg-brand-mesh" aria-hidden />
+    <section className="relative overflow-hidden rounded-3xl border border-emerald-100/70 bg-gradient-to-br from-emerald-50/75 via-background to-sky-50/75 p-4 shadow-soft ring-1 ring-emerald-100/60 sm:p-6 dark:border-emerald-900/50 dark:from-emerald-950/25 dark:to-sky-950/20">
+      <div className="pointer-events-none absolute inset-0 bg-brand-mesh opacity-60" aria-hidden />
       <div className="relative">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -390,33 +337,11 @@ function PortfolioOverviewBand({
             </Button>
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="flex min-h-[6.5rem] min-w-0 flex-col justify-between rounded-2xl bg-card/70 p-3 shadow-soft ring-1 ring-border backdrop-blur sm:min-h-28 sm:p-4"
-            >
-              <div className="flex min-w-0 items-start justify-between gap-1.5">
-                <span className="min-w-0 text-xs font-medium text-muted-foreground sm:text-sm">{stat.label}</span>
-                <IconChip accent={stat.accent} size="sm" className="-mt-0.5">
-                  {stat.icon}
-                </IconChip>
-              </div>
-              <div className="mt-2">
-                <p
-                  className={cn(
-                    "break-words text-base font-semibold leading-tight tabular-nums sm:text-xl",
-                    stat.pl ? plColorClass(stat.tone) : "text-foreground"
-                  )}
-                >
-                  {stat.value}
-                </p>
-                {stat.pl && stat.pct != null && (
-                  <ChangeBadge pct={stat.pct} className="mt-1 text-xs" />
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="mt-5">
+          <LiveSummaryCards
+            holdings={data?.dashboard.holdings ?? []}
+            realizedPL={summary?.realizedPL ?? 0}
+          />
         </div>
       </div>
     </section>
