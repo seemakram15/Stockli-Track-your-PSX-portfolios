@@ -1,0 +1,50 @@
+name: PSX market refresh
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Skip outside PSX market windows
+        id: window
+        env:
+          TZ: Asia/Karachi
+        run: |
+          weekday="$(date +%u)"
+          hour="$(date +%H)"
+          minute="$(date +%M)"
+          total_minutes=$((10#$hour * 60 + 10#$minute))
+          should_run=false
+
+          if [ "$weekday" -ge 1 ] && [ "$weekday" -le 4 ]; then
+            if [ "$total_minutes" -ge 555 ] && [ "$total_minutes" -le 930 ]; then
+              should_run=true
+            fi
+          elif [ "$weekday" -eq 5 ]; then
+            if [ "$total_minutes" -ge 540 ] && [ "$total_minutes" -le 720 ]; then
+              should_run=true
+            elif [ "$total_minutes" -ge 855 ] && [ "$total_minutes" -le 990 ]; then
+              should_run=true
+            fi
+          fi
+
+          echo "should_run=$should_run" >> "$GITHUB_OUTPUT"
+          echo "PKT now: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+
+      - name: Trigger Stockli backend refresh
+        if: steps.window.outputs.should_run == 'true'
+        env:
+          CRON_SECRET: ${{ secrets.STOCKLI_CRON_SECRET }}
+        run: |
+          curl --fail --show-error --silent \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "https://mystockli.qzz.io/api/cron/refresh"
+
+      - name: Skip note
+        if: steps.window.outputs.should_run != 'true'
+        run: echo "Outside active PSX session window, skipping refresh."
