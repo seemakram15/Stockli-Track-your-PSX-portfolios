@@ -15,7 +15,13 @@ import type { Transaction } from "@/lib/types";
 
 type TradeTypeFilter = "ALL" | "BUY" | "SELL";
 
-export function TransactionsPanel({ transactions }: { transactions: Transaction[] }) {
+export function TransactionsPanel({
+  transactions,
+  currentPriceBySymbol,
+}: {
+  transactions: Transaction[];
+  currentPriceBySymbol?: Record<string, number | null>;
+}) {
   const [symbol, setSymbol] = React.useState("ALL");
   const [type, setType] = React.useState<TradeTypeFilter>("ALL");
 
@@ -77,7 +83,11 @@ export function TransactionsPanel({ transactions }: { transactions: Transaction[
           </div>
         </FilterPanel>
       </div>
-      <TransactionsTable transactions={filtered} />
+      <TransactionsTable
+        transactions={filtered}
+        showBuyPL={Boolean(currentPriceBySymbol)}
+        currentPriceBySymbol={currentPriceBySymbol}
+      />
     </div>
   );
 }

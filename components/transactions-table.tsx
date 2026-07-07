@@ -23,9 +23,13 @@ const TYPE_STYLES: Record<TransactionType, string> = {
 export function TransactionsTable({
   transactions,
   showSymbol = true,
+  showBuyPL = false,
+  currentPriceBySymbol,
 }: {
   transactions: Transaction[];
   showSymbol?: boolean;
+  showBuyPL?: boolean;
+  currentPriceBySymbol?: Record<string, number | null>;
 }) {
   if (transactions.length === 0) {
     return (
@@ -65,7 +69,11 @@ export function TransactionsTable({
               <MobileMetric label="Quantity" value={t.quantity ? formatNumber(t.quantity, 0) : "—"} />
               <MobileMetric label="Price" value={t.price ? formatPKR(t.price) : "—"} align="right" />
               <MobileMetric label="Total" value={t.quantity && t.price ? formatPKR(t.quantity * t.price) : "—"} />
-              <MobileMetric label="Fees" value={formatPKR(t.fees)} align="right" />
+              <MobileMetric
+                label={showBuyPL ? "Total Buy P/L" : "Fees"}
+                value={renderTrailingMetric(t, showBuyPL, currentPriceBySymbol)}
+                align="right"
+              />
             </div>
           </div>
         ))}
@@ -80,7 +88,9 @@ export function TransactionsTable({
             <TableHead className="text-right">Qty</TableHead>
             <TableHead className="text-right">Price</TableHead>
             <TableHead className="text-right">Total</TableHead>
-            <TableHead className="hidden text-right sm:table-cell">Fees</TableHead>
+            <TableHead className="hidden text-right sm:table-cell">
+              {showBuyPL ? "Total Buy P/L" : "Fees"}
+            </TableHead>
             <TableHead className="text-right">Date</TableHead>
           </TableRow>
         </TableHeader>
@@ -113,8 +123,8 @@ export function TransactionsTable({
               <TableCell className="text-right tabular-nums">
                 {t.quantity && t.price ? formatPKR(t.quantity * t.price) : "—"}
               </TableCell>
-              <TableCell className="hidden text-right tabular-nums text-muted-foreground sm:table-cell">
-                {formatPKR(t.fees)}
+              <TableCell className="hidden text-right tabular-nums sm:table-cell">
+                {renderTrailingMetric(t, showBuyPL, currentPriceBySymbol)}
               </TableCell>
               <TableCell className="text-right text-muted-foreground">
                 {formatDate(t.transacted_at)}
@@ -126,6 +136,43 @@ export function TransactionsTable({
     </div>
     </>
   );
+}
+
+function renderTrailingMetric(
+  transaction: Transaction,
+  showBuyPL: boolean,
+  currentPriceBySymbol?: Record<string, number | null>
+) {
+  if (!showBuyPL) {
+    return <span className="text-muted-foreground">{formatPKR(transaction.fees)}</span>;
+  }
+
+  const currentPrice = currentPriceBySymbol?.[transaction.symbol.toUpperCase()] ?? null;
+  const pnl = computeBuyTransactionPL(transaction, currentPrice);
+
+  if (pnl == null) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  return <span className={cn("font-medium", pnl > 0 ? "text-gain" : pnl < 0 ? "text-loss" : "text-foreground")}>{formatPKR(pnl, { sign: true })}</span>;
+}
+
+function computeBuyTransactionPL(transaction: Transaction, currentPrice: number | null) {
+  if (transaction.type !== "BUY") return null;
+  if (
+    currentPrice == null ||
+    !Number.isFinite(currentPrice) ||
+    !Number.isFinite(transaction.price) ||
+    !Number.isFinite(transaction.quantity)
+  ) {
+    return null;
+  }
+
+  const livePrice = Number(currentPrice);
+  const quantity = Number(transaction.quantity ?? 0);
+  const buyPrice = Number(transaction.price ?? 0);
+  const fees = Number(transaction.fees ?? 0);
+  return livePrice * quantity - (buyPrice * quantity + fees);
 }
 
 function MobileMetric({
