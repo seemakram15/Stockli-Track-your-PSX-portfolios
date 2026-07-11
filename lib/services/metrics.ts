@@ -87,24 +87,14 @@ export function computeSummary(
 
 function adjustedUnrealizedPL(
   rawUnrealizedPL: number,
-  dayChange: number,
-  historicalTotalPL: number | null,
-  hasTransactionHistory = false
+  _dayChange: number,
+  _historicalTotalPL: number | null,
+  _hasTransactionHistory = false
 ): number {
-  if (
-    historicalTotalPL != null &&
-    Math.abs(rawUnrealizedPL) < 0.005 &&
-    Math.abs(historicalTotalPL) >= 0.005
-  ) {
-    return historicalTotalPL;
-  }
-  // When a seeded/imported holding has no real buy price and uses the current
-  // quote as its cost, show day's change as a proxy. Skip this for holdings
-  // with real transaction history — a purchase at today's price is correctly
-  // P/L = 0 and should not be inflated by the day's market move.
-  if (!hasTransactionHistory && Math.abs(rawUnrealizedPL) < 0.005 && Math.abs(dayChange) >= 0.005) {
-    return dayChange;
-  }
+  // Total P/L is derived purely from avg_buy_price vs current price.
+  // When avg_cost = current_price the result is correctly 0.
+  // Historical daily_pl accumulation is intentionally NOT used here because it
+  // becomes stale when a holding is removed/re-added at a new price.
   return rawUnrealizedPL;
 }
 
