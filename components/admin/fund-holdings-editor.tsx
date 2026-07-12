@@ -44,7 +44,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { FmrBulkUpload } from "@/components/admin/fmr-bulk-upload";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -837,6 +836,7 @@ export function FundHoldingsEditor({ tickers }: { tickers: Ticker[] }) {
     if (result.ok) {
       toast.success(`Deleted holdings for ${monthLabel(month, year)}`);
       setHoldings([]);
+      setOtherHoldings("");
       setIsDirty(false);
       const { periods: p } = await loadFundPeriods(fundName);
       setPeriods(p);
@@ -1186,7 +1186,7 @@ export function FundHoldingsEditor({ tickers }: { tickers: Ticker[] }) {
                     </tr>
                     <tr className="border-t border-border bg-muted/30">
                       <td colSpan={3} className="px-3 py-2 text-xs font-medium text-muted-foreground">
-                        Grand Total ({holdings.length} stocks + other)
+                        Total — {holdings.length} stock{holdings.length !== 1 ? "s" : ""}{otherPct > 0 ? " + other holdings" : ""}
                       </td>
                       <td className="px-3 py-2 text-right">
                         <span
@@ -1280,8 +1280,6 @@ export function FundHoldingsEditor({ tickers }: { tickers: Ticker[] }) {
         </Card>
       )}
 
-      {/* ── Section 3: FMR Bulk Import ── */}
-      <FmrBulkUpload tickers={tickers} />
       </>}
     </div>
   );
