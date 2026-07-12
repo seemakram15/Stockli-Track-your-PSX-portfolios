@@ -15,6 +15,9 @@ import {
   ChevronDown,
   Save,
   Eye,
+  ClipboardPaste,
+  List,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -92,6 +95,85 @@ function prevMonth(year: number, month: number): { year: number; month: number }
 
 function monthLabel(month: number, year: number): string {
   return `${MONTHS[month - 1]} ${year}`;
+}
+
+// ─── Fuzzy ticker matching ────────────────────────────────────────────────────
+
+const STOP_WORDS = new Set([
+  "limited", "ltd", "corporation", "company", "pakistan", "pak", "pvt",
+  "private", "industries", "industry", "inc", "co", "the", "and", "of",
+]);
+
+function normStr(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function matchTickerByName(name: string, tickers: Ticker[]): Ticker | null {
+  const n = normStr(name);
+
+  // 1. Exact symbol match
+  const bySymbol = tickers.find((t) => t.symbol.toLowerCase() === n.toUpperCase().trim());
+  if (bySymbol) return bySymbol;
+
+  // 2. Exact normalized company name match
+  const exactName = tickers.find((t) => normStr(t.companyName) === n);
+  if (exactName) return exactName;
+
+  // 3. Keyword scoring
+  const words = n.split(" ").filter((w) => !STOP_WORDS.has(w) && w.length >= 3);
+  if (words.length === 0) return null;
+
+  let bestScore = 0;
+  let bestTicker: Ticker | null = null;
+
+  for (const t of tickers) {
+    const tw = normStr(t.companyName)
+      .split(" ")
+      .filter((w) => !STOP_WORDS.has(w) && w.length >= 3);
+    const hits = words.filter((w) => tw.some((x) => x.startsWith(w) || w.startsWith(x)));
+    const score = hits.length / Math.max(words.length, tw.length);
+    if (score > bestScore && score >= 0.55) {
+      bestScore = score;
+      bestTicker = t;
+    }
+  }
+
+  return bestTicker;
+}
+
+function parsePastedHoldings(text: string, tickers: Ticker[]): HoldingRow[] {
+  const rows: HoldingRow[] = [];
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    // Strip leading rank: "1." "1)" "1 " "1: "
+    const stripped = line.replace(/^\d{1,3}[.):\s]+/, "").trim();
+    // Find trailing percentage (e.g. "12.50%" or "12.50")
+    const pctMatch = stripped.match(/(\d{1,3}(?:\.\d{1,4})?)\s*%?\s*$/);
+    if (!pctMatch) continue;
+    const pct = parseFloat(pctMatch[1]);
+    if (isNaN(pct)) continue;
+    // Name is everything before the percentage, split by tab or 2+ spaces
+    const nameRaw = stripped
+      .slice(0, stripped.length - pctMatch[0].length)
+      .replace(/[\t ]{2,}$/, "")
+      .trim();
+    if (!nameRaw) continue;
+
+    // Special case: "Other Holdings" passes through with no ticker
+    if (nameRaw.toLowerCase().replace(/\s+/g, " ").trim() === "other holdings") {
+      rows.push({ symbol: null, stockName: OTHER_HOLDINGS_NAME, percentage: String(pct) });
+      continue;
+    }
+
+    const match = matchTickerByName(nameRaw, tickers);
+    rows.push({
+      symbol: match?.symbol ?? null,
+      stockName: match?.companyName ?? nameRaw,
+      percentage: String(pct),
+    });
+  }
+  return rows;
 }
 
 function holdingFromDB(h: FundHolding): HoldingRow {
@@ -393,6 +475,95 @@ function StockPicker({
   );
 }
 
+// ─── Per-row ticker dropdown ──────────────────────────────────────────────────
+
+function TickerDropdown({
+  tickers,
+  symbol,
+  stockName,
+  onChange,
+}: {
+  tickers: Ticker[];
+  symbol: string | null;
+  stockName: string;
+  onChange: (t: Ticker) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
+
+  const filtered = React.useMemo(() => {
+    const q = query.toLowerCase();
+    return tickers
+      .filter(
+        (t) =>
+          !q ||
+          t.symbol.toLowerCase().includes(q) ||
+          t.companyName.toLowerCase().includes(q),
+      )
+      .slice(0, 60);
+  }, [tickers, query]);
+
+  return (
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setQuery(""); }}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="group flex w-full min-w-0 items-center gap-2 rounded px-1 py-0.5 text-left hover:bg-accent/60 transition-colors"
+        >
+          {symbol ? (
+            <span className="shrink-0 font-mono text-xs font-semibold text-primary w-16">
+              {symbol}
+            </span>
+          ) : (
+            <span className="shrink-0 text-xs text-muted-foreground/50 w-16">—</span>
+          )}
+          <span className="min-w-0 flex-1 truncate text-sm text-foreground/80">{stockName}</span>
+          <Pencil className="size-3 shrink-0 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[340px] p-0" sideOffset={4}>
+        <div className="border-b border-border p-2">
+          <div className="flex items-center gap-2 rounded-md border border-input bg-transparent px-2">
+            <Search className="size-3.5 shrink-0 text-muted-foreground" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search ticker or name…"
+              className="h-8 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+        </div>
+        <div className="max-h-60 overflow-y-auto py-1">
+          {filtered.length === 0 ? (
+            <p className="px-3 py-4 text-center text-xs text-muted-foreground">No stocks found</p>
+          ) : (
+            filtered.map((t) => (
+              <button
+                key={t.symbol}
+                type="button"
+                onClick={() => { onChange(t); setOpen(false); setQuery(""); }}
+                className={cn(
+                  "flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm hover:bg-accent transition-colors",
+                  t.symbol === symbol && "bg-primary/5 font-medium",
+                )}
+              >
+                <span className="w-14 shrink-0 font-mono text-xs font-semibold text-primary">
+                  {t.symbol}
+                </span>
+                <span className="min-w-0 truncate text-muted-foreground">{t.companyName}</span>
+                {t.symbol === symbol && (
+                  <CheckCircle2 className="ml-auto size-3.5 shrink-0 text-primary" />
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // ─── AMC accent palette ───────────────────────────────────────────────────────
 
 const AMC_ACCENTS = [
@@ -685,6 +856,8 @@ export function FundHoldingsEditor({ tickers }: { tickers: Ticker[] }) {
   const [isDirty, setIsDirty] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isLoadingPeriod, setIsLoadingPeriod] = React.useState(false);
+  const [inputMode, setInputMode] = React.useState<"manual" | "paste">("manual");
+  const [pasteText, setPasteText] = React.useState("");
 
   const amcList = getAmcList();
 
@@ -778,6 +951,32 @@ export function FundHoldingsEditor({ tickers }: { tickers: Ticker[] }) {
   function handleRemove(idx: number) {
     setHoldings((prev) => prev.filter((_, i) => i !== idx));
     setIsDirty(true);
+  }
+
+  function handleRowTickerChange(idx: number, t: Ticker) {
+    setHoldings((prev) =>
+      prev.map((row, i) =>
+        i === idx ? { ...row, symbol: t.symbol, stockName: t.companyName } : row
+      )
+    );
+    setIsDirty(true);
+  }
+
+  function handlePasteInsert() {
+    const rows = parsePastedHoldings(pasteText, tickers);
+    if (rows.length === 0) {
+      toast.error("No holdings found in pasted text. Check the format.");
+      return;
+    }
+    // Separate the Other Holdings row if present
+    const otherRow = rows.find((r) => r.stockName === OTHER_HOLDINGS_NAME);
+    const regular = rows.filter((r) => r.stockName !== OTHER_HOLDINGS_NAME);
+    setHoldings(regular);
+    if (otherRow) setOtherHoldings(otherRow.percentage);
+    setIsDirty(true);
+    setPasteText("");
+    setInputMode("manual");
+    toast.success(`Parsed ${regular.length} holdings${otherRow ? " + other holdings" : ""}`);
   }
 
   // ── Import from most recent published period ──
@@ -1078,12 +1277,71 @@ export function FundHoldingsEditor({ tickers }: { tickers: Ticker[] }) {
           </CardHeader>
 
           <CardContent className="space-y-4">
-            {/* Stock picker */}
-            <StockPicker
-              tickers={tickers}
-              existingSymbols={existingSymbols}
-              onAdd={handleAddStocks}
-            />
+            {/* Input mode toggle */}
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-0.5 w-fit">
+              <button
+                type="button"
+                onClick={() => setInputMode("manual")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
+                  inputMode === "manual"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <List className="size-3.5" />
+                Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode("paste")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
+                  inputMode === "paste"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <ClipboardPaste className="size-3.5" />
+                Paste
+              </button>
+            </div>
+
+            {/* Manual mode: stock picker */}
+            {inputMode === "manual" && (
+              <StockPicker
+                tickers={tickers}
+                existingSymbols={existingSymbols}
+                onAdd={handleAddStocks}
+              />
+            )}
+
+            {/* Paste mode: textarea + insert */}
+            {inputMode === "paste" && (
+              <div className="space-y-2">
+                <textarea
+                  value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  rows={10}
+                  placeholder={`Paste holdings here, one per line:\n\nEngro Corporation Limited    8.50%\nOil & Gas Dev Company        6.20\nMari Petroleum               5.10%\nOther Holdings               3.00%\n\nFormat: Name[tab or 2+ spaces]Percentage`}
+                  className="w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2.5 font-mono text-sm leading-relaxed outline-none placeholder:text-muted-foreground/50 focus:ring-1 focus:ring-ring"
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    Separate name and percentage with a tab or 2+ spaces. Leading rank numbers (1. 2) etc.) are stripped automatically.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="gap-1.5 shrink-0"
+                    disabled={!pasteText.trim()}
+                    onClick={handlePasteInsert}
+                  >
+                    <ClipboardPaste className="size-3.5" />
+                    Insert
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Holdings table */}
             {isLoadingPeriod ? (
@@ -1103,11 +1361,8 @@ export function FundHoldingsEditor({ tickers }: { tickers: Ticker[] }) {
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
                       <th className="w-8 px-3 py-2" />
-                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                        Ticker
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                        Company Name
+                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground" colSpan={2}>
+                        Stock (click to change)
                       </th>
                       <th className="w-36 px-3 py-2 text-right text-xs font-medium text-muted-foreground">
                         % of NAV
@@ -1126,16 +1381,14 @@ export function FundHoldingsEditor({ tickers }: { tickers: Ticker[] }) {
                             <X className="size-3.5" />
                           </button>
                         </td>
-                        <td className="px-3 py-2">
-                          {row.symbol ? (
-                            <span className="font-mono text-xs font-semibold text-primary">
-                              {row.symbol}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
+                        <td className="px-3 py-2" colSpan={2}>
+                          <TickerDropdown
+                            tickers={tickers}
+                            symbol={row.symbol}
+                            stockName={row.stockName}
+                            onChange={(t) => handleRowTickerChange(idx, t)}
+                          />
                         </td>
-                        <td className="px-3 py-2 text-foreground/80">{row.stockName}</td>
                         <td className="px-3 py-2">
                           <div className="flex items-center justify-end gap-1">
                             <Input
