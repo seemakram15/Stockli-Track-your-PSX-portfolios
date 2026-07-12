@@ -599,14 +599,19 @@ async function resolveCompany(symbol: string): Promise<FundamentalsCompany | nul
 }
 
 async function getFundamentalsCompanies(): Promise<FundamentalsCompany[]> {
-  const cached = await getStaleCached({
-    key: "stock-fundamentals:companies:v2",
-    ttlSeconds: COMPANY_LIST_TTL_SECONDS,
-    staleSeconds: COMPANY_LIST_STALE_SECONDS,
-    load: () => fundamentalsFetch<FundamentalsCompany[]>("/companylistwithids"),
-    isUsable: (value) => Array.isArray(value) && value.length > 0,
-  });
-  return cached.value;
+  try {
+    const cached = await getStaleCached({
+      key: "stock-fundamentals:companies:v2",
+      ttlSeconds: COMPANY_LIST_TTL_SECONDS,
+      staleSeconds: COMPANY_LIST_STALE_SECONDS,
+      load: () => fundamentalsFetch<FundamentalsCompany[]>("/companylistwithids"),
+      isUsable: (value) => Array.isArray(value) && value.length > 0,
+    });
+    return cached.value;
+  } catch (error) {
+    console.warn("[fundamentals] Company list unavailable (API unreachable?):", (error as Error).message);
+    return [];
+  }
 }
 
 function normalizeFundamentalsCompanies(
