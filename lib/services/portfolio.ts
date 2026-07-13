@@ -254,15 +254,25 @@ function todayInPkt(): string {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
-/** A single portfolio with enriched holdings + summary. */
-export async function getPortfolioView(id: string): Promise<PortfolioWithMetrics | null> {
-  const portfolio = await getPortfolio(id);
-  if (!portfolio) return null;
-  const [holdings, transactions] = await Promise.all([
+export async function getPortfolioViewRaw(id: string): Promise<{
+  portfolio: Portfolio;
+  holdings: Holding[];
+  transactions: Transaction[];
+} | null> {
+  const [portfolio, holdings, transactions] = await Promise.all([
+    getPortfolio(id),
     getHoldings(id),
     getTransactions(id),
   ]);
-  const enriched = await enrichHoldings(holdings, transactions);
+  if (!portfolio) return null;
+  return { portfolio, holdings, transactions };
+}
+
+export function buildPortfolioView(
+  portfolio: Portfolio,
+  enriched: HoldingWithMetrics[],
+  transactions: Transaction[]
+): PortfolioWithMetrics {
   const realized = computeRealizedPL(transactions);
   const realizedPositions = computeRealizedPositions(transactions);
   return {
@@ -272,6 +282,14 @@ export async function getPortfolioView(id: string): Promise<PortfolioWithMetrics
     realizedPositions,
     summary: computeSummary(enriched, realized),
   };
+}
+
+/** A single portfolio with enriched holdings + summary. */
+export async function getPortfolioView(id: string): Promise<PortfolioWithMetrics | null> {
+  const raw = await getPortfolioViewRaw(id);
+  if (!raw) return null;
+  const enriched = await enrichHoldings(raw.holdings, raw.transactions);
+  return buildPortfolioView(raw.portfolio, enriched, raw.transactions);
 }
 
 export interface DashboardData {
@@ -285,14 +303,24 @@ export interface DashboardData {
   topLosers: HoldingWithMetrics[];
 }
 
-/** Everything the dashboard needs, aggregated across all portfolios. */
-export async function getDashboard(): Promise<DashboardData> {
+export async function getDashboardRaw(): Promise<{
+  portfolios: Portfolio[];
+  holdings: Holding[];
+  transactions: Transaction[];
+}> {
   const portfolios = await getPortfolios();
   const [holdings, transactions] = await Promise.all([
     getHoldingsForPortfolioIds(portfolios.map((p) => p.id)),
     getTransactions(),
   ]);
-  const enriched = await enrichHoldings(holdings, transactions);
+  return { portfolios, holdings, transactions };
+}
+
+export function buildDashboardData(
+  portfolios: Portfolio[],
+  enriched: HoldingWithMetrics[],
+  transactions: Transaction[]
+): DashboardData {
   const realized = computeRealizedPL(transactions);
   const byDay = [...enriched].sort((a, b) => b.dayChange - a.dayChange);
 
@@ -306,6 +334,13 @@ export async function getDashboard(): Promise<DashboardData> {
     topGainers: byDay.filter((h) => h.dayChange > 0).slice(0, 3),
     topLosers: byDay.filter((h) => h.dayChange < 0).reverse().slice(0, 3),
   };
+}
+
+/** Everything the dashboard needs, aggregated across all portfolios. */
+export async function getDashboard(): Promise<DashboardData> {
+  const { portfolios, holdings, transactions } = await getDashboardRaw();
+  const enriched = await enrichHoldings(holdings, transactions);
+  return buildDashboardData(portfolios, enriched, transactions);
 }
 
 // ── Watchlist & alerts ────────────────────────────────────────

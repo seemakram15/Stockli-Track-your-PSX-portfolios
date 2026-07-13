@@ -8,7 +8,7 @@ import { formatPKR, formatPercent } from "@/lib/format";
 import { usePrices } from "@/lib/hooks/use-prices";
 import { PSX_TIMEZONE } from "@/lib/constants";
 import { hasPsxTradingStartedToday } from "@/lib/psx/market-hours";
-import { effectiveQuotePrice } from "@/lib/services/metrics";
+import { computeDayChange, effectiveQuotePrice } from "@/lib/services/metrics";
 import type { Quote } from "@/lib/types";
 import type { CalendarDay } from "@/lib/services/daily-pl";
 
@@ -32,7 +32,7 @@ export function PLCalendar({
 }: {
   data: CalendarDay[];
   hasPosition: boolean;
-  livePositions?: { symbol: string; quantity: number; initial?: Quote | null }[];
+  livePositions?: { symbol: string; quantity: number; avgBuyPrice: number; initial?: Quote | null }[];
   showSummaryPL?: boolean;
 }) {
   const { liveData, positionSummary } = useLiveCalendarData(data, livePositions, hasPosition);
@@ -181,7 +181,7 @@ export function PLCalendar({
 
 function useLiveCalendarData(
   data: CalendarDay[],
-  livePositions: { symbol: string; quantity: number; initial?: Quote | null }[],
+  livePositions: { symbol: string; quantity: number; avgBuyPrice: number; initial?: Quote | null }[],
   hasPosition: boolean
 ) {
   const active = React.useMemo(
@@ -219,7 +219,7 @@ function useLiveCalendarData(
       const price = effectiveQuotePrice(q);
       if (price == null) continue;
       found++;
-      const positionPL = q.change * position.quantity;
+      const { dayChange: positionPL } = computeDayChange(q, position.avgBuyPrice, position.quantity);
       dayPL += positionPL;
       close += price * position.quantity;
       if (positionPL > 0) up++;

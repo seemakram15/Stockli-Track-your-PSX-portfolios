@@ -1,6 +1,9 @@
 "use client";
 
 import * as React from "react";
+// Scoped to this map component instead of the root layout, so pages that
+// never render a map don't ship Leaflet's CSS.
+import "leaflet/dist/leaflet.css";
 import {
   type WorldPulseData,
   type WorldPulseLayer,

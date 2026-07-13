@@ -1,5 +1,5 @@
 import "server-only";
-import { getPortfolioView } from "@/lib/services/portfolio";
+import { buildPortfolioView, enrichHoldings, getPortfolioViewRaw } from "@/lib/services/portfolio";
 import { getQuotes } from "@/lib/services/prices";
 import { getPortfolioCalendar, type StockCalendar } from "@/lib/services/daily-pl";
 import { marketStatus } from "@/lib/psx/market-hours";
@@ -14,12 +14,15 @@ export interface PortfolioPageData {
 }
 
 export async function getPortfolioPageData(id: string): Promise<PortfolioPageData | null> {
-  const portfolio = await getPortfolioView(id);
-  if (!portfolio) return null;
+  const raw = await getPortfolioViewRaw(id);
+  if (!raw) return null;
 
-  const calendar = portfolio.holdings.length
-    ? await getPortfolioCalendar(portfolio.holdings, portfolio.transactions)
-    : null;
+  const [enriched, calendar] = await Promise.all([
+    enrichHoldings(raw.holdings, raw.transactions),
+    raw.holdings.length ? getPortfolioCalendar(raw.holdings, raw.transactions) : Promise.resolve(null),
+  ]);
+
+  const portfolio = buildPortfolioView(raw.portfolio, enriched, raw.transactions);
   const quoteBySymbol = await buildQuoteBySymbol(portfolio);
 
   return {

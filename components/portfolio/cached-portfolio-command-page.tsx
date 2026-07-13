@@ -131,8 +131,8 @@ export function CachedPortfolioCommandPage({
 
   const [perfData, setPerfData] = React.useState<import("@/lib/services/performance").PerformanceResult | null>(null);
   const fetchingPerfRef = React.useRef(false);
-  React.useEffect(() => {
-    if (!data || fetchingPerfRef.current) return;
+  const fetchPerformance = React.useCallback(() => {
+    if (fetchingPerfRef.current) return;
     fetchingPerfRef.current = true;
     fetch(PORTFOLIO_PERFORMANCE_URL)
       .then((res) => (res.ok ? res.json() : null))
@@ -143,7 +143,23 @@ export function CachedPortfolioCommandPage({
       .finally(() => {
         fetchingPerfRef.current = false;
       });
-  }, [data?.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    fetchPerformance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isFirstDataRef = React.useRef(true);
+  React.useEffect(() => {
+    if (!data) return;
+    if (isFirstDataRef.current) {
+      isFirstDataRef.current = false;
+      return;
+    }
+    fetchPerformance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.updatedAt]);
 
   // When returning to this page after a mutation (e.g. creating a portfolio from the detail
   // page or any other flow), the SWR dedup window can prevent the automatic revalidation.
@@ -182,6 +198,7 @@ export function CachedPortfolioCommandPage({
   const liveCalendarPositions = holdings.map((holding) => ({
     symbol: holding.symbol,
     quantity: holding.quantity,
+    avgBuyPrice: holding.avg_buy_price,
     initial: holding.quote,
   }));
 

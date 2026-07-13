@@ -247,7 +247,7 @@ function StockPageView({
             hasPosition={data.calendar.hasPosition}
             livePositions={
               hasPosition
-                ? [{ symbol, quantity: summary.totalQty, initial: quote }]
+                ? [{ symbol, quantity: summary.totalQty, avgBuyPrice: summary.avgCost, initial: quote }]
                 : []
             }
           />

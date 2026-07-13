@@ -47,6 +47,7 @@ export async function saveHoldings(
     await savePeriodHoldings(fundName, amc, year, month, holdings, status, user.id);
     return { ok: true };
   } catch (e) {
+    console.error("[fund-holdings] saveHoldings failed:", e);
     return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
   }
 }
@@ -60,6 +61,7 @@ export async function deleteHoldings(
     await deletePeriodHoldings(fundName, year, month);
     return { ok: true };
   } catch (e) {
+    console.error("[fund-holdings] deleteHoldings failed:", e);
     return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
   }
 }

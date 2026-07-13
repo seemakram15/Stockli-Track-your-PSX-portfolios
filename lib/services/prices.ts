@@ -1,4 +1,5 @@
 import "server-only";
+import { after } from "next/server";
 import type { MarketWatchRow, PriceSnapshot, Quote, Ticker } from "@/lib/types";
 import { psx } from "@/lib/psx/adapter";
 import { getRedis } from "@/lib/cache/redis";
@@ -210,14 +211,23 @@ async function loadMarketRows(): Promise<MarketWatchRow[]> {
     }
   }
 
+  const fallbackSnapshots = await readLatestSnapshotRows();
+  if (fallbackSnapshots.length) {
+    after(() =>
+      scrapeAndStore().catch((err) => {
+        console.warn("[prices] background market-watch refresh failed:", err);
+      })
+    );
+    return fallbackSnapshots;
+  }
+
   try {
     return await scrapeAndStore();
   } catch (err) {
     console.warn("[prices] live market-watch scrape failed, using latest snapshot fallback:", err);
   }
 
-  const snapshots = await readLatestSnapshotRows();
-  return snapshots;
+  return [];
 }
 
 /** Get quotes for the given symbols, using cache first then a batched refresh. */

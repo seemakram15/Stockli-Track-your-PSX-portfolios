@@ -90,6 +90,14 @@ export function CachedPortfolioDetailPage({
     holdings.map((h) => [h.symbol.toUpperCase(), h.quantity])
   );
 
+  // The route's own <title> is static (see app/(app)/portfolios/[id]/page.tsx
+  // — fetching the portfolio row there just to set a title would block the
+  // page's first response byte), so set the real one here once we have it.
+  const portfolioName = data?.portfolio.name;
+  React.useEffect(() => {
+    if (portfolioName) document.title = `${portfolioName} · Stockli`;
+  }, [portfolioName]);
+
   if (!data) {
     return (
       <div className="mx-auto max-w-7xl">
@@ -226,6 +234,7 @@ export function CachedPortfolioDetailPage({
                 livePositions={holdings.map((h) => ({
                   symbol: h.symbol,
                   quantity: h.quantity,
+                  avgBuyPrice: h.avg_buy_price,
                   initial: h.quote,
                 }))}
               />

@@ -4,7 +4,12 @@ import { getGlobalMarketData, type GlobalMarketQuote } from "@/lib/services/glob
 import { getMarketDisplaySymbol } from "@/lib/market-symbols";
 import { getPortfolioCalendar, type StockCalendar } from "@/lib/services/daily-pl";
 import type { PerformanceResult } from "@/lib/services/performance";
-import { getDashboard, type DashboardData } from "@/lib/services/portfolio";
+import {
+  buildDashboardData,
+  enrichHoldings,
+  getDashboardRaw,
+  type DashboardData,
+} from "@/lib/services/portfolio";
 import { getIndexSummariesCached } from "@/lib/services/history";
 import { marketStatus } from "@/lib/psx/market-hours";
 import type { IndexSummary } from "@/lib/types";
@@ -20,18 +25,20 @@ export interface PortfolioCommandPageData {
 }
 
 export async function getPortfolioCommandPageData(): Promise<PortfolioCommandPageData> {
-  const [dashboard, indexSummaries, oilMarket, commodityMarket] = await Promise.all([
-    getDashboard(),
-    getIndexSummariesCached().catch(() => []),
-    getGlobalMarketData("oil").catch(() => null),
-    getGlobalMarketData("commodities").catch(() => null),
+  const [{ portfolios, holdings, transactions }, indexSummaries, oilMarket, commodityMarket] =
+    await Promise.all([
+      getDashboardRaw(),
+      getIndexSummariesCached().catch(() => []),
+      getGlobalMarketData("oil").catch(() => null),
+      getGlobalMarketData("commodities").catch(() => null),
+    ]);
+
+  const [enriched, calendar] = await Promise.all([
+    enrichHoldings(holdings, transactions),
+    holdings.length ? getPortfolioCalendar(holdings, transactions) : Promise.resolve(null),
   ]);
 
-  const { holdings } = dashboard;
-
-  const calendar = holdings.length
-    ? await getPortfolioCalendar(holdings, dashboard.transactions)
-    : null;
+  const dashboard = buildDashboardData(portfolios, enriched, transactions);
 
   const { headlineTicker, tickerItems } = buildTickerStripItems(
     indexSummaries,
