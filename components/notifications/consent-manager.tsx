@@ -9,20 +9,25 @@ import { cn } from "@/lib/utils";
 const DEVICE_CONSENT_KEY = "stockli-device-consent-v2";
 const DEVICE_CONSENT_DISMISS_KEY = "stockli-device-consent-dismissed-v2";
 
-interface ConsentState {
-  vapidPublicKey: string | null;
-  notificationConsentStatus: "unknown" | "granted" | "denied";
-}
+type NotificationConsentStatus = "unknown" | "granted" | "denied";
 
 function scopedConsentKey(baseKey: string, userId: string) {
   return `${baseKey}:${userId}`;
 }
 
-export function ConsentManager({ userId }: { userId: string }) {
+export function ConsentManager({
+  userId,
+  initialVapidPublicKey,
+  initialNotificationStatus,
+}: {
+  userId: string;
+  initialVapidPublicKey: string | null;
+  initialNotificationStatus: NotificationConsentStatus;
+}) {
   const [mounted, setMounted] = React.useState(false);
   const [visible, setVisible] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
-  const [vapidPublicKey, setVapidPublicKey] = React.useState<string | null>(null);
+  const vapidPublicKey = initialVapidPublicKey;
   const [pushSupported, setPushSupported] = React.useState(false);
 
   const syncPushSubscription = React.useCallback(
@@ -84,39 +89,22 @@ export function ConsentManager({ userId }: { userId: string }) {
       "PushManager" in window;
     setPushSupported(supported);
 
-    let cancelled = false;
-    fetch("/api/notifications/consent", { headers: { accept: "application/json" } })
-      .then((response) => response.json() as Promise<ConsentState>)
-      .then((state) => {
-        if (cancelled) return;
-        setVapidPublicKey(state.vapidPublicKey);
-        const consentKey = scopedConsentKey(DEVICE_CONSENT_KEY, userId);
-        const dismissKey = scopedConsentKey(DEVICE_CONSENT_DISMISS_KEY, userId);
-        const deviceConsentAccepted = window.localStorage.getItem(consentKey) === "accepted";
-        const dismissed = window.localStorage.getItem(dismissKey) === "1";
-        const permission = supported ? Notification.permission : "denied";
-        setVisible(!deviceConsentAccepted && !dismissed);
+    const consentKey = scopedConsentKey(DEVICE_CONSENT_KEY, userId);
+    const dismissKey = scopedConsentKey(DEVICE_CONSENT_DISMISS_KEY, userId);
+    const deviceConsentAccepted = window.localStorage.getItem(consentKey) === "accepted";
+    const dismissed = window.localStorage.getItem(dismissKey) === "1";
+    const permission = supported ? Notification.permission : "denied";
+    setVisible(!deviceConsentAccepted && !dismissed);
 
-        if (state.vapidPublicKey && permission === "granted") {
-          void syncPushSubscription({
-            vapidPublicKey: state.vapidPublicKey,
-            syncConsent: state.notificationConsentStatus !== "granted",
-          }).catch(() => undefined);
-        } else if (supported && permission === "denied" && state.notificationConsentStatus !== "denied") {
-          void postConsent({ notificationStatus: "denied" });
-        }
-      })
-      .catch(() => {
-        const consentKey = scopedConsentKey(DEVICE_CONSENT_KEY, userId);
-        const dismissKey = scopedConsentKey(DEVICE_CONSENT_DISMISS_KEY, userId);
-        const deviceConsentAccepted = window.localStorage.getItem(consentKey) === "accepted";
-        const dismissed = window.localStorage.getItem(dismissKey) === "1";
-        setVisible(!deviceConsentAccepted && !dismissed);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    if (initialVapidPublicKey && permission === "granted") {
+      void syncPushSubscription({
+        vapidPublicKey: initialVapidPublicKey,
+        syncConsent: initialNotificationStatus !== "granted",
+      }).catch(() => undefined);
+    } else if (supported && permission === "denied" && initialNotificationStatus !== "denied") {
+      void postConsent({ notificationStatus: "denied" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncPushSubscription, userId]);
 
   if (!mounted || !visible) return null;

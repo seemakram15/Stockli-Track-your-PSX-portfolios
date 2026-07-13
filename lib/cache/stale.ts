@@ -1,4 +1,5 @@
 import "server-only";
+import { after } from "next/server";
 import { getMemoryCache, setMemoryCache } from "@/lib/cache/memory";
 import { getRedisClients } from "@/lib/cache/redis";
 
@@ -116,4 +117,5 @@ function revalidate<T>(
       store.delete(key);
     });
   store.set(key, promise);
+  after(() => promise);
 }

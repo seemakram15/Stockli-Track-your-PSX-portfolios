@@ -9,7 +9,34 @@ import type {
   Transaction,
 } from "@/lib/types";
 
-/** Enrich a raw holding with its live quote + computed P/L metrics. */
+export function computeDayChange(
+  quote: Quote | null,
+  avgBuyPrice: number,
+  quantity: number
+): { dayChange: number; dayChangePct: number; unrealizedPL: number; atCost: boolean } {
+  const price = effectiveQuotePrice(quote) ?? avgBuyPrice;
+  const marketValue = price * quantity;
+  const costBasis = avgBuyPrice * quantity;
+  const rawUnrealizedPL = marketValue - costBasis;
+  const atCost = Math.abs(rawUnrealizedPL) < 0.005;
+  const rawDayChange = (quote?.change ?? 0) * quantity;
+  const dayCapped =
+    rawDayChange * rawUnrealizedPL > 0 &&
+    Math.abs(rawDayChange) > Math.abs(rawUnrealizedPL);
+  const dayChange = atCost ? 0 : dayCapped ? rawUnrealizedPL : rawDayChange;
+  const dayChangePct = atCost
+    ? 0
+    : dayCapped
+      ? (costBasis !== 0 ? (rawUnrealizedPL / costBasis) * 100 : 0)
+      : (quote?.changePct ?? 0);
+  return {
+    dayChange,
+    dayChangePct,
+    unrealizedPL: atCost ? 0 : rawUnrealizedPL,
+    atCost,
+  };
+}
+
 export function computeHoldingMetrics(
   holding: Holding | HoldingWithMetrics,
   ticker: Ticker | null,
@@ -20,28 +47,14 @@ export function computeHoldingMetrics(
   const price = effectiveQuotePrice(quote) ?? holding.avg_buy_price;
   const marketValue = price * holding.quantity;
   const costBasis = holding.avg_buy_price * holding.quantity;
-  const rawUnrealizedPL = marketValue - costBasis;
   const storedHistoricalBase =
     "historicalPLBase" in holding ? holding.historicalPLBase : null;
   const plBase = historicalPLBase ?? storedHistoricalBase ?? null;
-  // When avg cost = current price there is no gain or loss — zero out all P/L
-  // dimensions so Day's P/L and Total P/L are consistently Rs 0.
-  const atCost = Math.abs(rawUnrealizedPL) < 0.005;
-  const rawDayChange = (quote?.change ?? 0) * holding.quantity;
-  // When a holding was bought partway through today's session, the stock's
-  // full-day move (rawDayChange) can exceed what the user actually captured
-  // (rawUnrealizedPL). Cap Day's P/L so it never exceeds Total P/L in magnitude
-  // when both have the same sign.
-  const dayCapped =
-    rawDayChange * rawUnrealizedPL > 0 &&
-    Math.abs(rawDayChange) > Math.abs(rawUnrealizedPL);
-  const dayChange = atCost ? 0 : dayCapped ? rawUnrealizedPL : rawDayChange;
-  const dayChangePct = atCost
-    ? 0
-    : dayCapped
-      ? (costBasis !== 0 ? (rawUnrealizedPL / costBasis) * 100 : 0)
-      : (quote?.changePct ?? 0);
-  const unrealizedPL = atCost ? 0 : rawUnrealizedPL;
+  const { dayChange, dayChangePct, unrealizedPL } = computeDayChange(
+    quote,
+    holding.avg_buy_price,
+    holding.quantity
+  );
   const unrealizedPLPct = costBasis !== 0 ? (unrealizedPL / costBasis) * 100 : 0;
 
   return {

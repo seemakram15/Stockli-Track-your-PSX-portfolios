@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { config, isDemoMode } from "@/lib/config";
 import { shouldForceCanonicalHost } from "@/lib/site-url";
+import { FORWARDED_USER_HEADER } from "@/lib/auth/user-header-key";
 
 const PROTECTED_PREFIXES = [
   "/account",
@@ -90,7 +91,15 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  const forwardedHeaders = new Headers(request.headers);
+  forwardedHeaders.delete(FORWARDED_USER_HEADER);
+  if (user) {
+    forwardedHeaders.set(FORWARDED_USER_HEADER, encodeURIComponent(JSON.stringify(user)));
+  }
+  const finalResponse = NextResponse.next({ request: { headers: forwardedHeaders } });
+  supabaseResponse.cookies.getAll().forEach((cookie) => finalResponse.cookies.set(cookie));
+
   // Auth screens (/login, /signup, /forgot-password) now render as real pages
   // for signed-out visitors — no modal redirect.
-  return supabaseResponse;
+  return finalResponse;
 }

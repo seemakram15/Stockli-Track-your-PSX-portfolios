@@ -1,12 +1,15 @@
 import "server-only";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { isDemoMode } from "@/lib/config";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestUser } from "@/lib/auth/current-user";
 import { DEMO_USER } from "@/lib/demo/data";
 import { getProfileAvatarUrl } from "@/lib/profile-avatar";
+import { getVapidPublicKey } from "@/lib/services/push-notifications";
 
 export type Role = "user" | "superadmin";
+export type NotificationConsentStatus = "unknown" | "granted" | "denied";
 
 export interface SessionContext {
   user: {
@@ -16,13 +19,15 @@ export interface SessionContext {
     avatarUrl: string | null;
   } | null;
   role: Role;
+  consent: {
+    vapidPublicKey: string | null;
+    cookieConsentAt: string | null;
+    notificationStatus: NotificationConsentStatus;
+  };
 }
 
-/**
- * Combined session + role fetch — ONE auth.getUser() round-trip (instead of
- * calling getSessionUser and isSuperadmin separately). Used by the app shell.
- */
-export async function getSessionContext(): Promise<SessionContext> {
+export const getSessionContext = cache(async (): Promise<SessionContext> => {
+  const vapidPublicKey = getVapidPublicKey();
   if (isDemoMode) {
     return {
       user: {
@@ -32,10 +37,17 @@ export async function getSessionContext(): Promise<SessionContext> {
         avatarUrl: null,
       },
       role: "user",
+      consent: { vapidPublicKey, cookieConsentAt: null, notificationStatus: "unknown" },
     };
   }
   const user = await getRequestUser();
-  if (!user) return { user: null, role: "user" };
+  if (!user) {
+    return {
+      user: null,
+      role: "user",
+      consent: { vapidPublicKey, cookieConsentAt: null, notificationStatus: "unknown" },
+    };
+  }
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
@@ -62,8 +74,13 @@ export async function getSessionContext(): Promise<SessionContext> {
         ((user.user_metadata?.avatar_url as string) ?? null),
     },
     role: (data?.role as Role) === "superadmin" ? "superadmin" : "user",
+    consent: {
+      vapidPublicKey,
+      cookieConsentAt: (data?.cookie_consent_at as string | null) ?? null,
+      notificationStatus: ((data?.notification_consent_status as NotificationConsentStatus | null) ?? "unknown"),
+    },
   };
-}
+});
 
 /**
  * The current user's role, read server-side from the DB (never trusted from

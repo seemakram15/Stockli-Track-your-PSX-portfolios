@@ -78,13 +78,10 @@ export const PAKISTAN_FUNDS: PakistanFund[] = [
   // UBL Fund Managers
   { amc: "UBL Fund Managers", name: "UBL Stock Advantage Fund" },
   { amc: "UBL Fund Managers", name: "UBL Financial Sector Fund" },
-  { amc: "UBL Fund Managers", name: "UBL Dedicated Equity Fund" },
   { amc: "UBL Fund Managers", name: "UBL Asset Allocation Fund" },
   { amc: "UBL Fund Managers", name: "UBL Pakistan Enterprise Exchange Traded Fund" },
   { amc: "UBL Fund Managers", name: "Al Ameen Shariah Stock Fund" },
   { amc: "UBL Fund Managers", name: "Al Ameen Islamic Energy Fund" },
-  { amc: "UBL Fund Managers", name: "Al Ameen Islamic Dedicated Equity Fund" },
-  { amc: "UBL Fund Managers", name: "Al Ameen Islamic Asset Allocation Fund" },
   // AKD Asset Management
   { amc: "AKD Asset Management", name: "AKD Opportunity Fund" },
   { amc: "AKD Asset Management", name: "AKD Index Tracker Fund" },
@@ -97,11 +94,7 @@ export const PAKISTAN_FUNDS: PakistanFund[] = [
   // National Investment Trust (NIT)
   { amc: "National Investment Trust (NIT)", name: "National Investment Unit Trust" },
   { amc: "National Investment Trust (NIT)", name: "NIT Islamic Equity Fund" },
-  { amc: "National Investment Trust (NIT)", name: "NIT Asset Allocation Fund" },
   { amc: "National Investment Trust (NIT)", name: "NIT Pakistan Gateway Exchange Traded Fund" },
-  // Pak Oman Asset Management
-  { amc: "Pak Oman Asset Management", name: "Pak Oman Advantage Asset Allocation Fund" },
-  { amc: "Pak Oman Asset Management", name: "Pak Oman Islamic Asset Allocation Fund" },
   // First Capital Investments
   { amc: "First Capital Investments", name: "First Capital Mutual Fund" },
 ];
