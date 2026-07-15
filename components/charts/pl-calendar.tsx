@@ -293,14 +293,14 @@ function DayCell({
   maxAbs: number;
   hasPosition: boolean;
 }) {
-  if (!cell) return <div className="min-h-[4.75rem] sm:aspect-square" />;
+  if (!cell) return <div className="aspect-square" />;
   const day = Number(cell.date.slice(8, 10));
   const hasData = !("empty" in cell);
 
   if (!hasData) {
     return (
-      <div className="flex min-h-[4.75rem] flex-col rounded-md border border-border/60 bg-muted/20 p-1 sm:aspect-square sm:rounded-lg sm:p-2">
-        <span className="text-xs font-medium text-muted-foreground/50">{day}</span>
+      <div className="flex aspect-square flex-col rounded-lg border border-border/40 bg-muted/10 p-1.5 sm:p-2">
+        <span className="text-[10px] font-medium text-muted-foreground/40 sm:text-xs">{day}</span>
       </div>
     );
   }
@@ -311,58 +311,68 @@ function DayCell({
   const down = value < 0;
   const intensity = Math.min(1, Math.abs(value) / maxAbs);
   const pctText = hasPosition ? formatPercent(d.dayPLPct) : formatPercent(d.changePct);
-  const valueText = formatPKR(d.dayPL, { sign: true });
+  const fullValueText = formatPKR(d.dayPL, { sign: true });
+  const compactValue = compactPKR(d.dayPL);
   const active = up || down;
 
   return (
     <div
       className={cn(
-        "group relative flex min-h-[4.75rem] flex-col rounded-md border p-1 transition-colors sm:aspect-square sm:rounded-lg sm:p-2",
-        up
-          ? "border-gain/45"
-          : down
-            ? "border-loss/45"
-            : "border-border/40"
+        "group relative flex aspect-square flex-col rounded-lg border p-1.5 transition-colors sm:p-2",
+        up ? "border-gain/40" : down ? "border-loss/40" : "border-border/30"
       )}
-      style={tint(up ? "gain" : down ? "loss" : "muted", 0.28 + intensity * 0.58)}
-      title={`${d.date}: ${hasPosition ? valueText : pctText}`}
+      style={tint(up ? "gain" : down ? "loss" : "muted", 0.22 + intensity * 0.55)}
+      title={`${d.date}: ${hasPosition ? fullValueText : pctText}`}
     >
-      <span className={cn("text-[11px] font-medium sm:text-xs", active ? "text-foreground/75" : "text-muted-foreground")}>
+      {/* Day number */}
+      <span className={cn(
+        "text-[10px] font-semibold leading-none sm:text-xs",
+        active ? "text-foreground/70" : "text-muted-foreground/50"
+      )}>
         {day}
       </span>
-      <span className="mt-auto flex min-w-0 flex-col leading-tight">
+
+      {/* Values centred in remaining space */}
+      <div className="flex flex-1 flex-col items-center justify-center gap-[3px]">
         {hasPosition ? (
           <>
-            <span
-              className={cn(
-                "w-full max-w-full whitespace-normal break-all rounded px-0.5 py-0.5 text-center text-[8px] font-bold leading-[1.08] tabular-nums sm:w-fit sm:px-1 sm:text-xs",
-                active
-                  ? "bg-background/85 text-foreground shadow-sm ring-1 ring-foreground/10"
-                  : "text-muted-foreground"
-              )}
-            >
-              {valueText.replace("Rs ", "")}
+            <span className={cn(
+              "rounded px-1 py-0.5 text-center text-[9px] font-bold tabular-nums leading-none sm:text-[11px]",
+              active
+                ? "bg-background/85 text-foreground shadow-sm ring-1 ring-foreground/10"
+                : "text-muted-foreground/60"
+            )}>
+              {compactValue}
+            </span>
+            <span className={cn(
+              "text-center text-[8px] font-semibold tabular-nums leading-none sm:text-[10px]",
+              up ? "text-gain/80" : down ? "text-loss/80" : "text-muted-foreground/50"
+            )}>
+              {pctText}
             </span>
           </>
         ) : (
-          <span
-            className={cn(
-              "w-full max-w-full whitespace-normal break-all rounded px-0.5 py-0.5 text-center text-[9px] font-semibold leading-[1.08] tabular-nums sm:w-fit sm:px-1 sm:text-xs",
-              active
-                ? "bg-background/85 text-foreground shadow-sm ring-1 ring-foreground/10"
-                : up
-                  ? "text-gain"
-                  : down
-                    ? "text-loss"
-                    : "text-muted-foreground"
-            )}
-          >
+          <span className={cn(
+            "rounded px-1 py-0.5 text-center text-[10px] font-semibold tabular-nums leading-none sm:text-xs",
+            active
+              ? "bg-background/85 text-foreground shadow-sm ring-1 ring-foreground/10"
+              : "text-muted-foreground/50"
+          )}>
             {formatPercent(d.changePct)}
           </span>
         )}
-      </span>
+      </div>
     </div>
   );
+}
+
+/** Compact PKR: keeps values short enough for narrow mobile cells. */
+function compactPKR(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  const sign = value < 0 ? "−" : "+";
+  const abs = Math.abs(value);
+  if (abs >= 1_000) return `${sign}${(abs / 1000).toFixed(2)}k`;
+  return `${sign}${abs.toFixed(2)}`;
 }
 
 function tint(kind: "gain" | "loss" | "muted", amount: number): React.CSSProperties {
