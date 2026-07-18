@@ -33,7 +33,8 @@ export function computeHoldingMetrics(
   ticker: Ticker | null,
   quote: Quote | null,
   historicalPLBase?: number | null,
-  hasTransactionHistory = false
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _hasTransactionHistory = false
 ): HoldingWithMetrics {
   const price = effectiveQuotePrice(quote) ?? holding.avg_buy_price;
   const marketValue = price * holding.quantity;

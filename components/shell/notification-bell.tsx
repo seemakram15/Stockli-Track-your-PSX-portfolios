@@ -27,7 +27,6 @@ export function NotificationBell({ userId: _userId }: { userId: string }) {
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState<AppNotification[]>([]);
   const [unread, setUnread] = React.useState(0);
-  const [fetched, setFetched] = React.useState(false);
 
   async function fetchFeed() {
     try {
@@ -36,7 +35,6 @@ export function NotificationBell({ userId: _userId }: { userId: string }) {
       const data: Feed = await res.json();
       setItems(data.items);
       setUnread(data.unread);
-      setFetched(true);
     } catch {
       // silently ignore
     }

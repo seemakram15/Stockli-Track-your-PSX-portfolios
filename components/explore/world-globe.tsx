@@ -14,6 +14,10 @@ export function WorldGlobe({
   const mapRef = React.useRef<import("maplibre-gl").Map | null>(null);
   const spinRef = React.useRef<number | null>(null);
   const spinningRef = React.useRef(true);
+  const dataRef = React.useRef(data);
+  const activeLayerRef = React.useRef(activeLayer);
+  dataRef.current = data;
+  activeLayerRef.current = activeLayer;
 
   React.useEffect(() => {
     let cancelled = false;
@@ -52,7 +56,7 @@ export function WorldGlobe({
       });
 
       map.on("load", () => {
-        paintMarkers(map, ml, data, activeLayer);
+        paintMarkers(map, ml, dataRef.current, activeLayerRef.current);
         startSpin(map);
       });
 

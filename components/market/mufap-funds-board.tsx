@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import {
   ArrowDownUp,
   BadgePercent,
@@ -461,10 +462,12 @@ function AmcGroupLogo({ brand, logoUrl }: { brand: ReturnType<typeof identifyAmc
       style={{ borderColor: `${brand.color}40`, backgroundColor: `${brand.color}12` }}
     >
       {iconUrl && !failed ? (
-        <img
+        <Image
           src={iconUrl}
           alt={brand.shortName}
-          className="h-full w-full object-contain p-1.5"
+          fill
+          unoptimized
+          className="object-contain p-1.5"
           onError={() => setFailed(true)}
         />
       ) : (
