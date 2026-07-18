@@ -97,8 +97,46 @@ export interface TaxSettings {
   cgtRateOverride: number | null;
 }
 
+export interface CdcDividend {
+  id: string;
+  portfolio_id: string;
+  symbol: string;
+  company_name: string;
+  warrant_no: string | null;
+  issue_date: string | null;
+  payment_date: string;
+  financial_year: string | null;
+  rate_per_security: number;
+  no_of_securities: number;
+  gross_amount: number;
+  zakat_deducted: number;
+  tax_deducted: number;
+  net_amount: number;
+  payment_status: string;
+  created_at: string;
+}
+
+export interface CdcParsedData {
+  companyName: string;
+  symbol: string;
+  matchedCompanyName?: string;
+  warrantNo: string;
+  issueDate: string;
+  paymentDate: string;
+  financialYear: string;
+  ratePerSecurity: number;
+  noOfSecurities: number;
+  grossAmount: number;
+  zakatDeducted: number;
+  taxDeducted: number;
+  netAmount: number;
+  paymentStatus: string;
+  symbolConfidence: "high" | "low" | "none";
+}
+
 export interface ReceivedDividend {
   symbol: string;
+  companyName?: string;
   creditedOn: string;
   perShare: number;
   quantityHeld: number;
@@ -106,6 +144,8 @@ export interface ReceivedDividend {
   whtAmount: number;
   zakatAmount: number;
   netAmount: number;
+  financialYear?: string;
+  warranNo?: string;
 }
 
 export interface UpcomingDividend {

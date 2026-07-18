@@ -245,10 +245,7 @@ export function CachedPortfolioDetailPage({
                       <TabsTrigger value="transactions">
                         Transactions ({transactions.length})
                       </TabsTrigger>
-                      {(data?.portfolio.dividendIncome?.received.length ?? 0) > 0 ||
-                      (data?.portfolio.dividendIncome?.upcoming.length ?? 0) > 0 ? (
-                        <TabsTrigger value="dividends">Dividends</TabsTrigger>
-                      ) : null}
+                      <TabsTrigger value="dividends">Dividends</TabsTrigger>
                     </TabsList>
                   </div>
                   {hasHoldings && (
@@ -262,14 +259,17 @@ export function CachedPortfolioDetailPage({
                       currentPriceBySymbol={currentPriceBySymbol}
                     />
                   </TabsContent>
-                  {data?.portfolio.dividendIncome && data?.portfolio.taxSettings && (
-                    <TabsContent value="dividends" className="mt-2">
+                  <TabsContent value="dividends" className="mt-2">
+                    {data?.portfolio.dividendIncome && data?.portfolio.taxSettings ? (
                       <DividendsPanel
                         dividendIncome={data.portfolio.dividendIncome}
                         taxSettings={data.portfolio.taxSettings}
+                        portfolioId={pf.id}
                       />
-                    </TabsContent>
-                  )}
+                    ) : (
+                      <div className="px-4 py-8 text-center text-sm text-muted-foreground">Loading…</div>
+                    )}
+                  </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
