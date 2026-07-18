@@ -64,8 +64,13 @@ export function getDividendIncomeForPortfolio(
     .sort((a, b) => b.creditedOn.localeCompare(a.creditedOn));
 
   const heldSymbols = new Set(currentHoldings.map((h) => h.symbol.toUpperCase()));
+  const today = new Date().toISOString().split("T")[0];
   const upcoming: UpcomingDividend[] = bookClosures
-    .filter((bc) => heldSymbols.has(bc.symbol.toUpperCase()) && bc.payout)
+    .filter((bc) => {
+      if (!heldSymbols.has(bc.symbol.toUpperCase()) || !bc.payout) return false;
+      const from = bc.bookClosureFrom;
+      return !from || from === "—" || from >= today;
+    })
     .map((bc) => {
       const holding = currentHoldings.find(
         (h) => h.symbol.toUpperCase() === bc.symbol.toUpperCase()

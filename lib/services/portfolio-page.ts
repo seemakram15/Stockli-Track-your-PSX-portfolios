@@ -3,11 +3,11 @@ import { buildPortfolioView, enrichHoldings, getPortfolioViewRaw } from "@/lib/s
 import { getQuotes } from "@/lib/services/prices";
 import { getPortfolioCalendar, type StockCalendar } from "@/lib/services/daily-pl";
 import { marketStatus } from "@/lib/psx/market-hours";
-import { getDividendHistoryData, getBookClosuresData } from "@/lib/services/market-resources";
+import { getBookClosuresData } from "@/lib/services/market-resources";
 import { getDividendIncomeForPortfolio } from "@/lib/services/dividend-income";
 import { defaultTaxSettings, taxSettingsFromProfile } from "@/lib/services/tax";
 import { createClient } from "@/lib/supabase/server";
-import type { PortfolioWithMetrics, TaxSettings, DividendIncomeSummary } from "@/lib/types";
+import type { PortfolioWithMetrics, TaxSettings, DividendIncomeSummary, CdcDividend, ReceivedDividend } from "@/lib/types";
 
 export interface PortfolioPageData {
   portfolio: PortfolioWithMetrics;
@@ -30,26 +30,28 @@ export async function getPortfolioPageData(id: string): Promise<PortfolioPageDat
   const raw = await getPortfolioViewRaw(id);
   if (!raw) return null;
 
-  const [enriched, calendar, taxSettings, dividendData, bookClosureData] = await Promise.all([
+  const [enriched, calendar, taxSettings, bookClosureData, cdcRows] = await Promise.all([
     enrichHoldings(raw.holdings, raw.transactions),
     raw.holdings.length
       ? getPortfolioCalendar(raw.holdings, raw.transactions)
       : Promise.resolve(null),
     fetchTaxSettings(),
-    getDividendHistoryData(),
     getBookClosuresData(),
+    fetchCdcDividends(id),
   ]);
 
-  const dividendIncome =
-    raw.transactions.length > 0
-      ? getDividendIncomeForPortfolio(
-          raw.transactions,
-          dividendData.rows,
-          bookClosureData.rows,
-          raw.holdings,
-          taxSettings
-        )
-      : EMPTY_DIVIDEND_SUMMARY;
+  const dividendIncome: DividendIncomeSummary =
+    cdcRows.length > 0
+      ? buildCdcSummary(cdcRows, bookClosureData.rows, raw.holdings)
+      : raw.transactions.length > 0
+        ? getDividendIncomeForPortfolio(
+            raw.transactions,
+            [],
+            bookClosureData.rows,
+            raw.holdings,
+            taxSettings
+          )
+        : EMPTY_DIVIDEND_SUMMARY;
 
   const portfolioBase = buildPortfolioView(raw.portfolio, enriched, raw.transactions);
   const portfolio: PortfolioWithMetrics = {
@@ -66,6 +68,71 @@ export async function getPortfolioPageData(id: string): Promise<PortfolioPageDat
     quoteBySymbol,
     market: marketStatus(),
     updatedAt: new Date().toISOString(),
+  };
+}
+
+async function fetchCdcDividends(portfolioId: string): Promise<CdcDividend[]> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("cdc_dividends")
+      .select("*")
+      .eq("portfolio_id", portfolioId)
+      .order("payment_date", { ascending: false });
+    return (data as CdcDividend[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function buildCdcSummary(
+  cdcRows: CdcDividend[],
+  bookClosures: import("@/lib/services/market-resources").BookClosureRow[],
+  currentHoldings: import("@/lib/types").Holding[]
+): DividendIncomeSummary {
+  const received: ReceivedDividend[] = cdcRows.map((r) => ({
+    symbol: r.symbol,
+    companyName: r.company_name,
+    creditedOn: r.payment_date,
+    perShare: Number(r.rate_per_security),
+    quantityHeld: Number(r.no_of_securities),
+    grossAmount: Number(r.gross_amount),
+    whtAmount: Number(r.tax_deducted),
+    zakatAmount: Number(r.zakat_deducted),
+    netAmount: Number(r.net_amount),
+    financialYear: r.financial_year ?? undefined,
+    warranNo: r.warrant_no ?? undefined,
+  }));
+
+  const heldSymbols = new Set(currentHoldings.map((h) => h.symbol.toUpperCase()));
+  const today = new Date().toISOString().split("T")[0];
+  const upcoming = bookClosures
+    .filter((bc) => {
+      if (!heldSymbols.has(bc.symbol.toUpperCase()) || !bc.payout) return false;
+      const from = bc.bookClosureFrom;
+      return !from || from === "—" || from >= today;
+    })
+    .map((bc) => {
+      const holding = currentHoldings.find(
+        (h) => h.symbol.toUpperCase() === bc.symbol.toUpperCase()
+      );
+      return {
+        symbol: bc.symbol.toUpperCase(),
+        company: bc.company,
+        payout: bc.payout,
+        bookClosureFrom: bc.bookClosureFrom,
+        bookClosureTo: bc.bookClosureTo,
+        currentQty: Number(holding?.quantity ?? 0),
+      };
+    });
+
+  return {
+    received,
+    upcoming,
+    totalGross: received.reduce((s, r) => s + r.grossAmount, 0),
+    totalWHT: received.reduce((s, r) => s + r.whtAmount, 0),
+    totalZakat: received.reduce((s, r) => s + r.zakatAmount, 0),
+    totalNet: received.reduce((s, r) => s + r.netAmount, 0),
   };
 }
 

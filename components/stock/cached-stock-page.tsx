@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarRange, LineChart, TrendingUp, Wallet } from "lucide-react";
+import { Banknote, CalendarRange, LineChart, TrendingUp, Wallet } from "lucide-react";
 import { AddTradeDialog } from "@/components/portfolio/add-trade-dialog";
 import { Badge } from "@/components/ui/badge";
 import { CacheStatusBadge } from "@/components/cache/cache-status-badge";
@@ -22,10 +22,18 @@ import { WatchButton } from "@/components/watch-button";
 import { useLiveHoldings } from "@/lib/hooks/use-live-holdings";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import { shouldRefreshPsxData } from "@/lib/psx/market-hours";
-import { formatCompact, formatDate, formatPercent, formatPKR, plColorClass } from "@/lib/format";
+import { formatCompact, formatDate, formatNumber, formatPercent, formatPKR, plColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { StockPageData, StockPositionSummary } from "@/lib/services/stock-page";
-import type { HoldingWithMetrics } from "@/lib/types";
+import type { CdcDividend, HoldingWithMetrics } from "@/lib/types";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export function CachedStockPage({ symbol, userId }: { symbol: string; userId: string }) {
   const normalizedSymbol = symbol.toUpperCase();
@@ -86,7 +94,7 @@ function StockPageView({
   cachedAt: string | null;
   userId: string;
 }) {
-  const { detail, portfolios, watchedSymbols, symbol } = data;
+  const { detail, portfolios, watchedSymbols, symbol, cdcDividends } = data;
   const { ticker, quote, candles, intraday } = detail;
   const { liveHoldings: positionRows } = useLiveHoldings(data.positionRows);
   const summary = React.useMemo(() => summarizePositionRows(positionRows), [positionRows]);
@@ -226,6 +234,8 @@ function StockPageView({
         </div>
       </div>
 
+      {cdcDividends.length > 0 && <StockDividendHistory dividends={cdcDividends} />}
+
       <StockFinancialsPanel symbol={symbol} companyName={ticker?.company_name} />
 
       <StockFundHolders symbol={symbol} />
@@ -278,6 +288,118 @@ function summarizePositionRows(rows: HoldingWithMetrics[]): StockPositionSummary
     unrealizedPL,
     unrealizedPLPct: costBasis ? (unrealizedPL / costBasis) * 100 : 0,
   };
+}
+
+function StockDividendHistory({ dividends }: { dividends: CdcDividend[] }) {
+  const totalNet = dividends.reduce((s, d) => s + Number(d.net_amount), 0);
+  const totalGross = dividends.reduce((s, d) => s + Number(d.gross_amount), 0);
+
+  return (
+    <Card>
+      <CardHeader className="flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <IconChip accent="amber"><Banknote /></IconChip>
+          <div>
+            <CardTitle>Dividend history</CardTitle>
+            <CardDescription>
+              Official CDC records · {dividends.length} payment{dividends.length !== 1 ? "s" : ""} · Total net {formatPKR(totalNet)}
+            </CardDescription>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Gross received</p>
+            <p className="font-semibold tabular-nums">{formatPKR(totalGross)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Net received</p>
+            <p className="font-semibold tabular-nums text-gain">{formatPKR(totalNet)}</p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="px-0 pb-0 sm:px-2">
+        <div className="space-y-3 px-4 sm:hidden">
+          {dividends.map((d) => (
+            <div key={d.id} className="rounded-xl border border-border bg-muted/30 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{formatDate(d.payment_date)}</span>
+                {d.financial_year && (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                    FY{d.financial_year}
+                  </span>
+                )}
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-y-1.5 text-sm">
+                <div>
+                  <p className="text-[11px] text-muted-foreground">Rate / share</p>
+                  <p className="tabular-nums font-medium">{formatPKR(Number(d.rate_per_security))}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[11px] text-muted-foreground">Securities</p>
+                  <p className="tabular-nums font-medium">{formatNumber(Number(d.no_of_securities), 0)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground">Gross</p>
+                  <p className="tabular-nums">{formatPKR(Number(d.gross_amount))}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[11px] text-muted-foreground">WHT</p>
+                  <p className="tabular-nums text-loss">{formatPKR(Number(d.tax_deducted))}</p>
+                </div>
+                {Number(d.zakat_deducted) > 0 && (
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Zakat</p>
+                    <p className="tabular-nums text-muted-foreground">{formatPKR(Number(d.zakat_deducted))}</p>
+                  </div>
+                )}
+                <div className={Number(d.zakat_deducted) > 0 ? "text-right" : "col-span-2 text-right"}>
+                  <p className="text-[11px] text-muted-foreground">Amount paid</p>
+                  <p className="tabular-nums font-semibold text-gain">{formatPKR(Number(d.net_amount))}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto scrollbar-thin sm:block">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Payment date</TableHead>
+                <TableHead>FY</TableHead>
+                <TableHead>Warrant #</TableHead>
+                <TableHead className="text-right">Rate / Share</TableHead>
+                <TableHead className="text-right">Securities</TableHead>
+                <TableHead className="text-right">Gross</TableHead>
+                <TableHead className="text-right">WHT</TableHead>
+                <TableHead className="text-right">Zakat</TableHead>
+                <TableHead className="text-right">Amount Paid</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {dividends.map((d) => (
+                <TableRow key={d.id}>
+                  <TableCell className="font-medium">{formatDate(d.payment_date)}</TableCell>
+                  <TableCell className="text-muted-foreground">{d.financial_year ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">{d.warrant_no ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatPKR(Number(d.rate_per_security))}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatNumber(Number(d.no_of_securities), 0)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatPKR(Number(d.gross_amount))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-loss">{formatPKR(Number(d.tax_deducted))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {Number(d.zakat_deducted) > 0 ? formatPKR(Number(d.zakat_deducted)) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold text-gain">
+                    {formatPKR(Number(d.net_amount))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function Stat({

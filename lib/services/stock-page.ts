@@ -9,7 +9,8 @@ import {
 import { getStockDetail, type StockDetail } from "@/lib/services/stock";
 import { marketStatus } from "@/lib/psx/market-hours";
 import { normalizeSymbol } from "@/lib/security/validation";
-import type { HoldingWithMetrics, Portfolio, Transaction } from "@/lib/types";
+import { createClient } from "@/lib/supabase/server";
+import type { CdcDividend, HoldingWithMetrics, Portfolio, Transaction } from "@/lib/types";
 
 export interface StockPositionSummary {
   totalQty: number;
@@ -31,6 +32,7 @@ export interface StockPageData {
   positionRows: HoldingWithMetrics[];
   positionSummary: StockPositionSummary;
   calendar: StockCalendar;
+  cdcDividends: CdcDividend[];
   market: ReturnType<typeof marketStatus>;
   updatedAt: string;
 }
@@ -39,11 +41,12 @@ export async function getStockPageData(symbolRaw: string): Promise<StockPageData
   const symbol = normalizeSymbol(symbolRaw);
   if (!symbol) return null;
 
-  const [detail, portfolios, watchedSymbols, transactions] = await Promise.all([
+  const [detail, portfolios, watchedSymbols, transactions, cdcDividends] = await Promise.all([
     getStockDetail(symbol),
     getPortfolios(),
     getWatchlistSymbols(),
     getTransactionsForSymbol(symbol),
+    fetchCdcDividendsForSymbol(symbol),
   ]);
 
   const positionRows = await enrichHoldings(detail.holdings, transactions);
@@ -58,9 +61,30 @@ export async function getStockPageData(symbolRaw: string): Promise<StockPageData
     positionRows,
     positionSummary: summarizeStockPosition(positionRows),
     calendar,
+    cdcDividends,
     market: marketStatus(),
     updatedAt: new Date().toISOString(),
   };
+}
+
+async function fetchCdcDividendsForSymbol(symbol: string): Promise<CdcDividend[]> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data } = await supabase
+      .from("cdc_dividends")
+      .select("*")
+      .eq("symbol", symbol.toUpperCase())
+      .order("payment_date", { ascending: false });
+
+    return (data as CdcDividend[]) ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export function summarizeStockPosition(rows: HoldingWithMetrics[]): StockPositionSummary {
