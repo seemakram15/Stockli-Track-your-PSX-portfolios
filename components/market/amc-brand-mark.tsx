@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Building2 } from "lucide-react";
 import { amcIconUrl, identifyAmcBrand } from "@/lib/amc-brands";
 import { cn } from "@/lib/utils";
@@ -38,10 +39,12 @@ export function AmcBrandMark({
         style={{ backgroundColor: selected ? undefined : `${brand.color}14` }}
       >
         {showLogo ? (
-          <img
+          <Image
             src={iconUrl}
             alt={brand.shortName}
-            className="absolute inset-0 h-full w-full object-contain p-1"
+            fill
+            unoptimized
+            className="object-contain p-1"
             onError={() => setImgFailed(true)}
           />
         ) : brand.initials ? (

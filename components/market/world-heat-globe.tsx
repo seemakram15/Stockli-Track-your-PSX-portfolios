@@ -6,6 +6,8 @@ import type { GlobalMarketQuote } from "@/lib/services/global-markets";
 export function WorldHeatGlobe({ quotes }: { quotes: GlobalMarketQuote[] }) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<import("maplibre-gl").Map | null>(null);
+  const quotesRef = React.useRef(quotes);
+  quotesRef.current = quotes;
 
   React.useEffect(() => {
     let cancelled = false;
@@ -42,7 +44,7 @@ export function WorldHeatGlobe({ quotes }: { quotes: GlobalMarketQuote[] }) {
       });
 
       map.on("load", () => {
-        addMarkers(map, ml, quotes);
+        addMarkers(map, ml, quotesRef.current);
         startSpin(map);
       });
 
