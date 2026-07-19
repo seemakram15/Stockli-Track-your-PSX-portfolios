@@ -60,7 +60,7 @@ export default async function AppLayout({
                 guestPageAccess={guestPageAccess}
               />
               <Link href="/portfolios" className="hidden shrink-0 lg:flex">
-                <Logo />
+                <Logo beta />
               </Link>
               <div className="hidden h-8 w-px shrink-0 bg-border lg:block" />
               <DesktopNav

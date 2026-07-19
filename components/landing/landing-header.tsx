@@ -169,7 +169,7 @@ export function LandingHeader({
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label={`${APP_NAME} home`} className="shrink-0">
-          <Logo className={onLight ? "" : "text-white"} />
+          <Logo beta className={onLight ? "" : "text-white"} />
         </Link>
 
         {/* Desktop nav */}
