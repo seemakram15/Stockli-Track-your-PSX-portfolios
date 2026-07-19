@@ -49,7 +49,7 @@ export async function POST(
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Fresh fundamentals could not be fetched.",
+        error: "Fresh fundamentals could not be fetched.",
       },
       { status: 500 }
     );

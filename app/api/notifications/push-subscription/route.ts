@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     { onConflict: "user_id,endpoint" }
   );
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: "Could not save push subscription." }, { status: 400 });
   return NextResponse.json(
     { ok: true },
     {
@@ -100,7 +100,7 @@ export async function DELETE(request: Request) {
     .eq("user_id", user.id)
     .eq("endpoint", body.endpoint);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: "Could not save push subscription." }, { status: 400 });
   return NextResponse.json(
     { ok: true },
     {

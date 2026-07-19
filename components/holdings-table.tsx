@@ -212,7 +212,7 @@ function MobileHoldingCard({
 
   return (
     <article className="overflow-hidden rounded-xl border border-border bg-card p-3 shadow-sm">
-      <div className="grid min-h-28 grid-cols-[4.6rem_minmax(0,1fr)_minmax(0,1.08fr)_minmax(0,1fr)] gap-2.5">
+      <div className="grid grid-cols-[4.6rem_minmax(0,1fr)_minmax(0,1.08fr)_minmax(0,1fr)] gap-2.5">
         <Link href={`/stock/${holding.symbol}`} className="min-w-0">
           <p className="truncate text-2xl font-bold tracking-tight text-primary">
             {holding.symbol}
@@ -237,18 +237,13 @@ function MobileHoldingCard({
         </div>
 
         <div className="min-w-0 space-y-2">
-          <MobilePositionMetric
-            label="Market value"
-            value={formatPKR(holding.marketValue)}
-          />
+          <MobilePositionMetric label="Mkt value" value={formatPKR(holding.marketValue)} />
           <MobilePositionMetric
             label="Day's P/L"
             value={
               <span>
                 <span className="block">{formatPKR(holding.dayChange, { sign: true })}</span>
-                <span className="block">
-                  {formatPercent(holding.dayChangePct)}
-                </span>
+                <span className="block">{formatPercent(holding.dayChangePct)}</span>
               </span>
             }
             valueClassName={dayClass}
@@ -268,9 +263,7 @@ function MobileHoldingCard({
             value={
               <span>
                 <span className="block">{formatPKR(holding.unrealizedPL, { sign: true })}</span>
-                <span className="block">
-                  {formatPercent(holding.unrealizedPLPct)}
-                </span>
+                <span className="block">{formatPercent(holding.unrealizedPLPct)}</span>
               </span>
             }
             valueClassName={totalClass}

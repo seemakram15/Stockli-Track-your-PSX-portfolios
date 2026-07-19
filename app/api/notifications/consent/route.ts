@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
   if (Object.keys(update).length > 0) {
     const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) return NextResponse.json({ error: "Could not save notification preferences." }, { status: 400 });
   }
 
   return NextResponse.json(
