@@ -147,6 +147,7 @@ export interface ReceivedDividend {
   netAmount: number;
   financialYear?: string;
   warranNo?: string;
+  source?: "cdc" | "auto" | "history";
 }
 
 export interface UpcomingDividend {
