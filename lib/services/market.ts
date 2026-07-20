@@ -225,17 +225,6 @@ function buildMarketPerformers(rows: MarketWatchRow[], limit: number): MarketPer
   };
 }
 
-async function filterRowsForIndex(rows: MarketWatchRow[], indexSymbol?: string | null) {
-  const symbol = normalizeMarketSectorIndex(indexSymbol);
-  if (!symbol) return rows;
-
-  const constituents = await getIndexConstituentsCached(symbol);
-  const allowed = new Set(constituents.map((constituent) => constituent.symbol.toUpperCase()));
-  if (allowed.size === 0) return [];
-
-  return rows.filter((row) => allowed.has(row.symbol.toUpperCase()));
-}
-
 function buildSectorPerformance(rows: MarketWatchRow[], nameMap: Record<string, string | null> = {}): SectorPerformance[] {
   const map = new Map<
     string,

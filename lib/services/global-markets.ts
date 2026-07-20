@@ -323,39 +323,12 @@ async function fetchCoinGeckoMarketRows(url: string) {
   return (await res.json()) as CoinGeckoMarketRow[];
 }
 
-async function fetchCoinGeckoTrending() {
-  const res = await fetch(COINGECKO_TRENDING, {
-    headers: coinGeckoHeaders(),
-    next: { revalidate: 60 },
-    signal: AbortSignal.timeout(6_000),
-  });
-  if (!res.ok) return [];
-  const json = (await res.json()) as {
-    coins?: Array<{ item?: { id?: string; score?: number } }>;
-  };
-  return (json.coins ?? [])
-    .map((coin, index) => ({
-      id: coin.item?.id ?? "",
-      rank: typeof coin.item?.score === "number" ? coin.item.score + 1 : index + 1,
-    }))
-    .filter((item) => item.id);
-}
-
 function coinGeckoHeaders() {
   return {
     accept: "application/json",
     "User-Agent":
       "Mozilla/5.0 (compatible; Stockli/1.0; +https://mystockli.qzz.io)",
   };
-}
-
-function dedupeCoinRows(rows: CoinGeckoMarketRow[]) {
-  const seen = new Set<string>();
-  return rows.filter((row) => {
-    if (!row.id || seen.has(row.id)) return false;
-    seen.add(row.id);
-    return true;
-  });
 }
 
 async function fetchYahooQuote(item: MarketInstrument): Promise<GlobalMarketQuote> {
