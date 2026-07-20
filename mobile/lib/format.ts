@@ -70,7 +70,12 @@ export function formatMarketPrice(
   return currency ? `${currency} ${formatted}` : formatted;
 }
 
-export function plColor(value: number | null | undefined, theme: { gain: string; loss: string; muted: string }) {
+const DEFAULT_PL_THEME = { gain: "#34d399", loss: "#f87171", muted: "#6b7280" };
+
+export function plColor(
+  value: number | null | undefined,
+  theme: { gain: string; loss: string; muted: string } = DEFAULT_PL_THEME
+) {
   if (value == null || Number.isNaN(value)) return theme.muted;
   if (value > 0) return theme.gain;
   if (value < 0) return theme.loss;
