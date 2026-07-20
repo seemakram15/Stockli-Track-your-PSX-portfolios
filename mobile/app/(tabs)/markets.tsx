@@ -56,7 +56,7 @@ export default function MarketsScreen() {
                 return (
                   <Pressable
                     key={item.title}
-                    onPress={() => {/* navigate */}}
+                    onPress={() => router.push(item.href as never)}
                     className={`flex-row items-center gap-3 px-4 py-3.5 active:bg-surface-2 ${i < section.items.length - 1 ? "border-b border-border" : ""}`}
                   >
                     <View className="size-9 items-center justify-center rounded-xl" style={{ backgroundColor: item.color + "20" }}>
