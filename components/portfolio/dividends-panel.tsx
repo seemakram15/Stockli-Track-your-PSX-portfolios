@@ -134,12 +134,17 @@ export function DividendsPanel({
                   <div key={i} className="rounded-xl border border-border bg-card p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Link href={`/stock/${r.symbol}`} className="font-semibold hover:text-primary">
                             {r.symbol}
                           </Link>
                           {r.financialYear && (
                             <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">FY{r.financialYear}</Badge>
+                          )}
+                          {r.source === "auto" && (
+                            <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20">
+                              Estimated
+                            </Badge>
                           )}
                         </div>
                         {r.companyName && (
@@ -157,31 +162,31 @@ export function DividendsPanel({
                         )}
                       </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
-                      <div>
-                        <p className="text-[11px] text-muted-foreground">Rate / Share</p>
+                    <div className="mt-3 grid grid-cols-2 gap-y-0 border-t border-border text-sm">
+                      <div className="border-b border-r border-border px-0 py-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Rate / Share</p>
                         <p className="tabular-nums font-medium">{formatPKR(r.perShare)}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[11px] text-muted-foreground">Securities</p>
+                      <div className="border-b border-border py-2 pl-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Securities</p>
                         <p className="tabular-nums font-medium">{formatNumber(r.quantityHeld, 0)}</p>
                       </div>
-                      <div>
-                        <p className="text-[11px] text-muted-foreground">Gross dividend</p>
+                      <div className="border-b border-r border-border py-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Gross Dividend</p>
                         <p className="tabular-nums font-medium">{formatPKR(r.grossAmount)}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[11px] text-muted-foreground">Tax (WHT)</p>
+                      <div className="border-b border-border py-2 pl-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Tax (WHT)</p>
                         <p className="tabular-nums font-medium text-loss">{formatPKR(r.whtAmount)}</p>
                       </div>
-                      {r.zakatAmount > 0 && (
-                        <div>
-                          <p className="text-[11px] text-muted-foreground">Zakat</p>
-                          <p className="tabular-nums font-medium text-muted-foreground">{formatPKR(r.zakatAmount)}</p>
-                        </div>
-                      )}
-                      <div className={r.zakatAmount > 0 ? "text-right" : "col-span-2 text-right"}>
-                        <p className="text-[11px] text-muted-foreground">Amount paid</p>
+                      <div className="border-r border-border py-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Zakat</p>
+                        <p className="tabular-nums font-medium text-muted-foreground">
+                          {r.zakatAmount > 0 ? formatPKR(r.zakatAmount) : "—"}
+                        </p>
+                      </div>
+                      <div className="py-2 pl-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Amount Paid</p>
                         <p className="tabular-nums text-base font-semibold text-gain">{formatPKR(r.netAmount)}</p>
                       </div>
                     </div>
@@ -209,9 +214,16 @@ export function DividendsPanel({
                       <TableRow key={i}>
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
-                            <Link href={`/stock/${r.symbol}`} className="font-medium hover:text-primary">
-                              {r.symbol}
-                            </Link>
+                            <div className="flex items-center gap-1.5">
+                              <Link href={`/stock/${r.symbol}`} className="font-medium hover:text-primary">
+                                {r.symbol}
+                              </Link>
+                              {r.source === "auto" && (
+                                <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20">
+                                  Estimated
+                                </Badge>
+                              )}
+                            </div>
                             {r.companyName && (
                               <span className="text-[11px] text-muted-foreground leading-tight max-w-[160px] truncate">
                                 {r.companyName}

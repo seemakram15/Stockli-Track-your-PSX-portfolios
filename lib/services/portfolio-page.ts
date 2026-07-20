@@ -4,10 +4,10 @@ import { getQuotes } from "@/lib/services/prices";
 import { getPortfolioCalendar, type StockCalendar } from "@/lib/services/daily-pl";
 import { marketStatus } from "@/lib/psx/market-hours";
 import { getBookClosuresData } from "@/lib/services/market-resources";
-import { getDividendIncomeForPortfolio } from "@/lib/services/dividend-income";
+import { getDividendIncomeForPortfolio, buildAutoEntries, getHoldingQtyAtDate } from "@/lib/services/dividend-income";
 import { defaultTaxSettings, taxSettingsFromProfile } from "@/lib/services/tax";
 import { createClient } from "@/lib/supabase/server";
-import type { PortfolioWithMetrics, TaxSettings, DividendIncomeSummary, CdcDividend, ReceivedDividend } from "@/lib/types";
+import type { PortfolioWithMetrics, TaxSettings, DividendIncomeSummary, CdcDividend, ReceivedDividend, Transaction } from "@/lib/types";
 
 export interface PortfolioPageData {
   portfolio: PortfolioWithMetrics;
@@ -42,7 +42,7 @@ export async function getPortfolioPageData(id: string): Promise<PortfolioPageDat
 
   const dividendIncome: DividendIncomeSummary =
     cdcRows.length > 0
-      ? buildCdcSummary(cdcRows, bookClosureData.rows, raw.holdings)
+      ? buildCdcSummary(cdcRows, bookClosureData.rows, raw.holdings, raw.transactions, taxSettings)
       : raw.transactions.length > 0
         ? getDividendIncomeForPortfolio(
             raw.transactions,
@@ -88,9 +88,11 @@ async function fetchCdcDividends(portfolioId: string): Promise<CdcDividend[]> {
 function buildCdcSummary(
   cdcRows: CdcDividend[],
   bookClosures: import("@/lib/services/market-resources").BookClosureRow[],
-  currentHoldings: import("@/lib/types").Holding[]
+  currentHoldings: import("@/lib/types").Holding[],
+  transactions: Transaction[],
+  taxSettings: TaxSettings
 ): DividendIncomeSummary {
-  const received: ReceivedDividend[] = cdcRows.map((r) => ({
+  const cdcReceived: ReceivedDividend[] = cdcRows.map((r) => ({
     id: r.id,
     symbol: r.symbol,
     companyName: r.company_name,
@@ -103,10 +105,26 @@ function buildCdcSummary(
     netAmount: Number(r.net_amount),
     financialYear: r.financial_year ?? undefined,
     warranNo: r.warrant_no ?? undefined,
+    source: "cdc" as const,
   }));
 
-  const heldSymbols = new Set(currentHoldings.map((h) => h.symbol.toUpperCase()));
   const today = new Date().toISOString().split("T")[0];
+  const everHeldSymbols = new Set(transactions.map((t: Transaction) => t.symbol.toUpperCase()));
+
+  const autoReceived = buildAutoEntries(
+    bookClosures,
+    everHeldSymbols,
+    cdcReceived,
+    (symbol, date) => getHoldingQtyAtDate(transactions, symbol, date),
+    taxSettings,
+    today
+  );
+
+  const received: ReceivedDividend[] = [...cdcReceived, ...autoReceived].sort(
+    (a, b) => b.creditedOn.localeCompare(a.creditedOn)
+  );
+
+  const heldSymbols = new Set(currentHoldings.map((h) => h.symbol.toUpperCase()));
   const upcoming = bookClosures
     .filter((bc) => {
       if (!heldSymbols.has(bc.symbol.toUpperCase()) || !bc.payout) return false;

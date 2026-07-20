@@ -253,7 +253,7 @@ function MobileHoldingCard({
         : "text-4xl";
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+    <article className="overflow-hidden rounded-2xl border-2 border-border bg-card shadow-sm">
       {/* Header: ticker + current price + actions */}
       <div className="flex items-center justify-between px-4 py-3.5">
         <div className="flex items-center gap-3 min-w-0">
@@ -262,7 +262,7 @@ function MobileHoldingCard({
               className={cn(
                 "font-black tracking-tight",
                 tickerSize,
-                "bg-gradient-to-r from-violet-400 via-cyan-300 to-amber-400 bg-clip-text text-transparent",
+                "text-emerald-700 dark:text-emerald-500",
               )}
             >
               {holding.symbol}
@@ -305,15 +305,19 @@ function MobileHoldingCard({
         <div className="px-4 py-2.5">
           <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Day&apos;s P/L</p>
           <p className={cn("font-semibold leading-tight tabular-nums", dayClass)}>
-            {formatPKR(holding.dayChange, { sign: true })}{" "}
-            <span className="text-xs font-medium">({formatPercent(holding.dayChangePct)})</span>
+            {formatPKR(holding.dayChange, { sign: true })}
+          </p>
+          <p className={cn("text-xs font-medium tabular-nums", dayClass)}>
+            ({formatPercent(holding.dayChangePct)})
           </p>
         </div>
         <div className="border-l border-amber-500/20 px-4 py-2.5">
           <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Total P/L</p>
           <p className={cn("font-semibold leading-tight tabular-nums", totalClass)}>
-            {formatPKR(holding.unrealizedPL, { sign: true })}{" "}
-            <span className="text-xs font-medium">({formatPercent(holding.unrealizedPLPct)})</span>
+            {formatPKR(holding.unrealizedPL, { sign: true })}
+          </p>
+          <p className={cn("text-xs font-medium tabular-nums", totalClass)}>
+            ({formatPercent(holding.unrealizedPLPct)})
           </p>
         </div>
       </div>
@@ -353,7 +357,7 @@ function MobileHoldingCardCompact({
   void portfolioName;
 
   return (
-    <article className="flex flex-col gap-1 rounded-xl border border-border/60 bg-card px-4 py-3 shadow-sm">
+    <article className="flex flex-col gap-1 rounded-xl border-2 border-border bg-card px-4 py-3 shadow-sm">
       <div className="flex items-center justify-between">
         <Link href={`/stock/${holding.symbol}`} className="shrink-0">
           <span
