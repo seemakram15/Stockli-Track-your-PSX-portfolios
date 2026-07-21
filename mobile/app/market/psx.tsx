@@ -3,7 +3,7 @@ import { View, FlatList, Pressable, TextInput, ActivityIndicator } from "react-n
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ArrowLeft, Search } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { usePublicMarket } from "@/hooks/useMarket";
@@ -54,6 +54,7 @@ function MarketRow({ item }: { item: MarketRow }) {
 type SortKey = "symbol" | "change" | "volume";
 
 export default function PsxMarketScreen() {
+  const c = useColors();
   const { data: marketData, isLoading } = usePublicMarket();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("change");
@@ -80,7 +81,7 @@ export default function PsxMarketScreen() {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       {/* Header */}
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-3">
         <Pressable onPress={() => router.back()} className="size-9 items-center justify-center">
@@ -94,7 +95,7 @@ export default function PsxMarketScreen() {
         <View className="flex-row items-center gap-2 rounded-xl bg-surface border border-border px-3 py-2.5">
           <Search size={16} color={colors.muted} />
           <TextInput
-            className="flex-1 text-[#e2e2f0] text-[15px]"
+            className="flex-1 text-fg text-[15px]"
             placeholder="Search symbol or company…"
             placeholderTextColor={colors.muted}
             value={query}
@@ -134,7 +135,7 @@ export default function PsxMarketScreen() {
 
       {isLoading && filtered.length === 0 ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.accent} />
+          <ActivityIndicator size="large" color={c.primary} />
         </View>
       ) : (
         <FlatList

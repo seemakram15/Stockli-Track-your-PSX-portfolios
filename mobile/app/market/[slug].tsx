@@ -3,7 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import useSWR from "swr";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { api } from "@/lib/api";
 import { formatPercent, plColor } from "@/lib/format";
@@ -28,6 +28,7 @@ interface GlobalRow {
 }
 
 export default function MarketSlugScreen() {
+  const c = useColors();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const cfg = SLUG_CONFIG[slug] ?? { title: slug, fetcher: api.market.globalMarket };
 
@@ -47,7 +48,7 @@ export default function MarketSlugScreen() {
   const rows = slug && slugFilter[slug] ? allRows.filter(slugFilter[slug]) : allRows;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
         <Pressable onPress={() => router.back()} className="size-9 items-center justify-center">
           <ArrowLeft size={20} color={colors.text} />
@@ -57,7 +58,7 @@ export default function MarketSlugScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.accent} />
+          <ActivityIndicator size="large" color={c.primary} />
         </View>
       ) : rows.length === 0 ? (
         <View className="flex-1 items-center justify-center">

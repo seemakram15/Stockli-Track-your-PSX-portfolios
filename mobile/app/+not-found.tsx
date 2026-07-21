@@ -4,7 +4,7 @@ import { router } from "expo-router";
 
 export default function NotFoundScreen() {
   return (
-    <SafeAreaView className="flex-1 items-center justify-center bg-[#0f0f13] px-8">
+    <SafeAreaView className="flex-1 items-center justify-center bg-canvas px-8">
       <Text className="text-[48px]">404</Text>
       <Text className="mt-4 text-[20px] font-bold text-text">Page not found</Text>
       <Text className="mt-2 text-center text-[15px] text-muted">This screen doesn't exist yet.</Text>

@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ChevronLeft, Search, Target } from "lucide-react-native";
 import useSWR from "swr";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { api } from "@/lib/api";
@@ -37,6 +37,7 @@ function computeClassicPivots(high: number, low: number, close: number): PivotLe
 }
 
 export default function PivotPointsScreen() {
+  const c = useColors();
   const [symbol, setSymbol] = useState("");
   const [submitted, setSubmitted] = useState("");
 
@@ -54,7 +55,7 @@ export default function PivotPointsScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <ChevronLeft size={22} color={colors.text} />
@@ -124,13 +125,13 @@ export default function PivotPointsScreen() {
 
             <Card className="p-0 overflow-hidden">
               {pivots.map((level, i) => {
-                const color = level.type === "resistance" ? colors.loss : level.type === "support" ? colors.gain : colors.accent;
+                const color = level.type === "resistance" ? colors.loss : level.type === "support" ? colors.gain : c.primary;
                 const isAbove = stock.current < level.value;
                 return (
                   <View
                     key={level.label}
                     className={`flex-row items-center px-4 py-3.5 ${i < pivots.length - 1 ? "border-b border-border" : ""}`}
-                    style={level.type === "pivot" ? { backgroundColor: colors.accent + "10" } : undefined}
+                    style={level.type === "pivot" ? { backgroundColor: c.primary + "10" } : undefined}
                   >
                     <View className="w-14">
                       <ThemedText className="text-[13px] font-bold" style={{ color }}>{level.label}</ThemedText>

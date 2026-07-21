@@ -3,7 +3,7 @@ import { View, ScrollView, Pressable, Alert, TextInput, Modal, ActivityIndicator
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ChevronLeft, Plus, Bell, BellOff, Trash2, TrendingUp, TrendingDown } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { useAlerts } from "@/hooks/usePortfolio";
@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { formatPKR } from "@/lib/format";
 
 export default function AlertsScreen() {
+  const c = useColors();
   const { data: alerts, isLoading, mutate } = useAlerts();
 
   const [showCreate, setShowCreate] = useState(false);
@@ -61,7 +62,7 @@ export default function AlertsScreen() {
   const triggered = (alerts ?? []).filter((a) => a.triggered_at);
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <ChevronLeft size={22} color={colors.text} />
@@ -71,14 +72,14 @@ export default function AlertsScreen() {
           onPress={() => setShowCreate(true)}
           className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/20"
         >
-          <Plus size={14} color={colors.accent} />
-          <ThemedText className="text-[13px] font-semibold text-accent">New</ThemedText>
+          <Plus size={14} color={c.primary} />
+          <ThemedText className="text-[13px] font-semibold text-primary">New</ThemedText>
         </Pressable>
       </View>
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.accent} />
+          <ActivityIndicator color={c.primary} />
         </View>
       ) : (
         <ScrollView

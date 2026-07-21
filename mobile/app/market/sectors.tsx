@@ -2,7 +2,7 @@ import { View, FlatList, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { usePublicMarket } from "@/hooks/useMarket";
 import { formatPercent, plColor } from "@/lib/format";
@@ -16,12 +16,13 @@ interface SectorRow {
 }
 
 export default function SectorsScreen() {
+  const c = useColors();
   const { data: marketData, isLoading } = usePublicMarket();
 
   const rows: SectorRow[] = (marketData as { data?: { sectors?: SectorRow[] } } | undefined)?.data?.sectors ?? [];
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
         <Pressable onPress={() => router.back()} className="size-9 items-center justify-center">
           <ArrowLeft size={20} color={colors.text} />
@@ -31,7 +32,7 @@ export default function SectorsScreen() {
 
       {isLoading && rows.length === 0 ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.accent} />
+          <ActivityIndicator size="large" color={c.primary} />
         </View>
       ) : rows.length === 0 ? (
         <View className="flex-1 items-center justify-center">

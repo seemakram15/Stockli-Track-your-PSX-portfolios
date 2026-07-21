@@ -3,7 +3,7 @@ import { View, ScrollView, Pressable, Alert, TextInput, Modal, FlatList, Activit
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ChevronLeft, Plus, Eye, Trash2, TrendingUp, TrendingDown, X } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { useWatchlists } from "@/hooks/usePortfolio";
@@ -14,7 +14,7 @@ import { formatPKR, formatPercent, plColor } from "@/lib/format";
 function PriceChip({ symbol, prices }: { symbol: string; prices: Record<string, number> }) {
   const price = prices[symbol];
   if (!price) return <ThemedText variant="caption">—</ThemedText>;
-  return <ThemedText className="text-[13px] font-semibold text-text">{formatPKR(price)}</ThemedText>;
+  return <ThemedText className="text-[13px] font-semibold text-fg">{formatPKR(price)}</ThemedText>;
 }
 
 function WatchlistSection({
@@ -28,6 +28,7 @@ function WatchlistSection({
   onAddSymbol: (watchlistId: string) => void;
   onRemoveItem: (itemId: string, symbol: string) => void;
 }) {
+  const c = useColors();
   return (
     <View className="gap-2">
       <View className="flex-row items-center justify-between ml-1">
@@ -36,14 +37,14 @@ function WatchlistSection({
           onPress={() => onAddSymbol(watchlist.id)}
           className="flex-row items-center gap-1 px-2 py-1 rounded-lg bg-accent/20"
         >
-          <Plus size={12} color={colors.accent} />
-          <ThemedText className="text-[12px] font-semibold text-accent">Add</ThemedText>
+          <Plus size={12} color={c.primary} />
+          <ThemedText className="text-[12px] font-semibold text-primary">Add</ThemedText>
         </Pressable>
       </View>
 
       {watchlist.items.length === 0 ? (
         <Card className="items-center py-8 gap-2">
-          <Eye size={28} color={colors.muted} />
+          <Eye size={28} color={c.muted} />
           <ThemedText variant="caption">No symbols yet</ThemedText>
         </Card>
       ) : (
@@ -54,7 +55,7 @@ function WatchlistSection({
               className={`flex-row items-center gap-3 px-4 py-3 ${i < watchlist.items.length - 1 ? "border-b border-border" : ""}`}
             >
               <View className="flex-1">
-                <ThemedText variant="subhead" className="text-text font-semibold">{item.symbol}</ThemedText>
+                <ThemedText variant="subhead" className="text-fg font-semibold">{item.symbol}</ThemedText>
               </View>
               <PriceChip symbol={item.symbol} prices={prices} />
               <Pressable
@@ -73,6 +74,7 @@ function WatchlistSection({
 }
 
 export default function WatchlistScreen() {
+  const c = useColors();
   const { data: watchlists, isLoading, mutate } = useWatchlists();
 
   const allSymbols = (watchlists ?? []).flatMap((w) => w.items.map((i) => i.symbol));
@@ -120,7 +122,7 @@ export default function WatchlistScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <ChevronLeft size={22} color={colors.text} />
@@ -130,7 +132,7 @@ export default function WatchlistScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.accent} />
+          <ActivityIndicator color={c.primary} />
         </View>
       ) : (
         <ScrollView
@@ -167,7 +169,7 @@ export default function WatchlistScreen() {
         >
           <Pressable onPress={(e) => e.stopPropagation()}>
             <View className="bg-surface rounded-2xl p-5 gap-4 w-full" style={{ minWidth: 280 }}>
-              <ThemedText variant="subhead" className="text-text font-semibold">Add Symbol</ThemedText>
+              <ThemedText variant="subhead" className="text-fg font-semibold">Add Symbol</ThemedText>
               <TextInput
                 className="bg-surface-2 border border-border rounded-xl px-4 py-3 text-text text-[15px]"
                 placeholder="e.g. ENGRO"

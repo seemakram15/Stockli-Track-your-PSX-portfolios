@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus } from "lucide-react-native";
 import useSWR from "swr";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { usePrices } from "@/hooks/useMarket";
@@ -31,6 +31,7 @@ function StatRow({ label, value }: { label: string; value: string }) {
 type TabId = "overview" | "positions" | "dividends";
 
 export default function StockDetailScreen() {
+  const c = useColors();
   const { symbol: rawSymbol } = useLocalSearchParams<{ symbol: string }>();
   const symbol = rawSymbol?.toUpperCase() ?? "";
   const [tab, setTab] = useState<TabId>("overview");
@@ -69,7 +70,7 @@ export default function StockDetailScreen() {
   const priceColor = quote ? plColor(quote.changePct) : colors.muted;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       {/* Header */}
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
         <Pressable onPress={() => router.back()} className="size-9 items-center justify-center">
@@ -83,7 +84,7 @@ export default function StockDetailScreen() {
       {/* Price hero */}
       <View className="px-4 pb-4">
         {!quote ? (
-          <ActivityIndicator size="small" color={colors.accent} />
+          <ActivityIndicator size="small" color={c.primary} />
         ) : (
           <View className="flex-row items-end gap-3">
             <ThemedText variant="title" style={{ fontSize: 32, color: "#e2e2f0" }}>
@@ -111,7 +112,7 @@ export default function StockDetailScreen() {
           >
             <ThemedText
               variant="label"
-              style={{ color: tab === t.id ? colors.accent : colors.muted }}
+              style={{ color: tab === t.id ? c.primary : colors.muted }}
             >
               {t.label}
             </ThemedText>

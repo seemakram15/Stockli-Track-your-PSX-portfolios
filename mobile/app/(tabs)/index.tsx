@@ -2,7 +2,7 @@ import { View, ScrollView, Pressable, RefreshControl, ActivityIndicator } from "
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { TrendingUp, TrendingDown, RefreshCw, Search } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { usePublicMarket } from "@/hooks/useMarket";
@@ -68,6 +68,7 @@ function MoverRow({ item }: { item: Mover }) {
 }
 
 export default function DashboardScreen() {
+  const c = useColors();
   const { data: marketData, isLoading: marketLoading, mutate: refreshMarket } = usePublicMarket();
   const { data: portfolios = [], isLoading: portfolioLoading } = usePortfolios();
   const { data: holdings = [] } = useAllHoldings();
@@ -106,7 +107,7 @@ export default function DashboardScreen() {
   const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="gap-4 px-4 pb-10 pt-2"
@@ -115,7 +116,7 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={refreshMarket}
-            tintColor={colors.accent}
+            tintColor={c.primary}
           />
         }
       >
@@ -139,7 +140,7 @@ export default function DashboardScreen() {
             {["KSE 100", "KSE 30", "KMI 30"].map((label) => (
               <Card key={label} className="flex-1 p-3">
                 <ThemedText variant="label" className="mb-1">{label}</ThemedText>
-                <ActivityIndicator size="small" color={colors.accent} />
+                <ActivityIndicator size="small" color={c.primary} />
               </Card>
             ))}
           </View>
@@ -151,7 +152,7 @@ export default function DashboardScreen() {
         <Card>
           <ThemedText variant="label" className="mb-3">My Portfolios</ThemedText>
           {portfolioLoading ? (
-            <ActivityIndicator size="small" color={colors.accent} />
+            <ActivityIndicator size="small" color={c.primary} />
           ) : portfolios.length === 0 ? (
             <ThemedText variant="caption" className="text-muted text-center py-2">
               No portfolios yet
@@ -187,7 +188,7 @@ export default function DashboardScreen() {
             className="mt-4 items-center rounded-xl border border-border py-2.5"
             onPress={() => router.push("/(tabs)/portfolios")}
           >
-            <ThemedText variant="label" style={{ color: colors.accent }}>
+            <ThemedText variant="label" style={{ color: c.primary }}>
               View all portfolios
             </ThemedText>
           </Pressable>

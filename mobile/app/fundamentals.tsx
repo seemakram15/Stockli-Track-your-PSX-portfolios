@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ChevronLeft, Search } from "lucide-react-native";
 import useSWR from "swr";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { api } from "@/lib/api";
 import { usePublicMarket } from "@/hooks/useMarket";
@@ -31,6 +31,7 @@ function colorFor(val: number | null, low: number, high: number) {
 }
 
 export default function FundamentalsScreen() {
+  const c = useColors();
   const { data: mktData, isLoading: mktLoading } = usePublicMarket();
   const [query, setQuery] = useState("");
 
@@ -50,7 +51,7 @@ export default function FundamentalsScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <ChevronLeft size={22} color={colors.text} />
@@ -81,7 +82,7 @@ export default function FundamentalsScreen() {
 
       {mktLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.accent} />
+          <ActivityIndicator color={c.primary} />
         </View>
       ) : (
         <FlatList

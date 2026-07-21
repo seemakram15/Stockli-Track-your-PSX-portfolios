@@ -3,12 +3,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ChevronLeft, BookOpen } from "lucide-react-native";
 import useSWR from "swr";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { api } from "@/lib/api";
 import { formatPKR } from "@/lib/format";
 
 export default function BookClosuresScreen() {
+  const c = useColors();
   const { data, isLoading, error } = useSWR("book-closures", api.market.bookClosures, {
     revalidateOnFocus: false,
   });
@@ -16,7 +17,7 @@ export default function BookClosuresScreen() {
   const rows: any[] = (data as any)?.data ?? [];
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <ChevronLeft size={22} color={colors.text} />
@@ -26,7 +27,7 @@ export default function BookClosuresScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.accent} />
+          <ActivityIndicator color={c.primary} />
         </View>
       ) : error ? (
         <View className="flex-1 items-center justify-center">

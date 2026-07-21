@@ -2,19 +2,20 @@ import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronRight, Bell, ShieldCheck, User, LogOut, Moon } from "lucide-react-native";
 import { router } from "expo-router";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/lib/supabase";
 
 const SETTINGS_ROWS = [
-  { label: "Price Alerts", icon: Bell, color: colors.accent, route: "/alerts" },
-  { label: "Tax Settings", icon: ShieldCheck, color: colors.gain, route: null },
-  { label: "Appearance", icon: Moon, color: colors.sky, route: null },
+  { label: "Price Alerts", icon: Bell, colorKey: "primary" as const, route: "/alerts" },
+  { label: "Tax Settings", icon: ShieldCheck, colorKey: "gain" as const, route: null },
+  { label: "Appearance", icon: Moon, colorKey: "sky" as const, route: null },
 ];
 
 export default function AccountScreen() {
+  const c = useColors();
   const { user } = useSession();
 
   async function handleSignOut() {
@@ -29,7 +30,7 @@ export default function AccountScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="gap-4 px-4 pb-10 pt-2"
@@ -42,7 +43,7 @@ export default function AccountScreen() {
         {/* Profile card */}
         <Card className="flex-row items-center gap-4">
           <View className="size-14 items-center justify-center rounded-full bg-accent/20">
-            <User size={24} color={colors.accent} />
+            <User size={24} color={c.primary} />
           </View>
           <View className="flex-1">
             <ThemedText variant="subhead" className="text-text">
@@ -51,7 +52,7 @@ export default function AccountScreen() {
             <ThemedText variant="caption" className="mt-0.5">{user?.email ?? "—"}</ThemedText>
           </View>
           <Pressable className="rounded-lg border border-border px-3 py-1.5">
-            <Text className="text-[13px] font-semibold text-accent">Edit</Text>
+            <Text className="text-[13px] font-semibold text-primary">Edit</Text>
           </Pressable>
         </Card>
 
@@ -67,11 +68,11 @@ export default function AccountScreen() {
                   onPress={() => row.route && router.push(row.route as never)}
                   className={`flex-row items-center gap-3 px-4 py-3.5 active:bg-surface-2 ${i < SETTINGS_ROWS.length - 1 ? "border-b border-border" : ""}`}
                 >
-                  <View className="size-9 items-center justify-center rounded-xl" style={{ backgroundColor: row.color + "20" }}>
-                    <Icon size={16} color={row.color} />
+                  <View className="size-9 items-center justify-center rounded-xl" style={{ backgroundColor: c[row.colorKey] + "20" }}>
+                    <Icon size={16} color={c[row.colorKey]} />
                   </View>
-                  <ThemedText variant="subhead" className="flex-1 text-[15px] font-medium text-text">{row.label}</ThemedText>
-                  <ChevronRight size={16} color={colors.muted} />
+                  <ThemedText variant="subhead" className="flex-1 text-[15px] font-medium text-fg">{row.label}</ThemedText>
+                  <ChevronRight size={16} color={c.muted} />
                 </Pressable>
               );
             })}

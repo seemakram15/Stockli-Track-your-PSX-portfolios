@@ -2,7 +2,7 @@ import { View, FlatList, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { usePublicMarket } from "@/hooks/useMarket";
 import { formatPKR, formatPercent, plColor } from "@/lib/format";
@@ -10,12 +10,13 @@ import { formatPKR, formatPercent, plColor } from "@/lib/format";
 interface EtfRow { symbol: string; company_name?: string; current: number; changePct: number; change: number; listedIn?: string }
 
 export default function EtfsScreen() {
+  const c = useColors();
   const { data: marketData, isLoading } = usePublicMarket();
   const allRows: EtfRow[] = (marketData as { data?: { rows?: EtfRow[] } } | undefined)?.data?.rows ?? [];
   const etfs = allRows.filter((r) => r.listedIn === "ETF" || r.symbol?.startsWith("ETF"));
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
         <Pressable onPress={() => router.back()} className="size-9 items-center justify-center">
           <ArrowLeft size={20} color={colors.text} />
@@ -25,7 +26,7 @@ export default function EtfsScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.accent} />
+          <ActivityIndicator size="large" color={c.primary} />
         </View>
       ) : etfs.length === 0 ? (
         <View className="flex-1 items-center justify-center">
