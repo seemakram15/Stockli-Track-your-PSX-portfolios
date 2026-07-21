@@ -1,7 +1,7 @@
-import { View, Text, ScrollView, Pressable, Alert, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Bell, ShieldCheck, Moon, LogOut, ChevronRight, User, Mail, ExternalLink } from "lucide-react-native";
+import { Bell, ShieldCheck, Moon, LogOut, ChevronRight, Mail, ExternalLink } from "lucide-react-native";
 import { useColors } from "@/lib/theme";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/lib/supabase";
@@ -30,7 +30,6 @@ export default function AccountScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Header */}
         <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
           <Text style={{ fontSize: 28, fontWeight: "800", color: c.fg, letterSpacing: -0.8 }}>Account</Text>
         </View>
@@ -49,9 +48,12 @@ export default function AccountScreen() {
               </View>
             </View>
           </View>
-          <Pressable style={({ pressed }) => ({ borderRadius: 12, borderWidth: 1, borderColor: c.border, paddingVertical: 10, alignItems: "center", opacity: pressed ? 0.7 : 1 })}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={{ borderRadius: 12, borderWidth: 1, borderColor: c.border, paddingVertical: 10, alignItems: "center" }}
+          >
             <Text style={{ fontSize: 13, fontWeight: "600", color: c.primary }}>Edit Profile</Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
 
         {/* Settings section */}
@@ -64,15 +66,15 @@ export default function AccountScreen() {
               const Icon = row.icon;
               const color = c[row.colorKey];
               return (
-                <Pressable
+                <TouchableOpacity
                   key={row.label}
+                  activeOpacity={0.7}
                   onPress={() => row.route && router.push(row.route as never)}
-                  style={({ pressed }) => ({
+                  style={{
                     flexDirection: "row", alignItems: "center", gap: 14, padding: 16,
                     borderBottomWidth: i < SETTINGS.length - 1 ? 1 : 0,
                     borderBottomColor: c.border,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
+                  }}
                 >
                   <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: color + "20", alignItems: "center", justifyContent: "center" }}>
                     <Icon size={17} color={color} />
@@ -82,7 +84,7 @@ export default function AccountScreen() {
                     <Text style={{ fontSize: 12, color: c.muted, marginTop: 1 }}>{row.sub}</Text>
                   </View>
                   <ChevronRight size={16} color={c.muted} />
-                </Pressable>
+                </TouchableOpacity>
               );
             })}
           </View>
@@ -112,18 +114,18 @@ export default function AccountScreen() {
 
         {/* Sign out */}
         <View style={{ paddingHorizontal: 20 }}>
-          <Pressable
+          <TouchableOpacity
+            activeOpacity={0.8}
             onPress={handleSignOut}
-            style={({ pressed }) => ({
+            style={{
               flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
               borderRadius: 16, borderWidth: 1, borderColor: c.loss + "40",
               backgroundColor: c.lossDim, paddingVertical: 15,
-              opacity: pressed ? 0.7 : 1,
-            })}
+            }}
           >
             <LogOut size={16} color={c.loss} />
             <Text style={{ fontSize: 15, fontWeight: "600", color: c.loss }}>Sign out</Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
 
         <Text style={{ textAlign: "center", fontSize: 12, color: c.muted, marginTop: 24 }}>

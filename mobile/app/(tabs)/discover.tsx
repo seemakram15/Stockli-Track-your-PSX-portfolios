@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ChevronRight, ScanLine, BarChart2, Target, Calendar, BookOpen, History, Link2, Youtube } from "lucide-react-native";
@@ -37,7 +37,6 @@ export default function DiscoverScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-        {/* Header */}
         <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
           <Text style={{ fontSize: 28, fontWeight: "800", color: c.fg, letterSpacing: -0.8 }}>Discover</Text>
           <Text style={{ fontSize: 13, color: c.muted, marginTop: 2 }}>Tools, analysis & market resources</Text>
@@ -53,15 +52,15 @@ export default function DiscoverScreen() {
                 const Icon = item.icon;
                 const color = c[item.colorKey] as string;
                 return (
-                  <Pressable
+                  <TouchableOpacity
                     key={item.title}
+                    activeOpacity={0.7}
                     onPress={() => router.push(item.route as never)}
-                    style={({ pressed }) => ({
+                    style={{
                       flexDirection: "row", alignItems: "center", gap: 14, padding: 16,
                       borderBottomWidth: i < section.items.length - 1 ? 1 : 0,
                       borderBottomColor: c.border,
-                      opacity: pressed ? 0.7 : 1,
-                    })}
+                    }}
                   >
                     <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: color + "20", alignItems: "center", justifyContent: "center" }}>
                       <Icon size={17} color={color} />
@@ -71,7 +70,7 @@ export default function DiscoverScreen() {
                       <Text style={{ fontSize: 12, color: c.muted, marginTop: 1 }}>{item.sub}</Text>
                     </View>
                     <ChevronRight size={16} color={c.muted} />
-                  </Pressable>
+                  </TouchableOpacity>
                 );
               })}
             </View>
