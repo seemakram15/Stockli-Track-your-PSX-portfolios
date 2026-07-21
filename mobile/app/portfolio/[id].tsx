@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { ArrowLeft, Plus, ChevronRight } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { usePortfolios, useHoldings, useTransactions } from "@/hooks/usePortfolio";
@@ -62,6 +62,7 @@ function HoldingRow({
 }
 
 export default function PortfolioDetailScreen() {
+  const c = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: portfolios = [] } = usePortfolios();
   const { data: holdings = [], isLoading, mutate: mutateHoldings } = useHoldings(id);
@@ -130,14 +131,14 @@ export default function PortfolioDetailScreen() {
 
   if (!portfolio) {
     return (
-      <SafeAreaView className="flex-1 bg-[#0f0f13] items-center justify-center">
-        <ActivityIndicator size="large" color={colors.accent} />
+      <SafeAreaView className="flex-1 bg-canvas items-center justify-center">
+        <ActivityIndicator size="large" color={c.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <ScrollView className="flex-1" contentContainerClassName="pb-10" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
@@ -195,7 +196,7 @@ export default function PortfolioDetailScreen() {
         <View className="px-4">
           <ThemedText variant="label" className="mb-3">Holdings</ThemedText>
           {isLoading ? (
-            <ActivityIndicator size="small" color={colors.accent} />
+            <ActivityIndicator size="small" color={c.primary} />
           ) : holdings.length === 0 ? (
             <Card className="items-center py-8 gap-2">
               <ThemedText variant="body" className="text-muted">No holdings yet</ThemedText>
@@ -254,7 +255,7 @@ export default function PortfolioDetailScreen() {
             ].map(({ key, label, upper, numeric }) => (
               <TextInput
                 key={key}
-                className="rounded-xl border border-border bg-[#0f0f13] px-4 py-3 text-[#e2e2f0] text-[16px]"
+                className="rounded-xl border border-border bg-canvas px-4 py-3 text-fg text-[16px]"
                 placeholder={label}
                 placeholderTextColor={colors.muted}
                 value={form[key as keyof AddTradeForm]}

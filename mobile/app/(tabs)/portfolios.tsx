@@ -3,7 +3,7 @@ import { View, ScrollView, Pressable, Alert, TextInput, Modal, ActivityIndicator
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Plus, BriefcaseBusiness, ChevronRight, Eye } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { usePortfolios, useAllHoldings } from "@/hooks/usePortfolio";
@@ -26,6 +26,7 @@ function PortfolioCard({
   holdingCount: number;
   onDelete: () => void;
 }) {
+  const c = useColors();
   return (
     <Pressable
       className="active:opacity-80"
@@ -41,13 +42,13 @@ function PortfolioCard({
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-2 flex-1">
             <View className="size-8 rounded-lg bg-accent/20 items-center justify-center">
-              <BriefcaseBusiness size={16} color={colors.accent} />
+              <BriefcaseBusiness size={16} color={c.primary} />
             </View>
             <ThemedText variant="subhead" className="flex-1" numberOfLines={1}>
               {portfolio.name}
             </ThemedText>
           </View>
-          <ChevronRight size={16} color={colors.muted} />
+          <ChevronRight size={16} color={c.muted} />
         </View>
 
         <View className="flex-row justify-between pt-1">
@@ -79,6 +80,7 @@ function PortfolioCard({
 }
 
 export default function PortfoliosScreen() {
+  const c = useColors();
   const { data: portfolios = [], isLoading, mutate } = usePortfolios();
   const { data: allHoldings = [] } = useAllHoldings();
   const allSymbols = [...new Set(allHoldings.map((h) => h.symbol))];
@@ -132,7 +134,7 @@ export default function PortfoliosScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="gap-4 px-4 pb-10 pt-2"
@@ -160,7 +162,7 @@ export default function PortfoliosScreen() {
 
         {isLoading ? (
           <View className="items-center py-12">
-            <ActivityIndicator size="large" color={colors.accent} />
+            <ActivityIndicator size="large" color={c.primary} />
           </View>
         ) : portfolios.length === 0 ? (
           <Card className="items-center py-12 gap-3">
@@ -201,7 +203,7 @@ export default function PortfoliosScreen() {
         <View className="bg-surface border-t border-border px-4 pt-4 pb-10">
           <ThemedText variant="subhead" className="mb-4">New Portfolio</ThemedText>
           <TextInput
-            className="rounded-xl border border-border bg-[#0f0f13] px-4 py-3 text-[#e2e2f0] text-[16px] mb-4"
+            className="rounded-xl border border-border bg-canvas px-4 py-3 text-fg text-[16px] mb-4"
             placeholder="Portfolio name"
             placeholderTextColor={colors.muted}
             value={newName}

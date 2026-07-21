@@ -3,7 +3,7 @@ import { View, TextInput, FlatList, Pressable, ActivityIndicator } from "react-n
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ArrowLeft, Search, TrendingUp, Globe2, BarChart3, Tag } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { useSearch } from "@/hooks/useMarket";
 
@@ -30,7 +30,7 @@ const KIND_ICON: Record<ResultKind, typeof TrendingUp> = {
 };
 
 const KIND_COLOR: Record<ResultKind, string> = {
-  stock: colors.accent,
+  stock: colors.primary,
   index: colors.sky,
   "mutual-fund": colors.warn,
   etf: colors.warn,
@@ -80,13 +80,14 @@ function navigateToResult(item: SearchResult) {
 }
 
 export default function SearchScreen() {
+  const c = useColors();
   const [query, setQuery] = useState("");
 
   const { data, isLoading } = useSearch(query);
   const results: SearchResult[] = (data as { results?: SearchResult[] } | undefined)?.results ?? [];
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       {/* Search bar */}
       <View className="flex-row items-center gap-2 px-4 pt-2 pb-3">
         <Pressable onPress={() => router.back()} className="size-9 items-center justify-center">
@@ -95,7 +96,7 @@ export default function SearchScreen() {
         <View className="flex-1 flex-row items-center gap-2 rounded-xl bg-surface border border-border px-3 py-2.5">
           <Search size={16} color={colors.muted} />
           <TextInput
-            className="flex-1 text-[#e2e2f0] text-[16px]"
+            className="flex-1 text-fg text-[16px]"
             placeholder="Search stocks, funds, indices…"
             placeholderTextColor={colors.muted}
             value={query}
@@ -114,7 +115,7 @@ export default function SearchScreen() {
         </View>
       ) : isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.accent} />
+          <ActivityIndicator size="large" color={c.primary} />
         </View>
       ) : results.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-2">

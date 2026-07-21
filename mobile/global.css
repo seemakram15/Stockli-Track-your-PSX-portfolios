@@ -1,3 +1,41 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Light mode ─────────────────────────────────────────────── */
+:root {
+  --canvas:   #f4f9f6;
+  --card:     #ffffff;
+  --card2:    #edf4f0;
+  --bdr:      #d8eae3;
+  --fg:       #0f2520;
+  --fg-muted: #617a72;
+  --primary:  #0d9488;
+  --gain:     #059669;
+  --loss:     #dc2626;
+  --warn:     #d97706;
+  --sky:      #0284c7;
+  --emerald:  #059669;
+  --orange:   #ea580c;
+  --amber:    #d97706;
+}
+
+/* ── Dark mode ──────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas:   #162228;
+    --card:     #1c2c36;
+    --card2:    #213440;
+    --bdr:      rgba(255,255,255,0.09);
+    --fg:       #eef3f2;
+    --fg-muted: #7a9098;
+    --primary:  #34d399;
+    --gain:     #4ade80;
+    --loss:     #f87171;
+    --warn:     #fbbf24;
+    --sky:      #38bdf8;
+    --emerald:  #34d399;
+    --orange:   #fb923c;
+    --amber:    #fbbf24;
+  }
+}

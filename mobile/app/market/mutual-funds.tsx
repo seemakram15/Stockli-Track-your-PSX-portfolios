@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ArrowLeft, Search } from "lucide-react-native";
 import useSWR from "swr";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { api } from "@/lib/api";
 import { formatPercent, plColor } from "@/lib/format";
@@ -20,6 +20,7 @@ interface MufapFund {
 }
 
 export default function MutualFundsScreen() {
+  const c = useColors();
   const { data, isLoading } = useSWR("mufap", api.market.mufap, { revalidateOnFocus: false });
   const [query, setQuery] = useState("");
 
@@ -31,7 +32,7 @@ export default function MutualFundsScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-3">
         <Pressable onPress={() => router.back()} className="size-9 items-center justify-center">
           <ArrowLeft size={20} color={colors.text} />
@@ -43,7 +44,7 @@ export default function MutualFundsScreen() {
         <View className="flex-row items-center gap-2 rounded-xl bg-surface border border-border px-3 py-2.5">
           <Search size={16} color={colors.muted} />
           <TextInput
-            className="flex-1 text-[#e2e2f0] text-[15px]"
+            className="flex-1 text-fg text-[15px]"
             placeholder="Search fund or AMC…"
             placeholderTextColor={colors.muted}
             value={query}
@@ -62,7 +63,7 @@ export default function MutualFundsScreen() {
 
       {isLoading && filtered.length === 0 ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.accent} />
+          <ActivityIndicator size="large" color={c.primary} />
         </View>
       ) : (
         <FlatList

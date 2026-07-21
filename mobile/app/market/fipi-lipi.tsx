@@ -3,7 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import useSWR from "swr";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { api } from "@/lib/api";
@@ -22,6 +22,7 @@ function NetRow({ label, net }: { label: string; net: number }) {
 }
 
 export default function FipiLipiScreen() {
+  const c = useColors();
   const { data, isLoading } = useSWR("fipi-lipi", api.market.fipiLipi, {
     revalidateOnFocus: false,
   });
@@ -30,7 +31,7 @@ export default function FipiLipiScreen() {
   const lipi = (data as { data?: { lipi?: { net: number; sector: string }[] } } | undefined)?.data?.lipi ?? [];
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
         <Pressable onPress={() => router.back()} className="size-9 items-center justify-center">
           <ArrowLeft size={20} color={colors.text} />
@@ -40,7 +41,7 @@ export default function FipiLipiScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.accent} />
+          <ActivityIndicator size="large" color={c.primary} />
         </View>
       ) : (
         <ScrollView className="flex-1 px-4" contentContainerClassName="pb-10 gap-4" showsVerticalScrollIndicator={false}>

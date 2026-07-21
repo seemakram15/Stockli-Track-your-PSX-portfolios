@@ -3,12 +3,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ChevronLeft, Calendar } from "lucide-react-native";
 import useSWR from "swr";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { api } from "@/lib/api";
 
 export default function BoardMeetingsScreen() {
+  const c = useColors();
   const { data, isLoading, error } = useSWR("board-meetings", api.market.boardMeetings, {
     revalidateOnFocus: false,
   });
@@ -16,7 +17,7 @@ export default function BoardMeetingsScreen() {
   const rows: any[] = (data as any)?.data ?? [];
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <ChevronLeft size={22} color={colors.text} />
@@ -26,7 +27,7 @@ export default function BoardMeetingsScreen() {
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.accent} />
+          <ActivityIndicator color={c.primary} />
         </View>
       ) : error ? (
         <View className="flex-1 items-center justify-center px-8">
@@ -42,7 +43,7 @@ export default function BoardMeetingsScreen() {
               className="flex-row items-center gap-3 px-4 py-3.5 border-b border-border active:bg-surface"
             >
               <View className="size-9 items-center justify-center rounded-xl bg-accent/10">
-                <Calendar size={16} color={colors.accent} />
+                <Calendar size={16} color={c.primary} />
               </View>
               <View className="flex-1">
                 <ThemedText className="text-[14px] font-semibold text-text">{item.symbol ?? item.company ?? "—"}</ThemedText>

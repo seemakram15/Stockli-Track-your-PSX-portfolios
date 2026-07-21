@@ -18,7 +18,7 @@ export default function RootLayout() {
   React.useEffect(() => {
     if (loading) return;
     if (!session) {
-      router.replace("/(auth)/login");
+      router.replace("/(auth)");
     } else {
       router.replace("/(tabs)");
     }

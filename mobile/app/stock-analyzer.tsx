@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ChevronLeft, Search, ScanLine } from "lucide-react-native";
 import useSWR from "swr";
-import { colors } from "@/lib/theme";
+import { colors, useColors } from "@/lib/theme";
 import { Card } from "@/components/ui/ThemedView";
 import { ThemedText } from "@/components/ui/ThemedText";
 import { api } from "@/lib/api";
@@ -33,6 +33,7 @@ function MetricRow({ label, value, comment }: { label: string; value: string; co
 }
 
 export default function StockAnalyzerScreen() {
+  const c = useColors();
   const [symbol, setSymbol] = useState("");
   const [submitted, setSubmitted] = useState("");
 
@@ -50,7 +51,7 @@ export default function StockAnalyzerScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f0f13]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-canvas" edges={["top"]}>
       <View className="flex-row items-center gap-3 px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <ChevronLeft size={22} color={colors.text} />
@@ -87,7 +88,7 @@ export default function StockAnalyzerScreen() {
 
         {isLoading && (
           <View className="items-center py-16">
-            <ActivityIndicator color={colors.accent} size="large" />
+            <ActivityIndicator color={c.primary} size="large" />
             <ThemedText variant="caption" className="mt-3">Analyzing {submitted}…</ThemedText>
           </View>
         )}
