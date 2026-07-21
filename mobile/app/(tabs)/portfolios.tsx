@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, TextInput, Modal, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable, TouchableOpacity, Alert, TextInput, Modal, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Plus, BriefcaseBusiness, ChevronRight, Eye, TrendingUp, TrendingDown } from "lucide-react-native";
@@ -15,13 +15,13 @@ function PortfolioCard({ portfolio, value, pl, plPct, holdingCount, onDelete, c 
 }) {
   const up = pl >= 0;
   return (
-    <Pressable
+    <TouchableOpacity
+      activeOpacity={0.8}
       onPress={() => router.push(`/portfolio/${portfolio.id}`)}
       onLongPress={() => Alert.alert("Delete Portfolio", `Delete "${portfolio.name}"?`, [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: onDelete },
       ])}
-      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
     >
       <View style={{ backgroundColor: c.card, borderRadius: 18, borderWidth: 1, borderColor: c.border, padding: 18, gap: 14 }}>
         {/* Top row */}
@@ -53,7 +53,7 @@ function PortfolioCard({ portfolio, value, pl, plPct, holdingCount, onDelete, c 
           </View>
         </View>
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 

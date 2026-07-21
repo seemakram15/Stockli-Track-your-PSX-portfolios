@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronRight, TrendingUp, Globe2, Gem, Bitcoin, Droplets, BarChart3, Banknote } from "lucide-react-native";
 import { router } from "expo-router";
@@ -28,9 +28,9 @@ const MARKET_SECTIONS: { label: string; items: { title: string; sub: string; ico
   {
     label: "Commodities & Crypto",
     items: [
-      { title: "Commodities",  sub: "Gold, Silver, Copper, Iron",    icon: Gem,     colorKey: "amber",  href: "/market/commodities" },
+      { title: "Commodities",  sub: "Gold, Silver, Copper, Iron",    icon: Gem,      colorKey: "amber",  href: "/market/commodities" },
       { title: "Oil & Energy", sub: "WTI, Brent, Natural Gas",       icon: Droplets, colorKey: "orange", href: "/market/oil" },
-      { title: "Crypto",       sub: "BTC, ETH, SOL and more",        icon: Bitcoin, colorKey: "violet", href: "/market/crypto" },
+      { title: "Crypto",       sub: "BTC, ETH, SOL and more",        icon: Bitcoin,  colorKey: "violet", href: "/market/crypto" },
     ],
   },
 ];
@@ -40,7 +40,6 @@ export default function MarketsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-        {/* Header */}
         <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
           <Text style={{ fontSize: 28, fontWeight: "800", color: c.fg, letterSpacing: -0.8 }}>Markets</Text>
           <Text style={{ fontSize: 13, color: c.muted, marginTop: 2 }}>Real-time data across 9+ markets</Text>
@@ -56,15 +55,15 @@ export default function MarketsScreen() {
                 const Icon = item.icon;
                 const color = c[item.colorKey] as string;
                 return (
-                  <Pressable
+                  <TouchableOpacity
                     key={item.title}
+                    activeOpacity={0.7}
                     onPress={() => router.push(item.href as never)}
-                    style={({ pressed }) => ({
+                    style={{
                       flexDirection: "row", alignItems: "center", gap: 14, padding: 16,
                       borderBottomWidth: i < section.items.length - 1 ? 1 : 0,
                       borderBottomColor: c.border,
-                      opacity: pressed ? 0.7 : 1,
-                    })}
+                    }}
                   >
                     <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: color + "20", alignItems: "center", justifyContent: "center" }}>
                       <Icon size={17} color={color} />
@@ -74,7 +73,7 @@ export default function MarketsScreen() {
                       <Text style={{ fontSize: 12, color: c.muted, marginTop: 1 }}>{item.sub}</Text>
                     </View>
                     <ChevronRight size={16} color={c.muted} />
-                  </Pressable>
+                  </TouchableOpacity>
                 );
               })}
             </View>

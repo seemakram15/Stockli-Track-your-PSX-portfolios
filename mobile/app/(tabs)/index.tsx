@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, RefreshControl, ActivityIndicator, Image } from "react-native";
+import { View, Text, ScrollView, Pressable, TouchableOpacity, RefreshControl, ActivityIndicator, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { TrendingUp, TrendingDown, Search, Bell } from "lucide-react-native";
@@ -42,13 +42,10 @@ function IndexCard({ label, value, pct, c }: { label: string; value: number; pct
 function MoverRow({ item, c, rank }: { item: Mover; c: ReturnType<typeof useColors>; rank: number }) {
   const up = item.changePct >= 0;
   return (
-    <Pressable
+    <TouchableOpacity
+      activeOpacity={0.7}
       onPress={() => router.push(`/stock/${item.symbol}`)}
-      style={({ pressed }) => ({
-        flexDirection: "row", alignItems: "center",
-        paddingVertical: 10, opacity: pressed ? 0.7 : 1,
-        gap: 10,
-      })}
+      style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, gap: 10 }}
     >
       <Text style={{ fontSize: 12, fontWeight: "700", color: c.muted, width: 16 }}>{rank}</Text>
       <View style={{ flex: 1 }}>
@@ -65,7 +62,7 @@ function MoverRow({ item, c, rank }: { item: Mover; c: ReturnType<typeof useColo
           {up ? "+" : ""}{formatPercent(item.changePct)}
         </Text>
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
