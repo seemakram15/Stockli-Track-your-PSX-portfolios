@@ -47,7 +47,7 @@ const TASKS: Task[] = [
         cacheKey: "public:stock-fundamentals:companies:ready:v1",
         url: "/api/public/stock-fundamentals/companies?ready=1",
       },
-      { cacheKey: "public:psx-market", url: "/api/public/market" },
+      { cacheKey: "public:psx-market:v3", url: "/api/public/market" },
     ],
   },
   {

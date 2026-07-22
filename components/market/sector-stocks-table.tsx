@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowUpDown, Search } from "lucide-react";
 import { ChangeBadge } from "@/components/change-badge";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { Input } from "@/components/ui/input";
 import {
@@ -100,9 +101,12 @@ export function SectorStocksTable({
                 {rows.map((stock) => (
                   <TableRow key={stock.symbol} className="group">
                     <TableCell>
-                      <Link href={`/stock/${stock.symbol}`} className="font-semibold group-hover:text-primary">
-                        {stock.symbol}
-                      </Link>
+                      <StockIdentity
+                        href={`/stock/${stock.symbol}`}
+                        symbol={stock.symbol}
+                        name={stock.name}
+                        size="xs"
+                      />
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatPKR(stock.price)}</TableCell>
                     <TableCell className="text-right">
@@ -138,11 +142,13 @@ function StockCard({ stock }: { stock: SectorStockPerformance }) {
       className="block rounded-xl border border-border bg-card p-3 hover:border-primary/40"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-semibold">{stock.symbol}</p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">Sector stock</p>
-        </div>
-        <div className="text-right">
+        <StockIdentity
+          symbol={stock.symbol}
+          name={stock.name ?? "Sector stock"}
+          size="sm"
+          className="min-w-0"
+        />
+        <div className="shrink-0 text-right">
           <p className="font-medium tabular-nums">{formatPKR(stock.price)}</p>
           <ChangeBadge value={stock.change} pct={stock.changePct} showValue className="justify-end text-xs" />
         </div>

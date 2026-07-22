@@ -35,6 +35,7 @@ import { shouldRefreshPsxData } from "@/lib/psx/market-hours";
 import { formatDate, formatNumber } from "@/lib/format";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import { cn } from "@/lib/utils";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import type {
   BoardMeetingsData,
   BookClosuresData,
@@ -204,8 +205,16 @@ export function CachedBoardMeetingsPage() {
           renderDesktop={(row) => (
             <>
               <TableCell>
-                <div className="font-semibold text-foreground">{row.company}</div>
-                {row.symbol ? <div className="text-xs text-muted-foreground">{row.symbol}</div> : null}
+                {row.symbol ? (
+                  <StockIdentity
+                    href={`/stock/${row.symbol}`}
+                    symbol={row.symbol}
+                    name={row.company}
+                    size="xs"
+                  />
+                ) : (
+                  <div className="font-semibold text-foreground">{row.company}</div>
+                )}
               </TableCell>
               <TableCell>{formatDate(row.meetingDate) || row.meetingDate}</TableCell>
               <TableCell>{row.meetingTime}</TableCell>
@@ -216,6 +225,7 @@ export function CachedBoardMeetingsPage() {
             <MobileDataCard
               title={row.company}
               eyebrow={row.symbol ?? "Board meeting"}
+              symbol={row.symbol}
               value={formatDate(row.meetingDate) || row.meetingDate}
               details={[
                 ["Time", row.meetingTime],
@@ -273,7 +283,15 @@ export function CachedBookClosuresPage() {
             const payout = splitBookPayout(row.payout);
             return (
               <>
-                <TableCell className="font-semibold">{row.symbol}</TableCell>
+                <TableCell>
+                  <StockIdentity
+                    href={`/stock/${row.symbol}`}
+                    symbol={row.symbol}
+                    name={row.company}
+                    size="xs"
+                    showName={false}
+                  />
+                </TableCell>
                 <TableCell className="max-w-sm whitespace-normal">{row.company}</TableCell>
                 <TableCell>{formatDate(row.bookClosureFrom) || row.bookClosureFrom}</TableCell>
                 <TableCell>{formatDate(row.bookClosureTo) || row.bookClosureTo}</TableCell>
@@ -331,7 +349,14 @@ export function CachedDividendHistoryPage() {
           desktopHeaders={["Symbol", "Payout", "Credited on"]}
           renderDesktop={(row) => (
             <>
-              <TableCell className="font-semibold">{row.symbol}</TableCell>
+              <TableCell>
+                <StockIdentity
+                  href={`/stock/${row.symbol}`}
+                  symbol={row.symbol}
+                  size="xs"
+                  showName={false}
+                />
+              </TableCell>
               <TableCell className="font-semibold text-gain">{normalizePayoutLabel(row.payout)}</TableCell>
               <TableCell>{formatDate(row.creditedOn) || row.creditedOn}</TableCell>
             </>
@@ -764,11 +789,13 @@ function rowRenderKey(row: { id: string }, index: number) {
 function MobileDataCard({
   title,
   eyebrow,
+  symbol,
   value,
   details,
 }: {
   title: string;
   eyebrow: string;
+  symbol?: string | null;
   value: string;
   details: Array<[string, string]>;
 }) {
@@ -776,8 +803,20 @@ function MobileDataCard({
     <div className="rounded-xl bg-card p-4 shadow-soft ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <AccentPill accent="sky">{eyebrow}</AccentPill>
-          <h3 className="mt-1.5 truncate text-lg font-semibold">{title}</h3>
+          {symbol ? (
+            <StockIdentity
+              href={`/stock/${symbol}`}
+              symbol={symbol}
+              name={title}
+              size="sm"
+              className="mb-1"
+            />
+          ) : (
+            <>
+              <AccentPill accent="sky">{eyebrow}</AccentPill>
+              <h3 className="mt-1.5 truncate text-lg font-semibold">{title}</h3>
+            </>
+          )}
         </div>
         <Badge variant="info" className="shrink-0 px-3 py-1 text-sm">
           {value}
@@ -798,12 +837,14 @@ function MobileDataCard({
 function CompactDividendCard({ row }: { row: DividendHistoryData["rows"][number] }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl bg-card p-3 shadow-soft ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg">
-      <div className="min-w-0">
-        <p className="truncate text-base font-semibold">{row.symbol}</p>
-        <p className="truncate text-xs text-muted-foreground">
-          {formatDate(row.creditedOn) || row.creditedOn}
-        </p>
-      </div>
+      <StockIdentity
+        href={`/stock/${row.symbol}`}
+        symbol={row.symbol}
+        size="sm"
+        showName={false}
+        subtitle={formatDate(row.creditedOn) || row.creditedOn}
+        className="min-w-0"
+      />
       <Badge variant="gain" className="shrink-0 px-3 py-1 text-sm">
         {normalizePayoutLabel(row.payout)}
       </Badge>
@@ -816,10 +857,13 @@ function CompactBookClosureCard({ row }: { row: BookClosuresData["rows"][number]
   return (
     <div className="rounded-xl bg-card p-3 shadow-soft ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-base font-semibold">{row.symbol}</p>
-          <p className="truncate text-xs text-muted-foreground">{row.company}</p>
-        </div>
+        <StockIdentity
+          href={`/stock/${row.symbol}`}
+          symbol={row.symbol}
+          name={row.company}
+          size="sm"
+          className="min-w-0"
+        />
         <div className="shrink-0 text-right text-xs text-muted-foreground">
           <p>{formatDate(row.bookClosureFrom) || row.bookClosureFrom}</p>
           <p>{formatDate(row.bookClosureTo) || row.bookClosureTo}</p>
@@ -870,8 +914,12 @@ function PivotTableRow({ row }: { row: PivotPointRow }) {
   return (
     <TableRow>
       <TableCell>
-        <div className="font-semibold">{row.symbol}</div>
-        <div className="text-xs text-muted-foreground">{row.companyName}</div>
+        <StockIdentity
+          href={`/stock/${row.symbol}`}
+          symbol={row.symbol}
+          name={row.companyName}
+          size="xs"
+        />
       </TableCell>
       {[row.current, row.s3, row.s2, row.s1, row.pivot, row.r1, row.r2, row.r3, row.range].map(
         (value, index) => (
@@ -906,10 +954,13 @@ function PivotMobileCard({ row }: { row: PivotPointRow }) {
   return (
     <div className="rounded-xl border border-border bg-background p-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold">{row.symbol}</h3>
-          <p className="text-sm text-muted-foreground">{row.companyName}</p>
-        </div>
+        <StockIdentity
+          href={`/stock/${row.symbol}`}
+          symbol={row.symbol}
+          name={row.companyName}
+          size="sm"
+          className="min-w-0"
+        />
         <span className="rounded-full bg-muted px-3 py-1 text-sm font-semibold">
           {formatNumber(row.current, 2)}
         </span>

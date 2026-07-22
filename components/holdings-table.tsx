@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { ChangeBadge } from "@/components/change-badge";
 import { HoldingRowActions } from "@/components/portfolio/holding-row-actions";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { useLiveHoldings } from "@/lib/hooks/use-live-holdings";
 import { formatPKR, formatNumber, formatPercent, plColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -91,12 +91,12 @@ export function HoldingsTable({
               {rows.map((h) => (
                 <TableRow key={h.id} className="group">
                   <TableCell>
-                    <Link href={`/stock/${h.symbol}`} className="flex flex-col">
-                      <span className="font-semibold group-hover:text-primary">{h.symbol}</span>
-                      <span className="max-w-64 truncate text-xs text-muted-foreground">
-                        {h.ticker?.company_name ?? h.ticker?.sector ?? ""}
-                      </span>
-                    </Link>
+                    <StockIdentity
+                      href={`/stock/${h.symbol}`}
+                      symbol={h.symbol}
+                      name={h.ticker?.company_name ?? h.ticker?.sector}
+                      size="xs"
+                    />
                   </TableCell>
                   {showPortfolio && (
                     <TableCell className="text-muted-foreground">
@@ -169,12 +169,12 @@ export function HoldingsTable({
           {rows.map((h) => (
             <TableRow key={h.id} className="group">
               <TableCell>
-                <Link href={`/stock/${h.symbol}`} className="flex flex-col">
-                  <span className="font-semibold group-hover:text-primary">{h.symbol}</span>
-                  <span className="max-w-40 truncate text-xs text-muted-foreground">
-                    {h.ticker?.company_name ?? h.ticker?.sector ?? ""}
-                  </span>
-                </Link>
+                <StockIdentity
+                  href={`/stock/${h.symbol}`}
+                  symbol={h.symbol}
+                  name={h.ticker?.company_name ?? h.ticker?.sector}
+                  size="xs"
+                />
               </TableCell>
               {showPortfolio && (
                 <TableCell className="hidden text-muted-foreground md:table-cell">
@@ -245,30 +245,20 @@ function MobileHoldingCard({
 }) {
   const dayClass = plColorClass(holding.dayChange);
   const totalClass = plColorClass(holding.unrealizedPL);
-  const tickerSize =
-    holding.symbol.length > 6
-      ? "text-2xl"
-      : holding.symbol.length > 4
-        ? "text-3xl"
-        : "text-4xl";
 
   return (
     <article className="overflow-hidden rounded-2xl border-2 border-border bg-card shadow-sm">
       {/* Header: ticker + current price + actions */}
       <div className="flex items-center justify-between px-4 py-3.5">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link href={`/stock/${holding.symbol}`} className="shrink-0">
-            <span
-              className={cn(
-                "font-black tracking-tight",
-                tickerSize,
-                "text-emerald-700 dark:text-emerald-500",
-              )}
-            >
-              {holding.symbol}
-            </span>
-          </Link>
-          <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-3">
+          <StockIdentity
+            href={`/stock/${holding.symbol}`}
+            symbol={holding.symbol}
+            name={holding.ticker?.company_name}
+            size="md"
+            className="min-w-0"
+          />
+          <div className="min-w-0 border-l border-border/70 pl-3">
             <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
               {portfolioName ?? "Current"}
             </p>
@@ -347,30 +337,19 @@ function MobileHoldingCardCompact({
   portfolioName?: string;
 }) {
   const dayClass = plColorClass(holding.dayChange);
-  const tickerSize =
-    holding.symbol.length > 6
-      ? "text-lg"
-      : holding.symbol.length > 4
-        ? "text-xl"
-        : "text-2xl";
-
   void portfolioName;
 
   return (
     <article className="flex flex-col gap-1 rounded-xl border-2 border-border bg-card px-4 py-3 shadow-sm">
-      <div className="flex items-center justify-between">
-        <Link href={`/stock/${holding.symbol}`} className="shrink-0">
-          <span
-            className={cn(
-              "font-black tracking-tight",
-              tickerSize,
-              "text-emerald-700 dark:text-emerald-500",
-            )}
-          >
-            {holding.symbol}
-          </span>
-        </Link>
-        <span className="font-semibold tabular-nums text-foreground">
+      <div className="flex items-center justify-between gap-3">
+        <StockIdentity
+          href={`/stock/${holding.symbol}`}
+          symbol={holding.symbol}
+          name={holding.ticker?.company_name}
+          size="sm"
+          className="min-w-0"
+        />
+        <span className="shrink-0 font-semibold tabular-nums text-foreground">
           {formatPKR(holding.marketValue)}
         </span>
       </div>

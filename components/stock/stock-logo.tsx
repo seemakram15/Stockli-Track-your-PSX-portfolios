@@ -5,6 +5,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const SIZE_CLASSES = {
+  xs: "size-7 rounded-md text-[10px]",
   sm: "size-9 rounded-lg text-xs",
   md: "size-10 rounded-xl text-sm",
   lg: "size-12 rounded-xl text-base",

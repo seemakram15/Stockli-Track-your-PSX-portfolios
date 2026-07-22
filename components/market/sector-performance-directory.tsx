@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { ChangeBadge } from "@/components/change-badge";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { formatCompact, formatPKR, plColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import type { SectorPerformance, SectorStockPerformance } from "@/lib/services/market";
 
 const SECTOR_PRIORITY: string[] = [
@@ -142,7 +142,6 @@ export function SectorPerformanceDirectory({
                   </td>
                 </tr>
                 {sector.stocks.map((stock, i) => {
-                  const company = stock.name;
                   return (
                     <tr
                       key={stock.symbol}
@@ -152,16 +151,12 @@ export function SectorPerformanceDirectory({
                       )}
                     >
                       <td className="px-4 py-2.5">
-                        <Link href={`/stock/${stock.symbol}`} className="group flex flex-col hover:text-primary">
-                          {company ? (
-                            <>
-                              <span className="font-semibold">{company}</span>
-                              <span className="text-[11px] text-muted-foreground">{stock.symbol}</span>
-                            </>
-                          ) : (
-                            <span className="font-semibold">{stock.symbol}</span>
-                          )}
-                        </Link>
+                        <StockIdentity
+                          href={`/stock/${stock.symbol}`}
+                          symbol={stock.symbol}
+                          name={stock.name}
+                          size="xs"
+                        />
                       </td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
                         {stock.ldcp != null ? formatPKR(stock.ldcp) : "—"}
@@ -219,7 +214,12 @@ export function SectorPerformanceDirectory({
                       className="flex w-full items-center gap-3 px-4 py-3 text-left"
                       onClick={() => setExpandedStock(isOpen ? null : key)}
                     >
-                      <span className="min-w-0 flex-1 text-sm font-semibold tabular-nums">{stock.symbol}</span>
+                      <StockIdentity
+                        symbol={stock.symbol}
+                        name={stock.name}
+                        size="xs"
+                        className="min-w-0 flex-1"
+                      />
                       <span className="shrink-0 tabular-nums text-sm font-semibold">{formatPKR(stock.price)}</span>
                       <ChangeBadge pct={stock.changePct} />
                       {isOpen

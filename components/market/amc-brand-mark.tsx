@@ -22,7 +22,8 @@ export function AmcBrandMark({
   className?: string;
 }) {
   const brand = identifyAmcBrand(label);
-  const iconUrl = logoUrl ?? amcIconUrl(brand);
+  // Prefer local official logos; remote MUFAP URLs are often hotlink-blocked in browsers.
+  const iconUrl = amcIconUrl(brand) ?? (logoUrl && !logoUrl.includes("mufap.com.pk") ? logoUrl : null);
   const [imgFailed, setImgFailed] = useState(false);
 
   const dimension = size === "sm" ? "size-7" : size === "lg" ? "size-10" : "size-8";
@@ -46,6 +47,13 @@ export function AmcBrandMark({
             unoptimized
             className="object-contain p-1"
             onError={() => setImgFailed(true)}
+            onLoad={(event) => {
+              const src = event.currentTarget.currentSrc || event.currentTarget.src;
+              // Google's default globe favicon is 16px — prefer initials instead.
+              if (src.includes("google.com/s2/favicons") && event.currentTarget.naturalWidth <= 16) {
+                setImgFailed(true);
+              }
+            }}
           />
         ) : brand.initials ? (
           <span
@@ -53,6 +61,7 @@ export function AmcBrandMark({
               "text-[10px] font-bold leading-none",
               selected ? "text-primary" : "text-foreground"
             )}
+            style={selected ? undefined : { color: brand.color }}
           >
             {brand.initials}
           </span>

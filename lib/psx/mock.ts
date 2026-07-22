@@ -108,7 +108,11 @@ export function genIntraday(
   for (let i = 0; i <= steps; i++) {
     const shock = (rand() - 0.5) * 0.006;
     price = price * (1 + shock);
-    points.push({ time: sessionStart + i * 300, value: round2(price) });
+    points.push({
+      time: sessionStart + i * 300,
+      value: round2(price),
+      volume: Math.round(50_000 + rand() * 250_000),
+    });
   }
   return points;
 }

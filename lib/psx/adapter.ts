@@ -212,7 +212,11 @@ export const dpsSource: PsxDataSource = {
     const data = json?.data ?? [];
     if (!Array.isArray(data)) throw new Error(`int/${symbol}: bad payload`);
     return data
-      .map((row) => ({ time: Math.floor(row[0]), value: Number(row[1]) }))
+      .map((row) => ({
+        time: Math.floor(row[0]),
+        value: Number(row[1]),
+        volume: row.length > 2 && Number.isFinite(Number(row[2])) ? Number(row[2]) : undefined,
+      }))
       .filter((p) => Number.isFinite(p.time) && Number.isFinite(p.value))
       .sort((a, b) => a.time - b.time);
   },

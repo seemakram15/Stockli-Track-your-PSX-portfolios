@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type * as React from "react";
 import {
   Table,
@@ -8,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { cn } from "@/lib/utils";
 import { formatPKR, formatNumber, formatDate } from "@/lib/format";
 import type { Transaction, TransactionType } from "@/lib/types";
@@ -50,12 +50,13 @@ export function TransactionsTable({
                   {t.type}
                 </span>
                 {showSymbol && (
-                  <Link
+                  <StockIdentity
                     href={`/stock/${t.symbol}`}
-                    className="truncate text-base font-black tracking-tight text-emerald-700 dark:text-emerald-500"
-                  >
-                    {t.symbol}
-                  </Link>
+                    symbol={t.symbol}
+                    size="xs"
+                    showName={false}
+                    className="min-w-0"
+                  />
                 )}
               </div>
               <p className="shrink-0 text-xs text-muted-foreground">{formatDate(t.transacted_at)}</p>
@@ -105,9 +106,12 @@ export function TransactionsTable({
               </TableCell>
               {showSymbol && (
                 <TableCell>
-                  <Link href={`/stock/${t.symbol}`} className="font-medium hover:text-primary">
-                    {t.symbol}
-                  </Link>
+                  <StockIdentity
+                    href={`/stock/${t.symbol}`}
+                    symbol={t.symbol}
+                    size="xs"
+                    showName={false}
+                  />
                 </TableCell>
               )}
               <TableCell className="text-right tabular-nums">

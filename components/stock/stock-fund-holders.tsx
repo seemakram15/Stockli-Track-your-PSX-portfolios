@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/accordion";
 import { IconChip } from "@/components/ui/accent";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
+import { AmcBrandMark } from "@/components/market/amc-brand-mark";
+import { IslamicTag, isIslamicOrShariahName } from "@/components/market/islamic-mark";
 import { identifyAmcBrand } from "@/lib/amc-brands";
 import type { FundHoldingStock, FundsHoldingStockData } from "@/lib/services/fund-returns";
 
@@ -101,10 +103,7 @@ export function StockFundHolders({ symbol }: { symbol: string }) {
                   }}
                 >
                   <div className="flex flex-1 items-center gap-2.5 min-w-0">
-                    <span
-                      className="size-2.5 shrink-0 rounded-full ring-2 ring-white/30"
-                      style={{ backgroundColor: group.color }}
-                    />
+                    <AmcBrandMark label={group.amc} size="sm" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold leading-snug">{group.shortName}</p>
                       <p className="text-xs text-muted-foreground">
@@ -126,15 +125,21 @@ export function StockFundHolders({ symbol }: { symbol: string }) {
                       <span>Fund</span>
                       <span className="text-right">% Held</span>
                     </div>
-                    {group.funds.map((fund) => (
+                    {group.funds.map((fund) => {
+                      const islamic = isIslamicOrShariahName(fund.fundName);
+                      return (
                       <div
                         key={`${fund.amc}||${fund.fundName}`}
                         className="grid grid-cols-[1fr_56px] items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40"
                       >
-                        <p className="min-w-0 truncate text-sm text-foreground/80">{fund.fundName}</p>
+                        <p className="flex min-w-0 items-center gap-1.5 text-sm text-foreground/80">
+                          {islamic ? <IslamicTag className="shrink-0" /> : null}
+                          <span className="min-w-0 truncate">{fund.fundName}</span>
+                        </p>
                         <p className="text-right text-sm font-semibold tabular-nums">{fund.percentage.toFixed(1)}%</p>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </AccordionContent>
               </AccordionItem>

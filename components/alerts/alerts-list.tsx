@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Bell, BellOff, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { IconChip } from "@/components/ui/accent";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { usePrices } from "@/lib/hooks/use-prices";
 import { effectiveQuotePrice } from "@/lib/services/metrics";
 import { formatPKR, formatPercent } from "@/lib/format";
@@ -51,9 +51,13 @@ export function AlertsList({ alerts, demo }: { alerts: Alert[]; demo?: boolean }
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link href={`/stock/${a.symbol}`} className="font-semibold hover:text-primary">
-                    {a.symbol}
-                  </Link>
+                  <StockIdentity
+                    href={`/stock/${a.symbol}`}
+                    symbol={a.symbol}
+                    size="xs"
+                    showName={false}
+                    className="min-w-0"
+                  />
                   <Badge variant={a.condition === "ABOVE" ? "info" : "warning"}>
                     {a.condition === "ABOVE" ? "Above" : "Below"}
                   </Badge>

@@ -21,11 +21,12 @@ import type { PublicMarketPageData } from "@/lib/services/public-market-page";
 export function CachedPsxMarketPage() {
   const { data, error, isLoading, isRefreshing, isFromDeviceCache, cachedAt, refreshNow } =
     usePersistentResource<PublicMarketPageData>({
-      cacheKey: "public:psx-market",
+      cacheKey: "public:psx-market:v3",
       url: "/api/public/market",
       refreshInterval: 60_000,
       pauseWhen: () => !shouldRefreshPsxData(),
       acceptCacheWhen: () => !shouldRefreshPsxData(),
+      legacyCacheKeys: ["public:psx-market", "public:psx-market:v2"],
     });
   const [currentDetail, setCurrentDetail] = React.useState(data?.detail ?? null);
 

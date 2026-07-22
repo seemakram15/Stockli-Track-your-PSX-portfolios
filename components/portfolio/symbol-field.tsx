@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Input } from "@/components/ui/input";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { cn } from "@/lib/utils";
 import type { SearchResult } from "@/app/api/search/route";
 
@@ -94,13 +95,15 @@ export function SymbolField({
               type="button"
               onClick={() => choose(r.symbol)}
               className={cn(
-                "flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-accent"
+                "flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
               )}
             >
-              <span className="font-medium">{r.symbol}</span>
-              <span className="max-w-44 truncate text-xs text-muted-foreground">
-                {r.company}
-              </span>
+              <StockIdentity
+                symbol={r.symbol}
+                name={r.company}
+                size="xs"
+                className="min-w-0"
+              />
             </button>
           ))}
         </div>

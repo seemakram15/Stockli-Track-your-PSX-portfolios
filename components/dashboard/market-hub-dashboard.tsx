@@ -128,7 +128,7 @@ export function MarketHubDashboard({ userId }: { userId: string }) {
     pauseWhen: cacheClosedOnly,
     acceptCacheWhen: acceptPortfolioCache,
   });
-  const psx = usePublicHub<PublicMarketData>("public:psx-market", "/api/public/market", cacheClosedOnly);
+  const psx = usePublicHub<PublicMarketData>("public:psx-market:v3", "/api/public/market", cacheClosedOnly);
   const us = usePublicHub<GlobalMarketData>("public:global-market:us", "/api/public/global-market/us", cacheClosedOnly);
   const india = usePublicHub<GlobalMarketData>("public:global-market:india", "/api/public/global-market/india", cacheClosedOnly);
   const world = usePublicHub<GlobalMarketData>("public:global-market:world", "/api/public/global-market/world", cacheClosedOnly);

@@ -1,10 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { Boxes, TrendingDown, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
 import { PriceLineChart } from "@/components/charts/price-line-chart";
+import { IconChip } from "@/components/ui/accent";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
+import { ChartSwitchLoader, useChartSwitchLoader } from "@/lib/hooks/use-chart-switch-loader";
 import type { PkCommoditiesData } from "@/lib/services/pakistan-commodities";
 import type { PkRawMaterialsData } from "@/lib/services/pakistan-raw-materials";
 import type { HistoryPoint } from "@/app/api/public/commodity-history/route";
@@ -52,6 +63,7 @@ export const PakistanCommoditiesBoard = React.forwardRef<PakCommoditiesBoardHand
       cacheKey: `public:commodity-history-v4:${chartSymbol}`,
       url: `/api/public/commodity-history?symbol=${chartSymbol}`,
       refreshInterval: 4 * 60 * 60 * 1000,
+      keepPreviousData: false,
     });
 
     const { data: rawMaterials, isLoading: rawLoading, refreshNow: refreshRaw } = usePersistentResource<PkRawMaterialsData>({
@@ -64,7 +76,19 @@ export const PakistanCommoditiesBoard = React.forwardRef<PakCommoditiesBoardHand
       cacheKey: `public:commodity-history-v4:${rawChartSymbol}`,
       url: `/api/public/commodity-history?symbol=${rawChartSymbol}`,
       refreshInterval: 4 * 60 * 60 * 1000,
+      keepPreviousData: false,
     });
+
+    const { showLoader: showPkChartLoader, beginSwitch: beginPkSwitch } = useChartSwitchLoader(
+      chartSymbol,
+      chartData,
+      chartLoading
+    );
+    const { showLoader: showRawChartLoader, beginSwitch: beginRawSwitch } = useChartSwitchLoader(
+      rawChartSymbol,
+      rawChartData,
+      rawChartLoading
+    );
 
     React.useImperativeHandle(ref, () => ({
       refresh: () => Promise.all([refreshNow(), refreshChart(), refreshRaw(), refreshRawChart()]).then(() => undefined),
@@ -97,19 +121,18 @@ export const PakistanCommoditiesBoard = React.forwardRef<PakCommoditiesBoardHand
     }, [commodities]);
 
     const activeOption = PK_CHART_OPTIONS.find((o) => o.symbol === chartSymbol)!;
-    const activeRawOption = RAW_CHART_OPTIONS.find((o) => o.symbol === rawChartSymbol)!;;
+    const activeRawOption = RAW_CHART_OPTIONS.find((o) => o.symbol === rawChartSymbol)!;
 
-    // Group raw material items by category
-    const rawGroups = React.useMemo(() => {
-      if (!rawMaterials) return [];
-      const order = ["construction", "fertilizer", "agriculture", "energy"] as const;
-      return order
-        .map((cat) => ({
-          cat,
-          items: rawMaterials.items.filter((i) => i.category === cat),
-        }))
-        .filter((g) => g.items.length > 0);
-    }, [rawMaterials]);
+    const selectPkSymbol = (next: ChartSymbol) => {
+      if (next === chartSymbol) return;
+      beginPkSwitch();
+      setChartSymbol(next);
+    };
+    const selectRawSymbol = (next: RawChartSymbol) => {
+      if (next === rawChartSymbol) return;
+      beginRawSwitch();
+      setRawChartSymbol(next);
+    };
 
     return (
       <div className="space-y-4">
@@ -133,15 +156,15 @@ export const PakistanCommoditiesBoard = React.forwardRef<PakCommoditiesBoardHand
               ))}
         </div>
 
-        <div className="rounded-xl border border-border bg-muted/10 p-3">
-          <div className="mb-3 flex flex-wrap gap-1">
+        <div className="flex h-[300px] flex-col overflow-hidden rounded-xl border border-border bg-muted/10 p-3">
+          <div className="mb-3 flex h-8 shrink-0 gap-1 overflow-x-auto scrollbar-thin">
             {PK_CHART_OPTIONS.map((opt) => (
               <button
                 key={opt.symbol}
                 type="button"
-                onClick={() => setChartSymbol(opt.symbol)}
+                onClick={() => selectPkSymbol(opt.symbol)}
                 className={
-                  "rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors " +
+                  "shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors " +
                   (chartSymbol === opt.symbol
                     ? "border-amber-500/40 bg-amber-500/15 text-amber-400"
                     : "border-border bg-muted/40 text-muted-foreground hover:text-foreground")
@@ -151,79 +174,125 @@ export const PakistanCommoditiesBoard = React.forwardRef<PakCommoditiesBoardHand
               </button>
             ))}
           </div>
-          {chartLoading && !chartData ? (
-            <div className="h-40 animate-pulse rounded-xl bg-muted/20" />
-          ) : (
-            <PriceLineChart
-              data={chartData ?? []}
-              color="hsl(43 96% 56%)"
-              height={160}
-              unit={activeOption.unit}
-              label={activeOption.label}
-              formatPrice={activeOption.fmt}
-              defaultDuration="1Y"
-            />
-          )}
+          <div className="min-h-0 flex-1">
+            {showPkChartLoader ? (
+              <ChartSwitchLoader
+                label={`${activeOption.label} chart`}
+                accentClassName="border-amber-500/30 border-t-amber-500"
+              />
+            ) : (
+              <PriceLineChart
+                key={chartSymbol}
+                data={chartData ?? []}
+                color="hsl(43 96% 56%)"
+                height={180}
+                unit={activeOption.unit}
+                label={activeOption.label}
+                formatPrice={activeOption.fmt}
+                defaultDuration="1Y"
+              />
+            )}
+          </div>
         </div>
 
-        {/* Pakistan Raw Material Prices */}
-        <div className="rounded-xl border border-border bg-muted/10 p-3">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Pakistan Market Rates
-          </p>
-          {rawLoading && !rawMaterials ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-8 animate-pulse rounded-lg bg-muted" />
-              ))}
+        {/* Pakistan Raw Material Prices — Markets-style board */}
+        <Card>
+          <CardHeader className="gap-3">
+            <div className="flex items-center gap-3">
+              <IconChip accent="amber" variant="gradient"><Boxes /></IconChip>
+              <div>
+                <CardTitle>Pakistan Market Rates</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Local spot prices — cement, steel, fertilizer &amp; more
+                </p>
+              </div>
             </div>
-          ) : rawGroups.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Prices unavailable</p>
-          ) : (
-            <div className="space-y-3">
-              {rawGroups.map(({ cat, items }) => {
-                const style = CATEGORY_STYLES[cat];
-                return (
-                  <div key={cat}>
-                    <div className="mb-1.5 flex items-center gap-1.5">
-                      <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        {style.label}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-1">
-                      {items.map((item) => (
-                        <div
-                          key={item.label}
-                          className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-3 py-2"
-                        >
-                          <span className="text-xs text-muted-foreground">{item.label}</span>
-                          <div className="text-right">
-                            {item.price != null ? (
-                              <>
-                                <span className="text-sm font-semibold tabular-nums">
-                                  Rs {item.price.toLocaleString("en-PK")}
-                                </span>
-                                <span className="ml-1 text-[10px] text-muted-foreground">{item.unit}</span>
-                              </>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </div>
+          </CardHeader>
+          <CardContent className="px-0 pb-4 sm:px-2">
+            {rawLoading && !rawMaterials ? (
+              <div className="space-y-2 px-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-10 animate-pulse rounded-lg bg-muted" />
+                ))}
+              </div>
+            ) : !rawMaterials || rawMaterials.items.length === 0 ? (
+              <p className="px-4 text-sm text-muted-foreground">Prices unavailable</p>
+            ) : (
+              <>
+                {/* Mobile cards — same layout as Markets mobile rows */}
+                <div className="space-y-3 px-3 sm:hidden">
+                  {rawMaterials.items.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-border bg-card p-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">{item.label}</p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {item.unit}
+                          </p>
                         </div>
-                      ))}
+                        <div className="shrink-0 text-right">
+                          {item.price != null ? (
+                            <p className="font-semibold tabular-nums">
+                              Rs {item.price.toLocaleString("en-PK")}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">—</p>
+                          )}
+                          <p className="mt-0.5 text-xs capitalize text-muted-foreground">
+                            {CATEGORY_STYLES[item.category]?.label ?? item.category}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {rawMaterials && (
-            <p className="mt-2 text-[10px] text-muted-foreground/60">
-              Sources: materialrate.pk · kissanshop.com · icons.com.pk · procarepk.com
-            </p>
-          )}
-        </div>
+                  ))}
+                </div>
+
+                {/* Desktop table — same columns pattern as Markets */}
+                <div className="hidden overflow-x-auto scrollbar-thin sm:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Market</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rawMaterials.items.map((item) => (
+                        <TableRow key={item.label}>
+                          <TableCell>
+                            <div>
+                              <p className="font-semibold">{item.label}</p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {item.unit}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="capitalize text-muted-foreground">
+                            {CATEGORY_STYLES[item.category]?.label ?? item.category}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold tabular-nums">
+                            {item.price != null
+                              ? `Rs ${item.price.toLocaleString("en-PK")}`
+                              : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
+            {rawMaterials && (
+              <p className="mt-3 px-4 text-xs text-muted-foreground sm:px-2">
+                Sources: {rawMaterials.source}
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Raw Material Price Charts */}
         <div className="rounded-xl border border-border bg-muted/10 p-3">
@@ -235,7 +304,7 @@ export const PakistanCommoditiesBoard = React.forwardRef<PakCommoditiesBoardHand
               <button
                 key={opt.symbol}
                 type="button"
-                onClick={() => setRawChartSymbol(opt.symbol)}
+                onClick={() => selectRawSymbol(opt.symbol)}
                 className={
                   "rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors " +
                   (rawChartSymbol === opt.symbol
@@ -247,12 +316,17 @@ export const PakistanCommoditiesBoard = React.forwardRef<PakCommoditiesBoardHand
               </button>
             ))}
           </div>
-          {rawChartLoading && !rawChartData ? (
-            <div className="h-40 animate-pulse rounded-xl bg-muted/20" />
+          {showRawChartLoader ? (
+            <ChartSwitchLoader
+              label={`${activeRawOption.label} chart`}
+              accentClassName="border-orange-500/30 border-t-orange-500"
+              className="h-40"
+            />
           ) : !rawChartData || rawChartData.length === 0 ? (
             <p className="py-8 text-center text-xs text-muted-foreground">No historical data available</p>
           ) : (
             <PriceLineChart
+              key={rawChartSymbol}
               data={rawChartData}
               color="hsl(25 95% 53%)"
               height={160}

@@ -12,7 +12,7 @@ const STORAGE_KEY = "stockli:psx-cache-cycle";
  * live prices instead of yesterday's indexes/quotes.
  */
 const MARKET_SNAPSHOT_KEYS = [
-  "public:psx-market",
+  "public:psx-market:v3",
   "public:global-market:us",
   "public:global-market:india",
   "public:global-market:world",

@@ -37,6 +37,7 @@ import {
 } from "@/lib/cache/portfolio-mutations";
 import { isMarketOpen, psxLocalDateString, shouldRefreshPsxData } from "@/lib/psx/market-hours";
 import { formatPKR, formatPercent, plColorClass } from "@/lib/format";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import type { PortfolioCommandPageData } from "@/lib/services/portfolio-command-page";
 import type { PerfPoint, PerformanceResult } from "@/lib/services/performance";
 import type { HoldingWithMetrics } from "@/lib/types";
@@ -817,12 +818,13 @@ function MoversCard({
             href={`/stock/${holding.symbol}`}
             className="block rounded-lg px-1.5 py-1.5 hover:bg-accent/50 sm:flex sm:items-center sm:justify-between sm:gap-3 sm:px-2"
           >
-            <div className="min-w-0">
-              <p className="truncate font-medium">{holding.symbol}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatPKR(holding.livePrice)}
-              </p>
-            </div>
+            <StockIdentity
+              symbol={holding.symbol}
+              size="xs"
+              showName={false}
+              subtitle={formatPKR(holding.livePrice)}
+              className="min-w-0"
+            />
             <div className="mt-1 min-w-0 sm:mt-0 sm:text-right">
               <p className={`truncate text-sm font-medium tabular-nums ${plColorClass(holding.dayChange)}`}>
                 {formatPKR(holding.dayChange, { sign: true })}

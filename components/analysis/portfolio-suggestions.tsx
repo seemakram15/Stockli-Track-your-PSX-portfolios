@@ -30,6 +30,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StockIdentity } from "@/components/stock/stock-identity";
+import { StockLogo } from "@/components/stock/stock-logo";
 import { cn } from "@/lib/utils";
 
 type PortfolioSuggestionPayload = {
@@ -623,12 +625,17 @@ function HoldingCard({
   return (
     <div className="rounded-[1.8rem] border bg-background/90 p-5 shadow-soft">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Rank #{holding.rank}
           </p>
-          <h3 className="mt-2 text-2xl font-bold">{holding.symbol}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{holding.name}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <StockLogo symbol={holding.symbol} name={holding.name} size="lg" />
+            <div className="min-w-0">
+              <h3 className="text-2xl font-bold tracking-tight">{holding.symbol}</h3>
+              <p className="mt-0.5 text-sm text-muted-foreground">{holding.name}</p>
+            </div>
+          </div>
         </div>
         <div className="rounded-[1.4rem] border bg-card px-4 py-3 text-center shadow-soft">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -787,8 +794,8 @@ function AllocationTooltip({
   const item = payload[0].payload;
   return (
     <div className="rounded-xl border bg-background/95 px-3 py-2 text-xs shadow-lg">
-      <p className="font-semibold">{item.symbol}</p>
-      <p className="text-muted-foreground">{item.weight.toFixed(1)}% allocation</p>
+      <StockIdentity symbol={item.symbol} size="xs" showName={false} />
+      <p className="mt-1 text-muted-foreground">{item.weight.toFixed(1)}% allocation</p>
       <p className="text-muted-foreground">{item.expectedAnnualReturn.toFixed(1)}% expected annual return</p>
     </div>
   );

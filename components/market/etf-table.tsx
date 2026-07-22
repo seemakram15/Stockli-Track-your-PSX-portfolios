@@ -14,6 +14,7 @@ import {
 import { formatNumber, formatPercent, plColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { AmcBrandMark } from "@/components/market/amc-brand-mark";
+import { IslamicTag, isIslamicOrShariahName } from "@/components/market/islamic-mark";
 import type { MufapFund, MufapFundsData } from "@/lib/services/mufap";
 
 type SortKey = "name" | "nav" | "d1" | "mtd" | "ytd" | "d365";
@@ -45,6 +46,9 @@ export function EtfTable({ data }: { data: MufapFundsData }) {
             <div className="flex items-center gap-2.5">
               <AmcBrandMark label={fund.amc} size="sm" logoUrl={fund.amcLogoUrl} />
               <div className="min-w-0">
+                {fund.classFilter === "islamic" || isIslamicOrShariahName(fund.name) ? (
+                  <div className="mb-0.5"><IslamicTag /></div>
+                ) : null}
                 {fund.fundId ? (
                   <Link href={`/market/etfs/${fund.fundId}`} className="font-semibold leading-snug hover:underline">
                     {fund.name}
@@ -52,7 +56,13 @@ export function EtfTable({ data }: { data: MufapFundsData }) {
                 ) : (
                   <span className="font-semibold leading-snug">{fund.name}</span>
                 )}
-                <p className="text-xs text-muted-foreground">{fund.amcShort || fund.amc}</p>
+                <AmcBrandMark
+                  label={fund.amc}
+                  size="sm"
+                  showName
+                  logoUrl={fund.amcLogoUrl}
+                  className="mt-0.5 [&>span:first-child]:hidden [&_span:last-child]:text-xs [&_span:last-child]:text-muted-foreground"
+                />
               </div>
             </div>
             <div className="mt-2.5 grid grid-cols-5 gap-1">
@@ -93,6 +103,9 @@ export function EtfTable({ data }: { data: MufapFundsData }) {
                   <div className="flex items-center gap-2.5">
                     <AmcBrandMark label={fund.amc} size="sm" logoUrl={fund.amcLogoUrl} />
                     <div className="min-w-0">
+                      {fund.classFilter === "islamic" || isIslamicOrShariahName(fund.name) ? (
+                        <div className="mb-0.5"><IslamicTag /></div>
+                      ) : null}
                       {fund.fundId ? (
                         <Link
                           href={`/market/etfs/${fund.fundId}`}

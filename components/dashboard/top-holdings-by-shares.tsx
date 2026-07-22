@@ -7,6 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { formatPKR } from "@/lib/format";
 import type { HoldingWithMetrics } from "@/lib/types";
 
@@ -192,8 +193,14 @@ function MobileHoldingsBars({
         return (
           <div key={row.symbol} className="space-y-1.5">
             <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="font-semibold">{row.symbol}</span>
-              <span className="tabular-nums text-muted-foreground">
+              <StockIdentity
+                href={`/stock/${row.symbol}`}
+                symbol={row.symbol}
+                size="xs"
+                showName={false}
+                className="min-w-0"
+              />
+              <span className="shrink-0 tabular-nums text-muted-foreground">
                 {formatPKR(row.value)}
               </span>
             </div>

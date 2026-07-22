@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ChangeBadge } from "@/components/change-badge";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { formatPKR, formatCompact, formatNumber, plColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { IndexConstituent } from "@/lib/types";
@@ -83,10 +84,12 @@ export function ConstituentsTable({
             className="block rounded-xl border border-border bg-card px-4 py-4 hover:border-primary/40"
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-base font-semibold">{c.symbol}</p>
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">{c.name}</p>
-              </div>
+              <StockIdentity
+                symbol={c.symbol}
+                name={c.name}
+                size="sm"
+                className="min-w-0"
+              />
               <p className="shrink-0 whitespace-nowrap tabular-nums text-base font-medium">{formatPKR(c.current)}</p>
             </div>
             <div className="mt-3 flex items-center justify-between gap-2">
@@ -126,12 +129,12 @@ export function ConstituentsTable({
             {rows.map((c) => (
               <TableRow key={c.symbol} className="group">
                 <TableCell>
-                  <Link href={`/stock/${c.symbol}`} className="flex flex-col">
-                    <span className="font-semibold group-hover:text-primary">{c.symbol}</span>
-                    <span className="max-w-52 truncate text-xs text-muted-foreground">
-                      {c.name}
-                    </span>
-                  </Link>
+                  <StockIdentity
+                    href={`/stock/${c.symbol}`}
+                    symbol={c.symbol}
+                    name={c.name}
+                    size="xs"
+                  />
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{formatPKR(c.current)}</TableCell>
                 <TableCell className="text-right">

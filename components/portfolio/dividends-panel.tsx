@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatPKR, formatDate, formatNumber } from "@/lib/format";
 import { ImportDividendsModal } from "@/components/portfolio/import-dividends-modal";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { deleteCdcDividend } from "@/lib/actions/dividends";
 import type { DividendIncomeSummary, TaxSettings, ReceivedDividend } from "@/lib/types";
 
@@ -135,9 +136,12 @@ export function DividendsPanel({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Link href={`/stock/${r.symbol}`} className="font-semibold hover:text-primary">
-                            {r.symbol}
-                          </Link>
+                          <StockIdentity
+                            href={`/stock/${r.symbol}`}
+                            symbol={r.symbol}
+                            name={r.companyName}
+                            size="xs"
+                          />
                           {r.financialYear && (
                             <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">FY{r.financialYear}</Badge>
                           )}
@@ -147,9 +151,6 @@ export function DividendsPanel({
                             </Badge>
                           )}
                         </div>
-                        {r.companyName && (
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">{r.companyName}</p>
-                        )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-xs text-muted-foreground">{formatDate(r.creditedOn)}</span>
@@ -213,21 +214,17 @@ export function DividendsPanel({
                     {received.map((r, i) => (
                       <TableRow key={i}>
                         <TableCell>
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-1.5">
-                              <Link href={`/stock/${r.symbol}`} className="font-medium hover:text-primary">
-                                {r.symbol}
-                              </Link>
-                              {r.source === "auto" && (
-                                <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20">
-                                  Estimated
-                                </Badge>
-                              )}
-                            </div>
-                            {r.companyName && (
-                              <span className="text-[11px] text-muted-foreground leading-tight max-w-[160px] truncate">
-                                {r.companyName}
-                              </span>
+                          <div className="flex items-center gap-1.5">
+                            <StockIdentity
+                              href={`/stock/${r.symbol}`}
+                              symbol={r.symbol}
+                              name={r.companyName}
+                              size="xs"
+                            />
+                            {r.source === "auto" && (
+                              <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20">
+                                Estimated
+                              </Badge>
                             )}
                           </div>
                         </TableCell>
@@ -283,9 +280,12 @@ export function DividendsPanel({
                   {upcoming.map((u, i) => (
                     <TableRow key={i}>
                       <TableCell>
-                        <Link href={`/stock/${u.symbol}`} className="font-medium hover:text-primary">
-                          {u.symbol}
-                        </Link>
+                        <StockIdentity
+                          href={`/stock/${u.symbol}`}
+                          symbol={u.symbol}
+                          size="xs"
+                          showName={false}
+                        />
                       </TableCell>
                       <TableCell className="hidden text-muted-foreground sm:table-cell">{u.company}</TableCell>
                       <TableCell className="text-muted-foreground">{u.bookClosureFrom}</TableCell>

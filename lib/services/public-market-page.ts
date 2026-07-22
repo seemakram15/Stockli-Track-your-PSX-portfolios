@@ -20,11 +20,17 @@ export interface PublicMarketPageData {
 
 export async function getPublicMarketPageData(): Promise<PublicMarketPageData> {
   const cached = await getStaleCached({
-    key: "public-page:psx-market",
+    // v3: KSE100 includes Yahoo history back to 1997
+    key: "public-page:psx-market:v3",
     ttlSeconds: psxLiveCacheTtlSeconds(),
     staleSeconds: shouldRefreshPsxData() ? 15 * 60 : psxLiveCacheTtlSeconds(),
     load: loadPublicMarketPageData,
-    isUsable: (data) => Boolean(data.detail && data.cards.length),
+    isUsable: (data) => {
+      if (!data.detail || !data.cards.length) return false;
+      const n = data.detail.candles?.length ?? 0;
+      if (data.detail.symbol === "KSE100") return n >= 1400;
+      return n > 300;
+    },
   });
 
   return {

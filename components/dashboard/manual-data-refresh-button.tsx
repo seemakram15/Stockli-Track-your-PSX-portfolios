@@ -33,7 +33,7 @@ const INITIAL_STEPS: RefreshStep[] = [
 ];
 
 const MARKET_CACHE_JOBS = [
-  { key: "public:psx-market", url: "/api/public/market" },
+  { key: "public:psx-market:v3", url: "/api/public/market" },
 ];
 
 const FUND_CACHE_JOBS = [

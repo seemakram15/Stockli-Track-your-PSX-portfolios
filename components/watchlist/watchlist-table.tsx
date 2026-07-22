@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { Star, X } from "lucide-react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -25,7 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ChangeBadge } from "@/components/change-badge";
-import { IconChip } from "@/components/ui/accent";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { usePrices } from "@/lib/hooks/use-prices";
 import { effectiveQuotePrice } from "@/lib/services/metrics";
 import { formatPKR, formatCompact, plColorClass } from "@/lib/format";
@@ -63,17 +62,14 @@ export function WatchlistTable({
               className="rounded-xl border border-border bg-card p-3 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft-lg"
             >
               <div className="flex items-start justify-between gap-3">
-                <Link href={`/stock/${it.symbol}`} className="flex min-w-0 items-center gap-2.5">
-                  <IconChip accent="amber" variant="gradient" size="sm">
-                    <Star />
-                  </IconChip>
-                  <span className="min-w-0">
-                    <span className="font-semibold">{it.symbol}</span>
-                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                      {it.company ?? it.sector ?? ""}
-                    </span>
-                  </span>
-                </Link>
+                <StockIdentity
+                  href={`/stock/${it.symbol}`}
+                  symbol={it.symbol}
+                  name={it.company}
+                  subtitle={it.sector}
+                  size="sm"
+                  className="min-w-0"
+                />
                 <RemoveWatchItem symbol={it.symbol} demo={demo} />
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -112,17 +108,12 @@ export function WatchlistTable({
               return (
                 <TableRow key={it.symbol} className="group transition-colors hover:bg-amber-500/5">
                   <TableCell>
-                    <Link href={`/stock/${it.symbol}`} className="flex items-center gap-2.5">
-                      <IconChip accent="amber" variant="gradient" size="sm">
-                        <Star />
-                      </IconChip>
-                      <span className="flex min-w-0 flex-col">
-                        <span className="font-semibold group-hover:text-primary">{it.symbol}</span>
-                        <span className="max-w-44 truncate text-xs text-muted-foreground">
-                          {it.company}
-                        </span>
-                      </span>
-                    </Link>
+                    <StockIdentity
+                      href={`/stock/${it.symbol}`}
+                      symbol={it.symbol}
+                      name={it.company}
+                      size="xs"
+                    />
                   </TableCell>
                   <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
                     {it.sector}
