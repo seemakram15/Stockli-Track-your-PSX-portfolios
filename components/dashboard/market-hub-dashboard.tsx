@@ -7,9 +7,6 @@ import {
   ArrowRight,
   ArrowUp,
   Bitcoin,
-  Briefcase,
-  CalendarClock,
-  Coins,
   Droplets,
   Fuel,
   Gem,
@@ -19,7 +16,6 @@ import {
   Loader2,
   Maximize2,
   Sparkles,
-  TrendingUp,
   Wallet,
 } from "lucide-react";
 import { IndexTickerStrip, type DashboardTickerItem } from "@/components/dashboard/index-ticker-strip";
@@ -655,26 +651,17 @@ const PSX_INDEX_THEMES = {
   KSE100: {
     label: "KSE 100",
     short: "Benchmark",
-    shell:
-      "border border-emerald-300/35 bg-emerald-500/[0.04] dark:border-emerald-500/20 dark:bg-emerald-500/[0.06]",
-    glow: "bg-emerald-400/10",
-    bar: "from-emerald-400/70 to-teal-300/50",
+    accent: "emerald",
   },
   KMI30: {
     label: "KMI 30",
     short: "Shariah",
-    shell:
-      "border border-sky-300/35 bg-sky-500/[0.04] dark:border-sky-500/20 dark:bg-sky-500/[0.06]",
-    glow: "bg-sky-400/10",
-    bar: "from-sky-400/70 to-indigo-300/50",
+    accent: "sky",
   },
   KSE30: {
     label: "KSE 30",
     short: "Blue chips",
-    shell:
-      "border border-violet-300/35 bg-violet-500/[0.04] dark:border-violet-500/20 dark:bg-violet-500/[0.06]",
-    glow: "bg-violet-400/10",
-    bar: "from-violet-400/70 to-fuchsia-300/50",
+    accent: "violet",
   },
 } as const;
 
@@ -760,40 +747,32 @@ function KseHeroCard({
     };
   }, [needsFetch, selected]);
 
-  const rangeCard: IndexCardData | null = selectedCard
-    ? {
-        ...selectedCard,
-        week52High,
-        week52Low,
-      }
-    : null;
+  const theme = PSX_INDEX_THEMES[selected];
 
   return (
     <Card
       className={cn(
-        "relative flex h-full flex-col overflow-hidden border border-emerald-200/40 bg-gradient-to-br from-emerald-50/50 via-card to-sky-50/40 dark:border-emerald-800/30 dark:from-emerald-950/20 dark:via-card dark:to-sky-950/15",
+        "relative flex h-full flex-col overflow-hidden border border-emerald-200/35 bg-gradient-to-br from-emerald-50/40 via-card to-sky-50/30 dark:border-emerald-800/25 dark:from-emerald-950/15 dark:via-card dark:to-sky-950/10",
         className
       )}
     >
-      <div className="pointer-events-none absolute -left-8 top-0 h-28 w-28 rounded-full bg-emerald-300/10 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute right-0 top-8 h-24 w-24 rounded-full bg-sky-300/10 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute bottom-0 right-10 h-20 w-20 rounded-full bg-violet-300/10 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -right-10 top-0 h-36 w-36 rounded-full bg-emerald-400/10 blur-3xl" aria-hidden />
 
-      <CardHeader className="relative pb-2">
+      <CardHeader className="relative pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
+          <div className="flex min-w-0 items-start gap-3">
             <IconChip accent="primary" variant="gradient">
               <Landmark />
             </IconChip>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Pakistan Stock Exchange
               </p>
               <CardTitle className="mt-1 text-xl">Key indexes</CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">{marketLabel}</p>
             </div>
           </div>
-          <Button asChild variant="ghost" size="icon" className="size-9">
+          <Button asChild variant="ghost" size="icon" className="size-9 shrink-0">
             <Link href="/market" aria-label="Open PSX market">
               <ArrowRight className="size-4" />
             </Link>
@@ -801,35 +780,88 @@ function KseHeroCard({
         </div>
       </CardHeader>
 
-      <CardContent className="relative flex flex-1 flex-col space-y-3">
+      <CardContent className="relative flex flex-1 flex-col gap-5">
         {ready ? (
           <>
-            <PsxIndexTile
-              card={kse100}
-              symbol="KSE100"
-              featured
-              selected={selected === "KSE100"}
-              onSelect={setSelected}
-            />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <PsxIndexTile
-                card={kmi30}
-                symbol="KMI30"
-                selected={selected === "KMI30"}
-                onSelect={setSelected}
-              />
-              <PsxIndexTile
-                card={kse30}
-                symbol="KSE30"
-                selected={selected === "KSE30"}
-                onSelect={setSelected}
-              />
+            <div
+              role="tablist"
+              aria-label="PSX indexes"
+              className="grid grid-cols-3 gap-1 rounded-2xl border border-border/70 bg-background/80 p-1 shadow-xs"
+            >
+              {(["KSE100", "KMI30", "KSE30"] as const).map((symbol) => {
+                const card = symbol === "KSE100" ? kse100 : symbol === "KMI30" ? kmi30 : kse30;
+                const active = selected === symbol;
+                const item = PSX_INDEX_THEMES[symbol];
+                return (
+                  <button
+                    key={symbol}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    disabled={!card}
+                    onClick={() => setSelected(symbol)}
+                    className={cn(
+                      "rounded-xl px-2 py-2.5 text-center transition",
+                      active
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                      !card && "opacity-40"
+                    )}
+                  >
+                    <p className="text-xs font-semibold sm:text-sm">{item.label}</p>
+                    <p className={cn("mt-0.5 text-[10px] uppercase tracking-wide", active ? "text-white/75" : "text-muted-foreground")}>
+                      {item.short}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
-            <IndexWeekRangeBar
-              symbol={selected}
-              card={rangeCard}
-              className="mt-auto pt-2"
-            />
+
+            {selectedCard ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-muted-foreground">
+                      {theme.label}
+                      <span className="ml-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground/80">
+                        {theme.short}
+                      </span>
+                    </p>
+                    <p
+                      className={cn(
+                        "mt-2 text-4xl font-bold tracking-tight tabular-nums sm:text-5xl",
+                        plColorClass(selectedCard.changePct)
+                      )}
+                    >
+                      {formatNumber(selectedCard.current, 2)}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <ChangePill value={selectedCard.changePct} />
+                    <p className={cn("text-sm font-semibold tabular-nums", plColorClass(selectedCard.change))}>
+                      {formatSigned(selectedCard.change, 2)} pts
+                    </p>
+                  </div>
+                </div>
+
+                <IndexWeekRangeBar
+                  symbol={selected}
+                  high={week52High}
+                  low={week52Low}
+                  current={selectedCard.current}
+                  changePct={selectedCard.changePct}
+                />
+              </div>
+            ) : (
+              <LoadingBlock label="Loading index…" className="min-h-36" />
+            )}
+
+            <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-3">
+              <p className="text-xs text-muted-foreground">Select an index to compare its 52-week range</p>
+              <Button asChild variant="outline" size="sm" className="h-8">
+                <Link href="/market">Open market</Link>
+              </Button>
+            </div>
           </>
         ) : (
           <LoadingBlock label="Loading PSX indexes…" className="min-h-44" />
@@ -841,149 +873,65 @@ function KseHeroCard({
 
 function IndexWeekRangeBar({
   symbol,
-  card,
-  className,
+  high,
+  low,
+  current,
+  changePct,
 }: {
   symbol: PsxIndexSymbol;
-  card: IndexCardData | null;
-  className?: string;
+  high?: number;
+  low?: number;
+  current: number;
+  changePct: number | null;
 }) {
   const theme = PSX_INDEX_THEMES[symbol];
-  const high = card?.week52High;
-  const low = card?.week52Low;
-  const current = card?.current;
 
-  if (card == null || high == null || low == null || current == null) {
+  if (high == null || low == null) {
     return (
-      <div className={cn("rounded-2xl border border-border/70 bg-muted/25 px-4 py-3", className)}>
-        <p className="text-xs text-muted-foreground">52-week range unavailable for {theme.label}</p>
+      <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-3">
+        <p className="text-xs text-muted-foreground">Loading 52-week range for {theme.label}…</p>
       </div>
     );
   }
 
   const span = Math.max(high - low, 1);
   const pos = Math.min(100, Math.max(0, ((current - low) / span) * 100));
-  const fromLowPct = ((current - low) / span) * 100;
-  const toHighPct = ((high - current) / span) * 100;
 
   return (
-    <div className={cn("rounded-2xl border border-border/70 bg-white/50 px-4 py-3.5 dark:bg-white/5", className)}>
+    <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3.5">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            52-week range
-          </p>
-          <p className="mt-0.5 text-sm font-semibold text-foreground">{theme.label}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-sm font-bold tabular-nums text-foreground">{pos.toFixed(0)}%</p>
-          <p className="text-[11px] text-muted-foreground">of range</p>
-        </div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          52-week range
+        </p>
+        <p className="text-sm font-bold tabular-nums text-foreground">
+          {pos.toFixed(0)}%
+          <span className="ml-1 text-xs font-medium text-muted-foreground">of range</span>
+        </p>
       </div>
 
-      <div className="relative mt-4 h-2.5 w-full rounded-full bg-gradient-to-r from-rose-400/35 via-amber-300/30 to-emerald-400/40">
+      <div className="relative mt-3 h-2 w-full rounded-full bg-gradient-to-r from-rose-400/40 via-amber-300/35 to-emerald-400/45">
         <div
-          className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-foreground shadow-sm"
+          className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-foreground shadow-sm"
           style={{ left: `${pos}%` }}
           aria-hidden
         />
       </div>
 
-      <div className="mt-2.5 flex items-start justify-between gap-3 text-xs tabular-nums">
+      <div className="mt-2.5 flex items-center justify-between gap-3 text-xs tabular-nums">
         <div>
-          <p className="font-semibold uppercase tracking-wide text-muted-foreground">Low</p>
-          <p className="mt-0.5 font-semibold text-foreground">{formatNumber(low, 0)}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Low</p>
+          <p className="font-semibold text-foreground">{formatNumber(low, 0)}</p>
         </div>
         <div className="text-center">
-          <p className="font-semibold uppercase tracking-wide text-muted-foreground">Now</p>
-          <p className={cn("mt-0.5 font-semibold", plColorClass(card.changePct))}>
-            {formatNumber(current, 0)}
-          </p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {fromLowPct >= 50
-              ? `${toHighPct.toFixed(0)}% below high`
-              : `${fromLowPct.toFixed(0)}% above low`}
-          </p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Now</p>
+          <p className={cn("font-semibold", plColorClass(changePct))}>{formatNumber(current, 0)}</p>
         </div>
         <div className="text-right">
-          <p className="font-semibold uppercase tracking-wide text-muted-foreground">High</p>
-          <p className="mt-0.5 font-semibold text-foreground">{formatNumber(high, 0)}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">High</p>
+          <p className="font-semibold text-foreground">{formatNumber(high, 0)}</p>
         </div>
       </div>
     </div>
-  );
-}
-
-function PsxIndexTile({
-  card,
-  symbol,
-  featured = false,
-  selected = false,
-  onSelect,
-}: {
-  card: IndexCardData | null;
-  symbol: PsxIndexSymbol;
-  featured?: boolean;
-  selected?: boolean;
-  onSelect: (symbol: PsxIndexSymbol) => void;
-}) {
-  const theme = PSX_INDEX_THEMES[symbol];
-
-  if (!card) {
-    return (
-      <div className={cn("relative overflow-hidden rounded-2xl p-3", theme.shell)}>
-        <LoadingBlock label={`Loading ${theme.label}…`} className={featured ? "min-h-28" : "min-h-20"} />
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(symbol)}
-      aria-pressed={selected}
-      className={cn(
-        "group relative block w-full overflow-hidden rounded-2xl text-left transition duration-200 hover:-translate-y-0.5",
-        theme.shell,
-        featured ? "p-3.5 sm:p-5" : "p-3 sm:p-3.5",
-        selected && "ring-2 ring-emerald-500/70 ring-offset-2 ring-offset-background"
-      )}
-    >
-      <div className={cn("pointer-events-none absolute -right-6 -top-8 size-20 rounded-full blur-3xl", theme.glow)} aria-hidden />
-      <div className={cn("absolute inset-x-0 top-0 h-px bg-gradient-to-r opacity-70", theme.bar)} aria-hidden />
-
-      <div className="relative flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className={cn("font-semibold tracking-tight", featured ? "text-sm sm:text-lg" : "text-sm")}>
-              {theme.label}
-            </p>
-            <span className="rounded-full border border-white/40 bg-white/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur dark:border-white/10 dark:bg-white/5">
-              {theme.short}
-            </span>
-          </div>
-          <p
-            className={cn(
-              "mt-2 font-bold tracking-tight tabular-nums",
-              featured ? "text-2xl sm:text-4xl" : "text-xl sm:text-2xl",
-              plColorClass(card.changePct)
-            )}
-          >
-            {formatNumber(card.current, 2)}
-          </p>
-        </div>
-        <ChangePill value={card.changePct} />
-      </div>
-
-      <div className="relative mt-3 flex flex-wrap items-center justify-between gap-2">
-        <span className={cn("text-xs font-semibold tabular-nums sm:text-sm", plColorClass(card.change))}>
-          {formatSigned(card.change, 2)} pts
-        </span>
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          {selected ? "Showing 52W range" : "Tap for 52W range"}
-        </span>
-      </div>
-    </button>
   );
 }
 
@@ -1014,49 +962,26 @@ function PortfolioHeroCard({ data, className }: { data?: DashboardData; classNam
     });
   }, [liveHoldings, portfolios]);
 
-  const metricCards = [
-    {
-      key: "day",
-      label: "Day's P/L",
-      value: formatPKR(summary.dayPL, { sign: true }),
-      tone: summary.dayPL,
-      badge: formatPercent(summary.dayPLPct),
-      icon: <CalendarClock className="size-4" />,
-      accent: "sky" as Accent,
-    },
-    {
-      key: "total",
-      label: "Total P/L",
-      value: formatPKR(summary.totalPL, { sign: true }),
-      tone: summary.totalPL,
-      badge: formatPercent(summary.totalPLPct),
-      icon: <TrendingUp className="size-4" />,
-      accent: "violet" as Accent,
-    },
-    {
-      key: "invested",
-      label: "Invested",
-      value: formatPKR(summary.totalInvested),
-      tone: null as number | null,
-      badge: `Realized ${formatPKR(summary.realizedPL, { sign: true })}`,
-      icon: <Coins className="size-4" />,
-      accent: "amber" as Accent,
-    },
-  ];
-
   return (
-    <Card className={cn("relative overflow-hidden border-border/70 bg-card", className)}>
-      <CardHeader className="pb-3">
+    <Card
+      className={cn(
+        "relative flex h-full flex-col overflow-hidden border border-violet-200/35 bg-gradient-to-br from-violet-50/35 via-card to-sky-50/25 dark:border-violet-800/25 dark:from-violet-950/15 dark:via-card dark:to-sky-950/10",
+        className
+      )}
+    >
+      <div className="pointer-events-none absolute -left-8 bottom-0 h-32 w-32 rounded-full bg-violet-400/10 blur-3xl" aria-hidden />
+
+      <CardHeader className="relative pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
-            <IconChip accent="violet" variant="gradient" className="size-10 shrink-0 sm:size-11">
+          <div className="flex min-w-0 items-start gap-3">
+            <IconChip accent="violet" variant="gradient">
               <Wallet />
             </IconChip>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Your books
               </p>
-              <CardTitle className="mt-1 text-lg sm:text-xl">Portfolio overview</CardTitle>
+              <CardTitle className="mt-1 text-xl">Portfolio overview</CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">
                 {summary.holdingsCount} positions · {portfolios.length} workspaces
               </p>
@@ -1070,53 +995,63 @@ function PortfolioHeroCard({ data, className }: { data?: DashboardData; classNam
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 sm:space-y-4">
-        {/* Hero total value */}
-        <div className="rounded-2xl border border-border/80 bg-muted/25 p-3.5 sm:px-5 sm:py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">
+      <CardContent className="relative flex flex-1 flex-col gap-5">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Total value
           </p>
-          <p className="mt-1 text-[1.55rem] font-bold leading-none tracking-tight tabular-nums sm:mt-1.5 sm:text-3xl">
-            {formatPKR(summary.totalValue)}
-          </p>
-          <div
-            className={cn(
-              "mt-3 flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-semibold tabular-nums sm:mt-3.5 sm:w-auto sm:inline-flex sm:justify-start sm:rounded-full sm:py-1.5",
-              summary.dayPL < 0
-                ? "bg-loss/10 text-loss"
-                : summary.dayPL > 0
-                  ? "bg-gain/10 text-gain"
-                  : "bg-muted text-muted-foreground"
-            )}
-          >
-            <span className="text-xs font-semibold uppercase tracking-wide opacity-80">Today</span>
-            <span className="flex items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+            <p className="text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+              {formatPKR(summary.totalValue)}
+            </p>
+            <div
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold tabular-nums",
+                summary.dayPL < 0
+                  ? "bg-loss/10 text-loss"
+                  : summary.dayPL > 0
+                    ? "bg-gain/10 text-gain"
+                    : "bg-muted text-muted-foreground"
+              )}
+            >
+              <span className="text-[11px] font-semibold uppercase tracking-wide opacity-75">Today</span>
               <span>{formatPKR(summary.dayPL, { sign: true })}</span>
               <span className="opacity-80">{formatPercent(summary.dayPLPct)}</span>
-            </span>
+            </div>
           </div>
         </div>
 
-        {/* Supporting metrics — 2-up on mobile, 3-up on desktop */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5">
-          {metricCards.map((metric, index) => (
-            <div
-              key={metric.key}
-              className={cn(
-                "rounded-2xl border border-border/80 bg-background p-3 shadow-xs sm:px-3.5 sm:py-3",
-                index === 2 && "col-span-2 sm:col-span-1"
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold text-muted-foreground sm:text-xs">{metric.label}</p>
-                <IconChip accent={metric.accent} size="sm" className="size-6 rounded-md sm:size-7 sm:rounded-lg">
-                  {metric.icon}
-                </IconChip>
-              </div>
+        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/60 bg-background/70 p-1 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-border/60">
+          {[
+            {
+              key: "day",
+              label: "Day's P/L",
+              value: formatPKR(summary.dayPL, { sign: true }),
+              badge: formatPercent(summary.dayPLPct),
+              tone: summary.dayPL,
+            },
+            {
+              key: "total",
+              label: "Total P/L",
+              value: formatPKR(summary.totalPL, { sign: true }),
+              badge: formatPercent(summary.totalPLPct),
+              tone: summary.totalPL,
+            },
+            {
+              key: "invested",
+              label: "Invested",
+              value: formatPKR(summary.totalInvested),
+              badge: `Realized ${formatPKR(summary.realizedPL, { sign: true })}`,
+              tone: null as number | null,
+            },
+          ].map((metric) => (
+            <div key={metric.key} className="px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {metric.label}
+              </p>
               <p
-                title={metric.value}
                 className={cn(
-                  "mt-1.5 text-base font-bold leading-tight tracking-tight tabular-nums [overflow-wrap:anywhere] sm:mt-2 sm:text-lg",
+                  "mt-1.5 text-lg font-bold tracking-tight tabular-nums",
                   metric.tone != null && plColorClass(metric.tone)
                 )}
               >
@@ -1124,7 +1059,7 @@ function PortfolioHeroCard({ data, className }: { data?: DashboardData; classNam
               </p>
               <p
                 className={cn(
-                  "mt-1 text-[11px] font-semibold tabular-nums sm:text-xs",
+                  "mt-1 text-xs font-medium tabular-nums",
                   metric.tone != null ? plColorClass(metric.tone) : "text-muted-foreground"
                 )}
               >
@@ -1134,88 +1069,57 @@ function PortfolioHeroCard({ data, className }: { data?: DashboardData; classNam
           ))}
         </div>
 
-        {/* Portfolio list */}
-        {portfolioRows.length > 0 ? (
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between gap-2 px-0.5">
-              <HubSectionHeading
-                accent="violet"
-                icon={<Briefcase className="size-3.5" />}
-                eyebrow="Workspaces"
-                title="Your portfolios"
-                compact
-              />
-              <Link
-                href="/portfolios"
-                className="shrink-0 text-xs font-semibold text-violet-600/90 hover:text-violet-700 dark:text-violet-300"
-              >
-                View all →
-              </Link>
-            </div>
+        <div className="mt-auto space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-foreground">Your portfolios</p>
+            <Link
+              href="/portfolios"
+              className="text-xs font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-300"
+            >
+              View all →
+            </Link>
+          </div>
 
-            <div className="overflow-hidden rounded-2xl border border-border/80 bg-background">
-              <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(5.5rem,0.7fr)_minmax(6.5rem,0.8fr)] gap-3 border-b border-border/70 bg-muted/30 px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:grid">
-                <span>Portfolio</span>
-                <span className="text-right">Value</span>
-                <span className="text-right">Today</span>
-              </div>
-              <div className="divide-y divide-border/70">
-                {portfolioRows.map((portfolio, index) => (
-                  <Link
-                    key={portfolio.id}
-                    href={`/portfolios/${portfolio.id}`}
-                    className="flex items-center gap-3 px-3 py-3 transition active:bg-muted/40 sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(5.5rem,0.7fr)_minmax(6.5rem,0.8fr)] sm:gap-3 sm:px-3.5 sm:hover:bg-muted/35"
+          {portfolioRows.length > 0 ? (
+            <div className="space-y-2">
+              {portfolioRows.map((portfolio, index) => (
+                <Link
+                  key={portfolio.id}
+                  href={`/portfolios/${portfolio.id}`}
+                  className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/70 px-3.5 py-3 transition hover:border-violet-300/50 hover:bg-violet-500/[0.04]"
+                >
+                  <IconChip
+                    accent={(["violet", "sky", "primary", "amber"] as Accent[])[index % 4]}
+                    size="sm"
+                    className="size-10 shrink-0 rounded-xl text-xs font-bold"
                   >
-                    <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                      <IconChip
-                        accent={(["violet", "sky", "primary", "amber"] as Accent[])[index % 4]}
-                        size="sm"
-                        className="size-9 shrink-0 rounded-xl text-[11px] font-bold"
-                      >
-                        <span aria-hidden>{portfolioInitials(portfolio.name)}</span>
-                      </IconChip>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold tracking-tight sm:text-[15px]">
-                          {prettyPortfolioName(portfolio.name)}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">
-                          {portfolio.positions} positions
-                          <span className="sm:hidden"> · {formatPKR(portfolio.value)}</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="hidden text-right sm:block">
-                      <p className="text-sm font-semibold tabular-nums">{formatPKR(portfolio.value)}</p>
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      <p className={cn("text-sm font-semibold tabular-nums", plColorClass(portfolio.dayChange))}>
-                        {formatPKR(portfolio.dayChange, { sign: true })}
-                      </p>
-                      <span
-                        className={cn(
-                          "mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums",
-                          portfolio.dayChangePct < 0
-                            ? "bg-loss/10 text-loss"
-                            : portfolio.dayChangePct > 0
-                              ? "bg-gain/10 text-gain"
-                              : "bg-muted text-muted-foreground"
-                        )}
-                      >
-                        {formatPercent(portfolio.dayChangePct)}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                    <span aria-hidden>{portfolioInitials(portfolio.name)}</span>
+                  </IconChip>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold tracking-tight">
+                      {prettyPortfolioName(portfolio.name)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {portfolio.positions} positions · {formatPKR(portfolio.value)}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className={cn("text-sm font-semibold tabular-nums", plColorClass(portfolio.dayChange))}>
+                      {formatPKR(portfolio.dayChange, { sign: true })}
+                    </p>
+                    <p className={cn("mt-0.5 text-xs font-semibold tabular-nums", plColorClass(portfolio.dayChangePct))}>
+                      {formatPercent(portfolio.dayChangePct)}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </div>
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground">
-            No portfolios yet — create one to track day change here.
-          </div>
-        )}
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground">
+              No portfolios yet — create one to track day change here.
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
