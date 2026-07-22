@@ -47,7 +47,7 @@ export const PakistanFuelPricesBoard = React.forwardRef<PakFuelBoardHandle>(
     });
 
     React.useImperativeHandle(ref, () => ({
-      refresh: () => refreshNow(),
+      refresh: () => refreshNow().then(() => undefined),
     }), [refreshNow]);
 
     const statFuels = React.useMemo(() => {
