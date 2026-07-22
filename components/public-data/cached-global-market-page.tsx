@@ -18,6 +18,8 @@ import { PakistanFuelPricesBoard, type PakFuelBoardHandle } from "@/components/m
 import { BrentCrudeChart, type BrentCrudeChartHandle } from "@/components/market/brent-crude-chart";
 import { PakistanCommoditiesBoard, type PakCommoditiesBoardHandle } from "@/components/market/pakistan-commodities-board";
 import { GlobalCommodityChart, type GlobalCommodityChartHandle } from "@/components/market/global-commodity-chart";
+import { CryptoMarketChart, type CryptoMarketChartHandle } from "@/components/market/crypto-market-chart";
+import { UsMarketChart, type UsMarketChartHandle } from "@/components/market/us-market-chart";
 import { MarketRefreshButton, type RefreshColor } from "@/components/market/market-refresh-button";
 import { PageHeader } from "@/components/page-header";
 import { type Accent } from "@/components/ui/accent";
@@ -30,7 +32,7 @@ const MARKET_THEME: Record<
 > = {
   us: {
     accent: "sky", color: "sky", eyebrow: "USA markets", Icon: LineChart,
-    stages: ["Connecting to US markets", "Fetching index quotes", "Updating board"],
+    stages: ["Connecting to US markets", "Fetching index quotes", "Loading price chart", "Updating board"],
   },
   india: {
     accent: "rose", color: "rose", eyebrow: "India markets", Icon: LineChart,
@@ -50,7 +52,7 @@ const MARKET_THEME: Record<
   },
   crypto: {
     accent: "violet", color: "violet", eyebrow: "Crypto", Icon: Bitcoin,
-    stages: ["Connecting to crypto markets", "Fetching coin prices", "Updating crypto board"],
+    stages: ["Connecting to crypto markets", "Fetching coin prices", "Loading price chart", "Updating crypto board"],
   },
 };
 
@@ -76,6 +78,8 @@ export function CachedGlobalMarketPage({
   const globalChartRef = React.useRef<GlobalCommodityChartHandle>(null);
   const pkFuelRef = React.useRef<PakFuelBoardHandle>(null);
   const brentRef = React.useRef<BrentCrudeChartHandle>(null);
+  const cryptoChartRef = React.useRef<CryptoMarketChartHandle>(null);
+  const usChartRef = React.useRef<UsMarketChartHandle>(null);
 
   const handleRefreshAll = React.useCallback(async (): Promise<string | void> => {
     const fns: Array<Promise<unknown>> = [refreshNow()];
@@ -85,6 +89,10 @@ export function CachedGlobalMarketPage({
     } else if (market === "oil") {
       if (pkFuelRef.current) fns.push(pkFuelRef.current.refresh());
       if (brentRef.current) fns.push(brentRef.current.refresh());
+    } else if (market === "crypto") {
+      if (cryptoChartRef.current) fns.push(cryptoChartRef.current.refresh());
+    } else if (market === "us") {
+      if (usChartRef.current) fns.push(usChartRef.current.refresh());
     }
     const [mainData] = await Promise.all(fns);
     const count = (mainData as GlobalMarketData | undefined)?.quotes?.length;
@@ -119,10 +127,10 @@ export function CachedGlobalMarketPage({
 
       {data ? (
         market === "commodities" ? (
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid items-stretch gap-5 lg:grid-cols-2">
             {/* Pakistan Commodities */}
-            <div className="min-w-0 overflow-hidden rounded-2xl border border-amber-500/25 bg-amber-500/[0.04]">
-              <div className="flex items-center gap-3 border-b border-amber-500/20 bg-amber-500/[0.06] px-5 py-4">
+            <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-amber-500/25 bg-amber-500/[0.04]">
+              <div className="flex shrink-0 items-center gap-3 border-b border-amber-500/20 bg-amber-500/[0.06] px-5 py-4">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
                   <Gem className="size-4" />
                 </div>
@@ -137,14 +145,14 @@ export function CachedGlobalMarketPage({
                   stages={["Scraping Pakistan prices", "Refreshing price history", "Updating charts"]}
                 />
               </div>
-              <div className="p-4">
+              <div className="min-h-0 flex-1 p-4">
                 <PakistanCommoditiesBoard ref={pkCommoditiesRef} />
               </div>
             </div>
 
             {/* Global Commodities */}
-            <div className="min-w-0 overflow-hidden rounded-2xl border border-sky-500/25 bg-sky-500/[0.04]">
-              <div className="flex items-center gap-3 border-b border-sky-500/20 bg-sky-500/[0.06] px-5 py-4">
+            <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-sky-500/25 bg-sky-500/[0.04]">
+              <div className="flex shrink-0 items-center gap-3 border-b border-sky-500/20 bg-sky-500/[0.06] px-5 py-4">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400">
                   <Globe2 className="size-4" />
                 </div>
@@ -159,7 +167,7 @@ export function CachedGlobalMarketPage({
                   stages={["Fetching commodity chart", "Loading history data", "Updating chart"]}
                 />
               </div>
-              <div className="space-y-4 p-4">
+              <div className="min-h-0 flex-1 space-y-4 p-4">
                 <GlobalMarketBoard
                   data={data}
                   accent={theme.accent}
@@ -226,6 +234,36 @@ export function CachedGlobalMarketPage({
               </div>
             </div>
           </div>
+        ) : market === "crypto" ? (
+          <div className="space-y-5">
+            <CryptoMarketChart ref={cryptoChartRef} coins={data.quotes} />
+            <GlobalMarketBoard
+              data={data}
+              accent={theme.accent}
+              sectionTitle="Coins"
+              sectionDescription={data.sourceLabel}
+              hideSummaryStats
+              hideCountry
+              hideType
+              useTableOnMobile={false}
+              rowNoun="coin"
+              prioritySymbols={["BTC","ETH","USDT","XRP","BNB","SOL","USDC","DOGE","ADA","TRX","HYPE","SUI","LINK","AVAX","XLM","TON","SHIB","HBAR","LTC","DOT"]}
+            />
+          </div>
+        ) : market === "us" ? (
+          <div className="space-y-5">
+            <UsMarketChart ref={usChartRef} quotes={data.quotes} />
+            <GlobalMarketBoard
+              data={data}
+              accent={theme.accent}
+              sectionTitle="Markets & stocks"
+              sectionDescription={data.sourceLabel}
+              hideCountry
+              useTableOnMobile={false}
+              rowNoun="market"
+              prioritySymbols={["^GSPC","^DJI","^NDX","^VIX","SPY","IVV","VOO","AAPL","MSFT","NVDA","AMZN","META","GOOGL","TSLA","BRK-B","JPM"]}
+            />
+          </div>
         ) : (
         <GlobalMarketBoard
           data={data}
@@ -240,10 +278,6 @@ export function CachedGlobalMarketPage({
           }
           useTableOnMobile={false}
           rowNoun={market === "world" ? "exchange" : "market"}
-          prioritySymbols={
-            market === "crypto" ? ["BTC","ETH","USDT","XRP","BNB","SOL","USDC","DOGE","ADA","TRX","HYPE","SUI","LINK","AVAX","XLM","TON","SHIB","HBAR","LTC","DOT"] :
-            undefined
-          }
         />
         )
       ) : isLoading ? (

@@ -49,6 +49,7 @@ export function GlobalMarketBoard({
   prioritySymbols,
   priceCardSymbols,
   hideCountry = false,
+  hideType = false,
   chartSlot,
 }: {
   data: GlobalMarketData;
@@ -62,6 +63,7 @@ export function GlobalMarketBoard({
   prioritySymbols?: string[];
   priceCardSymbols?: string[];
   hideCountry?: boolean;
+  hideType?: boolean;
   chartSlot?: React.ReactNode;
 }) {
   const [query, setQuery] = React.useState("");
@@ -194,23 +196,25 @@ export function GlobalMarketBoard({
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search symbol, country..."
+                placeholder={hideType ? "Search coin..." : "Search symbol, country..."}
                 className="pl-9"
               />
             </label>
-            <Select value={type} onValueChange={setType}>
-              <SelectTrigger className="sm:w-36">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                {types.map((item) => (
-                  <SelectItem key={item} value={item}>
-                    {item}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {!hideType ? (
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger className="sm:w-36">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  {types.map((item) => (
+                    <SelectItem key={item} value={item}>
+                      {item}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
           </div>
         </CardHeader>
         <CardContent
@@ -226,6 +230,7 @@ export function GlobalMarketBoard({
                   key={`${quote.symbol}-mobile`}
                   quote={quote}
                   universe={data.universe}
+                  hideType={hideType}
                 />
               ))}
               {rows.length === 0 ? (
@@ -240,7 +245,7 @@ export function GlobalMarketBoard({
               <TableHeader>
                 <TableRow>
                   <SortableHead label="Market" active={sortKey === "name"} onClick={() => toggleSort("name")} />
-                  <SortableHead label="Type" active={sortKey === "type"} onClick={() => toggleSort("type")} />
+                  {!hideType && <SortableHead label="Type" active={sortKey === "type"} onClick={() => toggleSort("type")} />}
                   {!hideCountry && <SortableHead label="Country" active={sortKey === "country"} onClick={() => toggleSort("country")} />}
                   <SortableHead label="Price" active={sortKey === "price"} onClick={() => toggleSort("price")} align="right" />
                   <SortableHead label="Change" active={sortKey === "changePct"} onClick={() => toggleSort("changePct")} align="right" />
@@ -268,14 +273,16 @@ export function GlobalMarketBoard({
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{quote.type}</div>
-                      {quote.trendRank ? (
-                        <div className="text-xs text-muted-foreground">
-                          Trending #{quote.trendRank}
-                        </div>
-                      ) : null}
-                    </TableCell>
+                    {!hideType && (
+                      <TableCell>
+                        <div className="font-medium">{quote.type}</div>
+                        {quote.trendRank ? (
+                          <div className="text-xs text-muted-foreground">
+                            Trending #{quote.trendRank}
+                          </div>
+                        ) : null}
+                      </TableCell>
+                    )}
                     {!hideCountry && <TableCell>{quote.country ?? quote.region ?? "Global"}</TableCell>}
                     <TableCell className="text-right tabular-nums">
                       {formatMarketPrice(quote.price, quote.currency)}
@@ -298,7 +305,10 @@ export function GlobalMarketBoard({
                 ))}
                 {rows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={hideCountry ? 6 : 7} className="h-24 text-center text-sm text-muted-foreground">
+                    <TableCell
+                      colSpan={4 + (hideType ? 0 : 1) + (hideCountry ? 0 : 1)}
+                      className="h-24 text-center text-sm text-muted-foreground"
+                    >
                       No markets match the current filters.
                     </TableCell>
                   </TableRow>
@@ -315,9 +325,11 @@ export function GlobalMarketBoard({
 function MarketMobileCard({
   quote,
   universe,
+  hideType = false,
 }: {
   quote: GlobalMarketQuote;
   universe: GlobalMarketData["universe"];
+  hideType?: boolean;
 }) {
   const href = indexHref(universe, quote);
   return (
@@ -345,8 +357,8 @@ function MarketMobileCard({
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
-        <MobileMarketMetric label="Type" value={quote.type} />
+      <div className={cn("mt-3 grid gap-3 text-sm", hideType ? "grid-cols-2" : "grid-cols-3")}>
+        {!hideType && <MobileMarketMetric label="Type" value={quote.type} />}
         <MobileMarketMetric label="Change" value={formatSigned(quote.change)} tone={quote.change} />
         <MobileMarketMetric label="Volume" value={formatCompact(quote.volume)} align="right" />
       </div>

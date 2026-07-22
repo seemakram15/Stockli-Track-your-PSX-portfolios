@@ -37,6 +37,7 @@ import {
 import { amcIconUrl, identifyAmcBrand } from "@/lib/amc-brands";
 import { cn } from "@/lib/utils";
 import { AmcBrandMark } from "@/components/market/amc-brand-mark";
+import { IslamicMark, IslamicTag, isIslamicOrShariahName } from "@/components/market/islamic-mark";
 import type { FundClassFilter, MufapFund, MufapFundsData } from "@/lib/services/mufap";
 
 type SortKey =
@@ -95,7 +96,7 @@ export function MufapFundsBoard({
         value: item,
         brand: identifyAmcBrand(item),
         count: counts.get(item) ?? 0,
-        logoUrl: logos.get(item) ?? null,
+        logoUrl: logos.get(item) ?? identifyAmcBrand(item).logoUrl,
       }))
       .sort((a, b) => a.brand.shortName.localeCompare(b.brand.shortName));
   }, [data.amcs, data.funds]);
@@ -245,6 +246,11 @@ export function MufapFundsBoard({
                           active={fundClass === item.value}
                           onClick={() => setFundClass(item.value)}
                           label={item.label}
+                          icon={
+                            item.value === "islamic" ? (
+                              <IslamicMark size="sm" />
+                            ) : undefined
+                          }
                         />
                       ))}
                     </div>
@@ -355,6 +361,11 @@ export function MufapFundsBoard({
                     {group.funds.map((fund) => (
                       <TableRow key={`${fund.fundId ?? fund.name}-${fund.type}`}>
                         <TableCell>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {fund.classFilter === "islamic" || isIslamicOrShariahName(fund.name) ? (
+                              <IslamicTag />
+                            ) : null}
+                          </div>
                           {fund.fundId ? (
                             <Link
                               href={`/${etfMode ? "market/etfs" : "market/mutual-funds"}/${fund.fundId}`}
@@ -397,6 +408,7 @@ export function MufapFundsBoard({
 }
 
 function FundMobileCard({ fund, etfMode, brandColor }: { fund: MufapFund; etfMode: boolean; brandColor: string }) {
+  const islamic = fund.classFilter === "islamic" || isIslamicOrShariahName(fund.name);
   return (
     <div
       className="rounded-xl border bg-card p-3"
@@ -404,6 +416,7 @@ function FundMobileCard({ fund, etfMode, brandColor }: { fund: MufapFund; etfMod
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
+          {islamic ? <div className="mb-1"><IslamicTag /></div> : null}
           {fund.fundId ? (
             <Link
               href={`/${etfMode ? "market/etfs" : "market/mutual-funds"}/${fund.fundId}`}
@@ -454,7 +467,7 @@ function MobileMetric({
 }
 
 function AmcGroupLogo({ brand, logoUrl }: { brand: ReturnType<typeof identifyAmcBrand>; logoUrl: string | null }) {
-  const iconUrl = logoUrl ?? amcIconUrl(brand);
+  const iconUrl = amcIconUrl(brand) ?? logoUrl;
   const [failed, setFailed] = React.useState(false);
   return (
     <div

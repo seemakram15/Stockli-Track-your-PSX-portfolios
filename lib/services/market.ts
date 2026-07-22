@@ -162,7 +162,8 @@ export async function getIndexDetail(symbol: string): Promise<IndexDetail | null
     week52High,
     week52Low,
     volume: constituents.reduce((a, c) => a + (c.volume ?? 0), 0) || null,
-    candles: candles.slice(-260),
+    // Full EOD history (PSX ~5y; KSE100 merged with Yahoo back to the 1990s).
+    candles,
     intraday,
     constituents: [...constituents].sort((a, b) => b.weight - a.weight),
   };

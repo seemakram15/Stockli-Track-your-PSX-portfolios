@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useRouteTransition } from "@/components/navigation/route-transition-provider";
+import { StockLogo } from "@/components/stock/stock-logo";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { SearchResult } from "@/app/api/search/route";
@@ -290,6 +291,7 @@ export function GlobalSearch({
             )}
             {entries.map((entry, index) => {
               const Icon = entry.icon;
+              const isStock = entry.kind === "stock" && Boolean(entry.symbol);
               return (
                 <button
                   key={entry.id}
@@ -301,15 +303,24 @@ export function GlobalSearch({
                     index === active ? "bg-muted/70" : "hover:bg-muted/50"
                   )}
                 >
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-primary">
-                    <Icon className="size-5" />
-                  </span>
+                  {isStock ? (
+                    <StockLogo
+                      symbol={entry.symbol}
+                      name={entry.company ?? entry.title}
+                      size="md"
+                      className="shrink-0"
+                    />
+                  ) : (
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-primary">
+                      <Icon className="size-5" />
+                    </span>
+                  )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-base font-semibold text-foreground">
-                      {entry.title}
+                      {isStock ? entry.symbol || entry.title : entry.title}
                     </span>
                     <span className="block truncate text-sm text-muted-foreground">
-                      {entry.subtitle}
+                      {isStock ? entry.company || entry.subtitle : entry.subtitle}
                     </span>
                   </span>
                   <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">

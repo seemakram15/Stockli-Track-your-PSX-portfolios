@@ -51,6 +51,7 @@ export interface Candle {
 export interface SeriesPoint {
   time: number; // unix epoch seconds
   value: number;
+  volume?: number;
 }
 
 /** Live summary of a PSX index (from /indices). */

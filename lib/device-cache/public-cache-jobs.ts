@@ -8,7 +8,7 @@ export const PUBLIC_DEVICE_CACHE_JOBS: PublicDeviceCacheJob[] = [
     cacheKey: "public:stock-fundamentals:companies:ready:v1",
     url: "/api/public/stock-fundamentals/companies?ready=1",
   },
-  { cacheKey: "public:psx-market", url: "/api/public/market" },
+  { cacheKey: "public:psx-market:v3", url: "/api/public/market" },
   { cacheKey: "public:market-strategy", url: "/api/public/market-strategy" },
   { cacheKey: "public:mufap:mutual", url: "/api/public/mufap?kind=mutual" },
   { cacheKey: "public:mufap:etfs", url: "/api/public/mufap?kind=etfs" },

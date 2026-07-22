@@ -5,6 +5,7 @@ import { BarChart3 } from "lucide-react";
 import { loadPublishedPeriods, loadPublishedFundHoldings } from "@/lib/actions/fund-holdings";
 import type { FundHolding } from "@/lib/types/fund-holdings";
 import { IconChip } from "@/components/ui/accent";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -114,7 +115,13 @@ export function FundHoldingsSection({ fundName }: Props) {
                     <td className="px-3 py-2 text-xs text-muted-foreground">{i + 1}</td>
                     <td className="px-3 py-2">
                       {h.symbol ? (
-                        <span className="font-mono text-xs font-semibold text-primary">{h.symbol}</span>
+                        <StockIdentity
+                          href={`/stock/${h.symbol}`}
+                          symbol={h.symbol}
+                          name={h.stockName}
+                          size="xs"
+                          showName={false}
+                        />
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}

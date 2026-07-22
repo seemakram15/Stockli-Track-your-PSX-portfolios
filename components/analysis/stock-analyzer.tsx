@@ -55,6 +55,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AccentPill, IconChip, type Accent } from "@/components/ui/accent";
+import { StockIdentity } from "@/components/stock/stock-identity";
+import { StockLogo } from "@/components/stock/stock-logo";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import type { StockFinancialsData } from "@/lib/types/stock-fundamentals";
 import { cn } from "@/lib/utils";
@@ -167,9 +169,10 @@ export function StockAnalyzer() {
     refreshInterval: 24 * 60 * 60 * 1000,
   });
   const marketResource = usePersistentResource<MarketPayload>({
-    cacheKey: "public:psx-market",
+    cacheKey: "public:psx-market:v3",
     url: "/api/public/market",
     refreshInterval: 60_000,
+    legacyCacheKeys: ["public:psx-market", "public:psx-market:v2"],
   });
   const kse30 = useIndexConstituents("KSE30");
 
@@ -1282,10 +1285,12 @@ function StockPicker({
                   value === company.symbol && "bg-violet-500/10 text-violet-600 dark:text-violet-300"
                 )}
               >
-                <span className="min-w-0">
-                  <span className="block font-semibold">{company.symbol}</span>
-                  <span className="block truncate text-sm text-muted-foreground">{company.name}</span>
-                </span>
+                <StockIdentity
+                  symbol={company.symbol}
+                  name={company.name}
+                  size="sm"
+                  className="min-w-0"
+                />
                 <span className="hidden max-w-40 truncate rounded-full border px-2 py-0.5 text-xs text-muted-foreground sm:inline">
                   {company.sector}
                 </span>
@@ -1327,12 +1332,15 @@ function CompareHeroStockCard({ summary }: { summary: AnalyzerSummary }) {
   return (
     <div className="rounded-3xl border bg-background/90 p-5 shadow-soft">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            {summary.symbol}
-          </p>
-          <p className="mt-2 text-xl font-bold">{summary.name}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{summary.sector}</p>
+        <div className="flex min-w-0 items-start gap-3">
+          <StockLogo symbol={summary.symbol} name={summary.name} size="lg" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              {summary.symbol}
+            </p>
+            <p className="mt-2 text-xl font-bold">{summary.name}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{summary.sector}</p>
+          </div>
         </div>
         <Badge variant="outline">{summary.totalScore}/100</Badge>
       </div>
@@ -2400,7 +2408,7 @@ function GraphHoverCard({
 }) {
   return (
     <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-2xl border bg-background/95 px-3 py-2 text-xs shadow-soft">
-      <p className="font-semibold">{symbol}</p>
+      <StockIdentity symbol={symbol} size="xs" showName={false} />
       <p className="mt-1 tabular-nums text-muted-foreground">{value}</p>
       <p className="mt-1 tabular-nums text-muted-foreground">Matchup score: {score}/100</p>
     </div>

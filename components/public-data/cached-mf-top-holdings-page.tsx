@@ -8,6 +8,9 @@ import { EmptyState } from "@/components/empty-state";
 import { PageLoadingState } from "@/components/loading/page-loading-state";
 import { PageHeader } from "@/components/page-header";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
+import { AmcBrandMark } from "@/components/market/amc-brand-mark";
+import { IslamicTag, isIslamicOrShariahName } from "@/components/market/islamic-mark";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { identifyAmcBrand } from "@/lib/amc-brands";
 import { cn } from "@/lib/utils";
 import type { MFTopHoldingsData, MFTopHolding, TopHoldingFund } from "@/lib/services/mf-top-holdings";
@@ -65,10 +68,12 @@ function HoldingCard({ holding, rank }: { holding: MFTopHolding; rank: number })
       >
         <span className={cn("w-6 shrink-0 text-sm font-bold tabular-nums", rankColor)}>{rank}</span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2">
-            <span className="text-sm font-bold">{holding.symbol}</span>
-            <span className="min-w-0 truncate text-xs text-muted-foreground">{holding.stockName}</span>
-          </div>
+          <StockIdentity
+            symbol={holding.symbol}
+            name={holding.stockName}
+            size="sm"
+            className="min-w-0"
+          />
         </div>
         <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
           <span className="size-1.5 rounded-full bg-amber-500" />
@@ -87,7 +92,7 @@ function HoldingCard({ holding, rank }: { holding: MFTopHolding; rank: number })
                 className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-[filter] hover:brightness-95"
                 style={{ borderLeft: `3px solid ${group.color}`, backgroundColor: `${group.color}18` }}
               >
-                <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: group.color }} />
+                <AmcBrandMark label={group.amc} size="sm" />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{group.fullName}</span>
                 <span
                   className="shrink-0 rounded px-1.5 py-0.5 text-xs font-bold text-white"
@@ -101,15 +106,19 @@ function HoldingCard({ holding, rank }: { holding: MFTopHolding; rank: number })
               </button>
               {openAmcs.has(group.amc) && (
                 <div className="ml-3 mt-0.5 space-y-0.5">
-                  {group.funds.map((fund) => (
+                  {group.funds.map((fund) => {
+                    const islamic = isIslamicOrShariahName(fund.fundName);
+                    return (
                     <div
                       key={fund.fundName}
                       className="flex items-center gap-2 rounded-md px-3 py-1.5 hover:bg-muted/40"
                     >
+                      {islamic ? <IslamicTag className="shrink-0" /> : null}
                       <span className="min-w-0 flex-1 text-xs text-foreground">{fund.fundName}</span>
                       <span className="shrink-0 text-xs font-semibold tabular-nums">{fund.percentage.toFixed(1)}%</span>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

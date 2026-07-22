@@ -4,88 +4,118 @@ export interface AmcBrand {
   shortName: string;
   initials: string;
   domain: string | null;
+  /** Official MUFAP ProfileImage URL when available. */
+  logoUrl: string | null;
   color: string;
   patterns: RegExp[];
 }
+
+/** Local copies of official MUFAP AMC logos (hotlinking is blocked in browsers). */
+const LOCAL_LOGOS: Record<string, string> = {
+  abl: "/icons/amc-abl.jpg",
+  akd: "/icons/amc-akd.jpg",
+  "al-habib": "/icons/amc-al-habib.jpg",
+  "al-meezan": "/icons/amc-al-meezan.jpg",
+  alfalah: "/icons/amc-alfalah.jpg",
+  atlas: "/icons/amc-atlas.jpg",
+  awt: "/icons/amc-awt.jpg",
+  bma: "/icons/amc-bma.jpg",
+  faysal: "/icons/amc-faysal.png",
+  "first-capital": "/icons/amc-first-capital.jpg",
+  hbl: "/icons/amc-hbl.jpg",
+  js: "/icons/amc-js.jpg",
+  lakson: "/icons/amc-lakson.jpg",
+  lucky: "/icons/amc-lucky.jpg",
+  mahaana: "/icons/amc-mahaana.jpg",
+  mcb: "/icons/amc-mcb.jpg",
+  nbp: "/icons/amc-nbp.jpg",
+  nit: "/icons/amc-nit.jpg",
+  "pak-qatar": "/icons/amc-pak-qatar.jpg",
+  ubl: "/icons/amc-ubl.jpg",
+  "786": "/icons/amc-786.jpg",
+};
 
 export const AMC_BRANDS: AmcBrand[] = [
   brand("abl", "ABL Asset Management Company Limited", "ABL", "ABL", "ablfunds.com.pk", "#0f4c8a", [
     /\babl\b/i,
     /allied/i,
-  ]),
+  ], LOCAL_LOGOS.abl),
   brand("akd", "AKD Investment Management Limited", "AKD", "AKD", "akdinvestment.com", "#123a62", [
     /\bakd\b/i,
-  ]),
+  ], LOCAL_LOGOS.akd),
   brand("al-habib", "AL Habib Asset Management Limited", "AL Habib", "AH", "alhabibasset.com", "#168044", [
     /\bal\s+habib\b/i,
     /first\s+habib/i,
-  ]),
+  ], LOCAL_LOGOS["al-habib"]),
   brand("al-meezan", "Al Meezan Investment Management Limited", "Meezan", "AM", "almeezangroup.com", "#285c3b", [
     /al\s+meezan/i,
     /\bmeezan\b/i,
     /kse\s+meezan/i,
-  ]),
+  ], LOCAL_LOGOS["al-meezan"]),
   brand("alfalah", "Alfalah Investments Limited", "Alfalah", "AF", "alfalahinvestments.com", "#db2735", [
     /\balfalah\b/i,
-  ]),
+  ], LOCAL_LOGOS.alfalah),
   brand("askari", "Askari Investment Management Limited", "Askari", "AK", "askarifunds.com", "#1b4f7a", [
     /\baskari\b/i,
   ]),
   brand("atlas", "Atlas Asset Management Limited", "Atlas", "AT", "atlasfunds.com.pk", "#8c1d2c", [
     /\batlas\b/i,
-  ]),
+  ], LOCAL_LOGOS.atlas),
   brand("awt", "AWT Investments Limited", "AWT", "AWT", "awtinvestments.com", "#314c22", [
     /\bawt\b/i,
-  ]),
+  ], LOCAL_LOGOS.awt),
   brand("bma", "BMA Asset Management Company Limited", "BMA", "BMA", "bmafunds.com", "#812f2c", [
     /\bbma\b/i,
-  ]),
+  ], LOCAL_LOGOS.bma),
   brand("faysal", "Faysal Asset Management Limited", "Faysal", "FY", "faysalfunds.com", "#006b8f", [
     /\bfaysal\b/i,
-  ]),
+  ], LOCAL_LOGOS.faysal),
+  brand("first-capital", "First Capital Investments Limited", "First Capital", "FC", "fcil.com.pk", "#1f4e79", [
+    /first\s+capital/i,
+  ], LOCAL_LOGOS["first-capital"]),
   brand("golden-arrow", "Golden Arrow Asset Management Limited", "Golden Arrow", "GA", "goldenarrow.com.pk", "#c4962f", [
     /golden\s+arrow/i,
   ]),
   brand("hbl", "HBL Asset Management Limited", "HBL", "HBL", "hblasset.com", "#008b4a", [
     /\bhbl\b/i,
-  ]),
+  ], LOCAL_LOGOS.hbl),
   brand("js", "JS Investments Limited", "JS", "JS", "jsil.com", "#1556a4", [
     /\bjs\b/i,
-  ]),
+  ], LOCAL_LOGOS.js),
   brand("lakson", "Lakson Investments Limited", "Lakson", "LK", "laksoninvestments.com", "#3b2f7f", [
     /\blakson\b/i,
-  ]),
+  ], LOCAL_LOGOS.lakson),
   brand("lucky", "Lucky Investments Limited", "Lucky", "LU", "luckyinvestments.com.pk", "#2f7d45", [
     /\blucky\b/i,
-  ]),
+  ], LOCAL_LOGOS.lucky),
   brand("mahaana", "Mahaana Wealth Limited", "Mahaana", "MH", "mahaana.com", "#5b46d8", [
     /\bmahaana\b/i,
-  ]),
+  ], LOCAL_LOGOS.mahaana),
   brand("mcb", "MCB Investment Management Limited", "MCB", "MCB", "mcbfunds.com", "#007445", [
     /\bmcb\b/i,
     /\balhamra\b/i,
     /pakistan\s+(capital|income|cash|stock|asset|sovereign)/i,
-  ]),
+  ], LOCAL_LOGOS.mcb),
   brand("nbp", "NBP Fund Management Limited", "NBP Funds", "NBP", "nbpfunds.com", "#23743a", [
     /\bnbp\b/i,
     /\bnafa\b/i,
     /sarmaya/i,
-  ]),
+  ], LOCAL_LOGOS.nbp),
   brand("nit", "National Investment Trust Limited", "NIT", "NIT", "nit.com.pk", "#255f9e", [
     /\bnit\b/i,
     /national\s+investment/i,
-  ]),
+  ], LOCAL_LOGOS.nit),
   brand("pak-qatar", "Pak Qatar Asset Management Company Limited", "Pak Qatar", "PQ", "pqfunds.com.pk", "#317164", [
     /pak\s+qatar/i,
-  ]),
+  ], LOCAL_LOGOS["pak-qatar"]),
   brand("ubl", "UBL Fund Managers Limited", "UBL", "UBL", "ublfunds.com", "#0a5dba", [
     /\bubl\b/i,
     /al\s+ameen/i,
     /unit\s+trust\s+of\s+pakistan/i,
-  ]),
+  ], LOCAL_LOGOS.ubl),
   brand("786", "786 Investments Limited", "786", "786", "786investments.com", "#0b6b5f", [
     /\b786\b/i,
-  ]),
+  ], LOCAL_LOGOS["786"]),
 ];
 
 const UNKNOWN_BRAND: AmcBrand = {
@@ -94,6 +124,7 @@ const UNKNOWN_BRAND: AmcBrand = {
   shortName: "Other",
   initials: "AMC",
   domain: null,
+  logoUrl: null,
   color: "#0f766e",
   patterns: [],
 };
@@ -114,6 +145,7 @@ export function identifyAmcBrand(value: string | null | undefined): AmcBrand {
 }
 
 export function amcIconUrl(brandItem: AmcBrand) {
+  if (brandItem.logoUrl) return brandItem.logoUrl;
   return brandItem.domain
     ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(brandItem.domain)}&sz=64`
     : null;
@@ -130,9 +162,10 @@ function brand(
   initials: string,
   domain: string,
   color: string,
-  patterns: RegExp[]
+  patterns: RegExp[],
+  logoUrl: string | null = null
 ): AmcBrand {
-  return { key, fullName, shortName, initials, domain, color, patterns };
+  return { key, fullName, shortName, initials, domain, logoUrl, color, patterns };
 }
 
 function fallbackBrand(value: string): AmcBrand {

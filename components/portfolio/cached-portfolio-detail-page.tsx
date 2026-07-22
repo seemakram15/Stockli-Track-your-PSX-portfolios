@@ -23,6 +23,7 @@ import { PLCalendar } from "@/components/charts/pl-calendar";
 import { PortfolioValueChart } from "@/components/charts/portfolio-value-chart";
 import { formatDate, formatNumber, formatPKR, formatPercent, plColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import {
   usePersistentResource,
   type CachedRecord,
@@ -346,13 +347,15 @@ function RealizedHistory({ positions }: { positions: RealizedPositionPL[] }) {
               {positions.map((row) => (
                 <article key={row.symbol} className="rounded-xl border border-border bg-card p-3">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{row.symbol}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {row.tradesCount} sale{row.tradesCount === 1 ? "" : "s"} ·{" "}
-                        {row.lastSoldAt ? formatDate(row.lastSoldAt) : "—"}
-                      </p>
-                    </div>
+                    <StockIdentity
+                      href={`/stock/${row.symbol}`}
+                      symbol={row.symbol}
+                      size="sm"
+                      showName={false}
+                      subtitle={`${row.tradesCount} sale${row.tradesCount === 1 ? "" : "s"} · ${
+                        row.lastSoldAt ? formatDate(row.lastSoldAt) : "—"
+                      }`}
+                    />
                     <div className={cn("text-right font-medium tabular-nums", plColorClass(row.realizedPL))}>
                       <p>{formatPKR(row.realizedPL, { sign: true })}</p>
                       <p className="text-xs">{formatPercent(row.realizedPLPct)}</p>
@@ -383,7 +386,14 @@ function RealizedHistory({ positions }: { positions: RealizedPositionPL[] }) {
                 <tbody>
                   {positions.map((row) => (
                     <tr key={row.symbol} className="border-b last:border-0">
-                      <td className="py-3 font-medium">{row.symbol}</td>
+                      <td className="py-3">
+                        <StockIdentity
+                          href={`/stock/${row.symbol}`}
+                          symbol={row.symbol}
+                          size="xs"
+                          showName={false}
+                        />
+                      </td>
                       <td className="py-3 text-right tabular-nums">
                         {formatNumber(row.quantitySold, 0)}
                       </td>

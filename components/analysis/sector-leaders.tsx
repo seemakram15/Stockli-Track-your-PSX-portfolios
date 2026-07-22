@@ -37,6 +37,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { StockIdentity } from "@/components/stock/stock-identity";
+import { StockLogo } from "@/components/stock/stock-logo";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import { cn } from "@/lib/utils";
 
@@ -296,12 +298,17 @@ export function SectorLeadersPanel({
                             </Badge>
                           ) : null}
                         </div>
-                        <h3 className="mt-4 text-[clamp(3rem,8vw,5.5rem)] font-bold tracking-tight leading-none">
-                          {leader.symbol}
-                        </h3>
-                        <p className="mt-3 max-w-3xl text-[clamp(1.1rem,2vw,2rem)] leading-tight text-muted-foreground">
-                          {leader.name}
-                        </p>
+                        <div className="mt-4 flex items-center gap-4">
+                          <StockLogo symbol={leader.symbol} name={leader.name} size="lg" className="size-16 rounded-2xl text-xl" />
+                          <div className="min-w-0">
+                            <h3 className="text-[clamp(2.5rem,7vw,4.5rem)] font-bold tracking-tight leading-none">
+                              {leader.symbol}
+                            </h3>
+                            <p className="mt-2 max-w-3xl text-[clamp(1rem,1.8vw,1.6rem)] leading-tight text-muted-foreground">
+                              {leader.name}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -544,8 +551,13 @@ function SectorStockCard({ stock, rank }: { stock: SectorLeaderStock; rank: numb
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Rank #{rank}
           </p>
-          <h3 className="mt-2 text-2xl font-bold">{stock.symbol}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{stock.name}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <StockLogo symbol={stock.symbol} name={stock.name} size="lg" />
+            <div className="min-w-0">
+              <h3 className="text-2xl font-bold tracking-tight">{stock.symbol}</h3>
+              <p className="mt-0.5 text-sm text-muted-foreground">{stock.name}</p>
+            </div>
+          </div>
         </div>
         <div className="rounded-[1.4rem] border bg-card px-4 py-3 text-center shadow-soft">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -876,8 +888,8 @@ function RankTooltip({
   const item = payload[0].payload;
   return (
     <div className="rounded-xl border bg-background/95 px-3 py-2 text-xs shadow-lg">
-      <p className="font-semibold">{item.symbol}</p>
-      <p className="text-muted-foreground">{item.score}/100 sector score</p>
+      <StockIdentity symbol={item.symbol} size="xs" showName={false} />
+      <p className="mt-1 text-muted-foreground">{item.score}/100 sector score</p>
     </div>
   );
 }
@@ -910,8 +922,8 @@ function MetricTooltip({
   const item = payload[0].payload;
   return (
     <div className="rounded-xl border bg-background/95 px-3 py-2 text-xs shadow-lg">
-      <p className="font-semibold">{item.symbol}</p>
-      <p className="text-muted-foreground">{item.value}</p>
+      <StockIdentity symbol={item.symbol} size="xs" showName={false} />
+      <p className="mt-1 text-muted-foreground">{item.value}</p>
       <p className="text-muted-foreground">{item.score}/100 inside this sector</p>
     </div>
   );

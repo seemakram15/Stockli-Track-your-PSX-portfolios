@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { amcIconUrl, identifyAmcBrand } from "@/lib/amc-brands";
+import { IslamicTag, isIslamicOrShariahName } from "@/components/market/islamic-mark";
 import { formatPercent, formatPKR, plColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { HoldingsStrategyData, HoldingsStrategyFund } from "@/lib/services/market-strategy-holdings";
@@ -156,7 +157,7 @@ function AmcCard({
   funds: HoldingsStrategyFund[];
   compact?: boolean;
 }) {
-  const iconUrl = logoUrl ?? amcIconUrl(brand);
+  const iconUrl = amcIconUrl(brand) ?? logoUrl;
   const [imgFailed, setImgFailed] = React.useState(false);
 
   return (
@@ -204,6 +205,7 @@ function AmcCard({
 }
 
 function FundRow({ fund: f, compact = false }: { fund: HoldingsStrategyFund; compact?: boolean }) {
+  const isIslamic = f.classFilter === "islamic" || isIslamicOrShariahName(f.fundName);
   const name = f.fundId ? (
     <Link href={`/market/mutual-funds/${f.fundId}`} className="hover:underline">
       {f.fundName}
@@ -224,7 +226,10 @@ function FundRow({ fund: f, compact = false }: { fund: HoldingsStrategyFund; com
         gap: "0.5rem",
       }}
     >
-      <span className="min-w-0 truncate text-foreground/80">{name}</span>
+      <span className="flex min-w-0 items-center gap-1.5 text-foreground/80">
+        {isIslamic ? <IslamicTag className="shrink-0" /> : null}
+        <span className="min-w-0 truncate">{name}</span>
+      </span>
       <span
         className={cn(
           "whitespace-nowrap text-right font-semibold tabular-nums",

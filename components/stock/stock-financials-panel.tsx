@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/empty-state";
-import { StockLogo } from "@/components/stock/stock-logo";
+import { StockIdentity } from "@/components/stock/stock-identity";
 import { usePersistentResource } from "@/lib/hooks/use-persistent-resource";
 import { cn } from "@/lib/utils";
 import type {
@@ -934,13 +934,7 @@ function PeerComparisonTable({
             <tr className="border-b bg-muted/50">
               <SortableHeader
                 label="Company"
-                active={sort.key === "companyName"}
-                direction={sort.direction}
-                onClick={() => toggleSort("companyName")}
-              />
-              <SortableHeader
-                label="Symbol"
-                active={sort.key === "symbol"}
+                active={sort.key === "companyName" || sort.key === "symbol"}
                 direction={sort.direction}
                 onClick={() => toggleSort("symbol")}
               />
@@ -980,22 +974,21 @@ function PeerComparisonTable({
                 )}
               >
                 <td className="px-3 py-2">
-                  <div className="flex items-center gap-3">
-                    <StockLogo
+                  <div className="flex items-center gap-2">
+                    <StockIdentity
                       symbol={peer.symbol}
                       name={peer.companyName}
                       image={peer.image}
                       size="sm"
+                      className="min-w-0"
                     />
-                    <span className="font-medium">{peer.companyName}</span>
                     {isSelected ? (
-                      <Badge variant="secondary" className="rounded-full text-[0.65rem]">
+                      <Badge variant="secondary" className="shrink-0 rounded-full text-[0.65rem]">
                         Selected
                       </Badge>
                     ) : null}
                   </div>
                 </td>
-                <td className="px-3 py-2 font-semibold">{peer.symbol}</td>
                 <td className="px-3 py-2">
                   <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">
                     {peer.sector}
