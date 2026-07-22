@@ -36,6 +36,7 @@ import {
   PORTFOLIO_MUTATION_EVENT,
 } from "@/lib/cache/portfolio-mutations";
 import {
+  formatCompact,
   formatMarketPrice,
   formatNumber,
   formatPercent,
@@ -118,6 +119,22 @@ interface IndexCardData {
   changePct: number;
   week52High?: number;
   week52Low?: number;
+  high?: number | null;
+  low?: number | null;
+  prevClose?: number | null;
+  volume?: number | null;
+}
+
+interface PsxIndexSnapshot {
+  symbol: string;
+  name: string;
+  current: number;
+  change: number;
+  changePct: number;
+  high: number | null;
+  low: number | null;
+  prevClose: number | null;
+  volume: number | null;
 }
 
 interface PublicMarketData {
@@ -424,6 +441,8 @@ export function MarketHubDashboard({ userId }: { userId: string }) {
               title="Refreshing market hub"
               description="Force-fresh every board on this dashboard so numbers stay accurate."
               jobs={refreshJobs}
+              autoStart={false}
+              startLabel="Start refresh"
             />
           </div>
         </div>
@@ -678,75 +697,162 @@ function KseHeroCard({
   marketLabel: string;
   className?: string;
 }) {
-  const indexes = (["KSE100", "KMI30", "KSE30"] as const).map((symbol) => {
-    const fromCards = cards?.find((card) => card.symbol === symbol) ?? null;
-    if (symbol === "KSE100" && detail) {
-      return {
-        symbol,
-        name: detail.name || fromCards?.name || "KSE 100 Index",
-        current: detail.current,
-        change: detail.change,
-        changePct: detail.changePct,
-        week52High: detail.week52High ?? fromCards?.week52High,
-        week52Low: detail.week52Low ?? fromCards?.week52Low,
-      } satisfies IndexCardData;
-    }
-    return fromCards;
-  });
+  const indexes = React.useMemo(() => {
+    return (["KSE100", "KMI30", "KSE30"] as const).map((symbol) => {
+      const fromCards = cards?.find((card) => card.symbol === symbol) ?? null;
+      if (symbol === "KSE100" && detail) {
+        return {
+          symbol,
+          name: detail.name || fromCards?.name || "KSE 100 Index",
+          current: detail.current,
+          change: detail.change,
+          changePct: detail.changePct,
+          high: detail.high ?? null,
+          low: detail.low ?? null,
+          prevClose: detail.prevClose ?? null,
+          volume: detail.volume ?? null,
+        } satisfies IndexCardData;
+      }
+      return fromCards;
+    });
+  }, [cards, detail]);
+
   const [kse100, kmi30, kse30] = indexes;
   const ready = Boolean(kse100 || kmi30 || kse30);
   const [selected, setSelected] = React.useState<PsxIndexSymbol>("KSE100");
-  const [fetchedRange, setFetchedRange] = React.useState<
-    Partial<Record<PsxIndexSymbol, { week52High: number; week52Low: number }>>
+  const [loadedBySymbol, setLoadedBySymbol] = React.useState<
+    Partial<Record<PsxIndexSymbol, PsxIndexSnapshot>>
   >({});
 
-  const selectedCard =
-    selected === "KSE100" ? kse100 : selected === "KMI30" ? kmi30 : kse30;
+  const seedFor = React.useCallback(
+    (symbol: PsxIndexSymbol) =>
+      symbol === "KSE100" ? kse100 : symbol === "KMI30" ? kmi30 : kse30,
+    [kse100, kmi30, kse30]
+  );
 
   React.useEffect(() => {
-    if (selectedCard) return;
+    if (seedFor(selected)) return;
     if (kse100) setSelected("KSE100");
     else if (kmi30) setSelected("KMI30");
     else if (kse30) setSelected("KSE30");
-  }, [kse100, kmi30, kse30, selectedCard]);
-
-  const week52High = selectedCard?.week52High ?? fetchedRange[selected]?.week52High;
-  const week52Low = selectedCard?.week52Low ?? fetchedRange[selected]?.week52Low;
-  const needsFetch = Boolean(selectedCard) && (week52High == null || week52Low == null);
+  }, [kse100, kmi30, kse30, seedFor, selected]);
 
   React.useEffect(() => {
-    if (!needsFetch) return;
+    if (!ready) return;
 
+    const symbols = (["KSE100", "KMI30", "KSE30"] as const).filter((symbol) => seedFor(symbol));
     let cancelled = false;
+
     void (async () => {
-      try {
-        const res = await fetch(`/api/index/${selected}`, { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          week52High?: number;
-          week52Low?: number;
-        };
-        if (cancelled || data.week52High == null || data.week52Low == null) return;
-        setFetchedRange((prev) => {
-          if (prev[selected]) return prev;
-          return {
-            ...prev,
-            [selected]: {
-              week52High: data.week52High!,
-              week52Low: data.week52Low!,
-            },
-          };
-        });
-      } catch {
-        // Keep empty state; bar shows unavailable.
-      }
+      await Promise.all(
+        symbols.map(async (symbol) => {
+          const seed = seedFor(symbol);
+          if (!seed) return;
+
+          const hasSessionStats =
+            seed.high != null || seed.low != null || seed.prevClose != null || seed.volume != null;
+
+          if (hasSessionStats) {
+            if (cancelled) return;
+            setLoadedBySymbol((prev) => {
+              if (prev[symbol]) return prev;
+              return {
+                ...prev,
+                [symbol]: {
+                  symbol,
+                  name: seed.name,
+                  current: seed.current,
+                  change: seed.change,
+                  changePct: seed.changePct,
+                  high: seed.high ?? null,
+                  low: seed.low ?? null,
+                  prevClose: seed.prevClose ?? null,
+                  volume: seed.volume ?? null,
+                },
+              };
+            });
+            return;
+          }
+
+          try {
+            const res = await fetch(`/api/index/${symbol}`, { cache: "no-store" });
+            if (!res.ok) throw new Error(`index ${symbol} failed`);
+            const data = (await res.json()) as {
+              current?: number;
+              change?: number;
+              changePct?: number;
+              high?: number | null;
+              low?: number | null;
+              prevClose?: number | null;
+              volume?: number | null;
+              name?: string;
+            };
+            if (cancelled || data.current == null) {
+              setLoadedBySymbol((prev) => {
+                if (prev[symbol]) return prev;
+                return {
+                  ...prev,
+                  [symbol]: {
+                    symbol,
+                    name: seed.name,
+                    current: seed.current,
+                    change: seed.change,
+                    changePct: seed.changePct,
+                    high: null,
+                    low: null,
+                    prevClose: null,
+                    volume: null,
+                  },
+                };
+              });
+              return;
+            }
+            setLoadedBySymbol((prev) => ({
+              ...prev,
+              [symbol]: {
+                symbol,
+                name: data.name || seed.name,
+                current: data.current ?? seed.current,
+                change: data.change ?? seed.change,
+                changePct: data.changePct ?? seed.changePct,
+                high: data.high ?? null,
+                low: data.low ?? null,
+                prevClose: data.prevClose ?? null,
+                volume: data.volume ?? null,
+              },
+            }));
+          } catch {
+            if (cancelled) return;
+            setLoadedBySymbol((prev) => {
+              if (prev[symbol]) return prev;
+              return {
+                ...prev,
+                [symbol]: {
+                  symbol,
+                  name: seed.name,
+                  current: seed.current,
+                  change: seed.change,
+                  changePct: seed.changePct,
+                  high: null,
+                  low: null,
+                  prevClose: null,
+                  volume: null,
+                },
+              };
+            });
+          }
+        })
+      );
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [needsFetch, selected]);
+  }, [ready, seedFor]);
 
+  const selectedSeed = seedFor(selected);
+  const displayCard = loadedBySymbol[selected] ?? null;
+  const isSelectedLoading = Boolean(selectedSeed) && !displayCard;
   const theme = PSX_INDEX_THEMES[selected];
 
   return (
@@ -789,9 +895,12 @@ function KseHeroCard({
               className="grid grid-cols-3 gap-1 rounded-2xl border border-border/70 bg-background/80 p-1 shadow-xs"
             >
               {(["KSE100", "KMI30", "KSE30"] as const).map((symbol) => {
-                const card = symbol === "KSE100" ? kse100 : symbol === "KMI30" ? kmi30 : kse30;
+                const card = seedFor(symbol);
+                const loaded = loadedBySymbol[symbol];
                 const active = selected === symbol;
                 const item = PSX_INDEX_THEMES[symbol];
+                const tabLoading = active && isSelectedLoading;
+                const change = loaded?.change ?? card?.change ?? null;
                 return (
                   <button
                     key={symbol}
@@ -808,16 +917,41 @@ function KseHeroCard({
                       !card && "opacity-40"
                     )}
                   >
-                    <p className="text-xs font-semibold sm:text-sm">{item.label}</p>
-                    <p className={cn("mt-0.5 text-[10px] uppercase tracking-wide", active ? "text-white/75" : "text-muted-foreground")}>
+                    <p className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold sm:text-sm">
+                      {tabLoading ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                      {item.label}
+                    </p>
+                    <p
+                      className={cn(
+                        "mt-0.5 text-[10px] uppercase tracking-wide",
+                        active ? "text-white/75" : "text-muted-foreground"
+                      )}
+                    >
                       {item.short}
+                    </p>
+                    <p
+                      className={cn(
+                        "mt-1 text-xs font-semibold tabular-nums sm:text-sm",
+                        active
+                          ? "text-white"
+                          : change == null
+                            ? "text-muted-foreground"
+                            : plColorClass(change)
+                      )}
+                    >
+                      {change == null ? "—" : formatSigned(change, 2)}
                     </p>
                   </button>
                 );
               })}
             </div>
 
-            {selectedCard ? (
+            {isSelectedLoading || !displayCard ? (
+              <LoadingBlock
+                label={`Loading ${theme.label}…`}
+                className="min-h-[13.5rem] flex-1"
+              />
+            ) : (
               <div className="space-y-4">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div className="min-w-0">
@@ -830,34 +964,30 @@ function KseHeroCard({
                     <p
                       className={cn(
                         "mt-2 text-4xl font-bold tracking-tight tabular-nums sm:text-5xl",
-                        plColorClass(selectedCard.changePct)
+                        plColorClass(displayCard.changePct)
                       )}
                     >
-                      {formatNumber(selectedCard.current, 2)}
+                      {formatNumber(displayCard.current, 2)}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <ChangePill value={selectedCard.changePct} />
-                    <p className={cn("text-sm font-semibold tabular-nums", plColorClass(selectedCard.change))}>
-                      {formatSigned(selectedCard.change, 2)} pts
+                    <ChangePill value={displayCard.changePct} />
+                    <p className={cn("text-sm font-semibold tabular-nums", plColorClass(displayCard.change))}>
+                      {formatSigned(displayCard.change, 2)} pts
                     </p>
                   </div>
                 </div>
 
-                <IndexWeekRangeBar
-                  symbol={selected}
-                  high={week52High}
-                  low={week52Low}
-                  current={selectedCard.current}
-                  changePct={selectedCard.changePct}
-                />
+                <IndexSessionStats card={displayCard} />
               </div>
-            ) : (
-              <LoadingBlock label="Loading index…" className="min-h-36" />
             )}
 
             <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-3">
-              <p className="text-xs text-muted-foreground">Select an index to compare its 52-week range</p>
+              <p className="text-xs text-muted-foreground">
+                {isSelectedLoading
+                  ? `Fetching ${theme.label} details…`
+                  : "Day high, day low, previous close and volume"}
+              </p>
               <Button asChild variant="outline" size="sm" className="h-8">
                 <Link href="/market">Open market</Link>
               </Button>
@@ -871,66 +1001,45 @@ function KseHeroCard({
   );
 }
 
-function IndexWeekRangeBar({
-  symbol,
-  high,
-  low,
-  current,
-  changePct,
-}: {
-  symbol: PsxIndexSymbol;
-  high?: number;
-  low?: number;
-  current: number;
-  changePct: number | null;
-}) {
-  const theme = PSX_INDEX_THEMES[symbol];
-
-  if (high == null || low == null) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-3">
-        <p className="text-xs text-muted-foreground">Loading 52-week range for {theme.label}…</p>
-      </div>
-    );
-  }
-
-  const span = Math.max(high - low, 1);
-  const pos = Math.min(100, Math.max(0, ((current - low) / span) * 100));
+function IndexSessionStats({ card }: { card: PsxIndexSnapshot }) {
+  const stats = [
+    {
+      key: "high",
+      label: "Day high",
+      value: card.high == null ? "—" : formatNumber(card.high, 2),
+    },
+    {
+      key: "low",
+      label: "Day low",
+      value: card.low == null ? "—" : formatNumber(card.low, 2),
+    },
+    {
+      key: "prev",
+      label: "Prev close",
+      value: card.prevClose == null ? "—" : formatNumber(card.prevClose, 2),
+    },
+    {
+      key: "volume",
+      label: "Volume",
+      value: card.volume == null ? "—" : formatCompact(card.volume),
+    },
+  ];
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3.5">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          52-week range
-        </p>
-        <p className="text-sm font-bold tabular-nums text-foreground">
-          {pos.toFixed(0)}%
-          <span className="ml-1 text-xs font-medium text-muted-foreground">of range</span>
-        </p>
-      </div>
-
-      <div className="relative mt-3 h-2 w-full rounded-full bg-gradient-to-r from-rose-400/40 via-amber-300/35 to-emerald-400/45">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {stats.map((stat) => (
         <div
-          className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-foreground shadow-sm"
-          style={{ left: `${pos}%` }}
-          aria-hidden
-        />
-      </div>
-
-      <div className="mt-2.5 flex items-center justify-between gap-3 text-xs tabular-nums">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Low</p>
-          <p className="font-semibold text-foreground">{formatNumber(low, 0)}</p>
+          key={stat.key}
+          className="rounded-2xl border border-border/60 bg-background/70 px-3 py-3"
+        >
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {stat.label}
+          </p>
+          <p className="mt-1.5 text-sm font-bold tabular-nums text-foreground sm:text-base">
+            {stat.value}
+          </p>
         </div>
-        <div className="text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Now</p>
-          <p className={cn("font-semibold", plColorClass(changePct))}>{formatNumber(current, 0)}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">High</p>
-          <p className="font-semibold text-foreground">{formatNumber(high, 0)}</p>
-        </div>
-      </div>
+      ))}
     </div>
   );
 }
