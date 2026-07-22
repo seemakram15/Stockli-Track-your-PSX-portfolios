@@ -51,26 +51,51 @@ function PageLoadingShell({
   message: string;
   variant: PageLoadingVariant;
 }) {
+  const wide = variant === "dashboard";
+
   return (
     <div className="min-h-[calc(100svh-8rem)] w-full">
-      <div className="mx-auto flex max-w-7xl flex-col gap-5">
-        <div className="overflow-hidden rounded-[1.75rem] border border-border/70 bg-card/90 shadow-sm">
-          <div className="bg-gradient-to-br from-primary/10 via-background to-background p-4 sm:p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex min-w-0 items-start gap-3 sm:gap-4">
-                <Skeleton className="size-11 shrink-0 rounded-2xl bg-primary/15" />
-                <div className="min-w-0 space-y-2">
-                  <Skeleton className="h-8 w-64 max-w-full" />
-                  <Skeleton className="h-4 w-5/6 max-w-[36rem]" />
+      <div className={cn("mx-auto flex flex-col gap-5", wide ? "max-w-[90rem]" : "max-w-7xl")}>
+        {variant === "dashboard" ? (
+          <div className="overflow-hidden rounded-3xl border border-emerald-200/35 bg-gradient-to-br from-emerald-50/40 via-card to-sky-50/35 p-4 shadow-sm dark:border-emerald-800/25 dark:from-emerald-950/15 dark:to-sky-950/10 sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                  <Skeleton className="h-6 w-28 rounded-full" />
                 </div>
+                <Skeleton className="h-9 w-72 max-w-full sm:h-10 sm:w-[28rem]" />
+                <Skeleton className="h-4 w-full max-w-xl" />
               </div>
-              <Skeleton className="h-9 w-32 shrink-0 rounded-full" />
+              <div className="flex flex-wrap gap-2">
+                <Skeleton className="h-9 w-28 rounded-lg" />
+                <Skeleton className="h-9 w-28 rounded-lg" />
+                <Skeleton className="h-9 w-32 rounded-lg" />
+              </div>
             </div>
             <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
               {message}
             </p>
           </div>
-        </div>
+        ) : (
+          <div className="overflow-hidden rounded-[1.75rem] border border-border/70 bg-card/90 shadow-sm">
+            <div className="bg-gradient-to-br from-primary/10 via-background to-background p-4 sm:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+                  <Skeleton className="size-11 shrink-0 rounded-2xl bg-primary/15" />
+                  <div className="min-w-0 space-y-2">
+                    <Skeleton className="h-8 w-64 max-w-full" />
+                    <Skeleton className="h-4 w-5/6 max-w-[36rem]" />
+                  </div>
+                </div>
+                <Skeleton className="h-9 w-32 shrink-0 rounded-full" />
+              </div>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
+                {message}
+              </p>
+            </div>
+          </div>
+        )}
 
         {renderVariant(variant)}
       </div>
@@ -149,29 +174,195 @@ function DefaultSkeleton() {
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-4">
-      <LoadingCard>
-        <div className="space-y-4 p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-44" />
-              <Skeleton className="h-9 w-80 max-w-full" />
-              <Skeleton className="h-4 w-96 max-w-full" />
+    <div className="space-y-5 pb-4">
+      {/* Ticker strip */}
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card px-3 py-2.5 shadow-sm">
+        <div className="flex gap-3 overflow-hidden">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="flex shrink-0 items-center gap-2 rounded-xl bg-muted/30 px-3 py-1.5">
+              <Skeleton className="h-4 w-14" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-12" />
             </div>
-            <div className="flex gap-2">
-              <Skeleton className="h-9 w-28 rounded-full" />
-              <Skeleton className="h-9 w-24 rounded-full" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <MetricTile key={index} />
-            ))}
-          </div>
+          ))}
         </div>
-      </LoadingCard>
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {/* Key indexes + Portfolio overview */}
+      <div className="grid items-stretch gap-4 xl:grid-cols-12">
+        <LoadingCard className="border-emerald-200/35 xl:col-span-5 dark:border-emerald-800/25">
+          <div className="space-y-5 p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <Skeleton className="size-11 rounded-2xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-36" />
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-3.5 w-28" />
+                </div>
+              </div>
+              <Skeleton className="size-9 rounded-lg" />
+            </div>
+
+            <div className="grid grid-cols-3 gap-1 rounded-2xl border border-border/70 bg-background/80 p-1">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="space-y-1.5 rounded-xl px-2 py-2.5 text-center">
+                  <Skeleton className="mx-auto h-4 w-14" />
+                  <Skeleton className="mx-auto h-3 w-16" />
+                  <Skeleton className="mx-auto h-4 w-12" />
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-end justify-between gap-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-12 w-48 max-w-full sm:h-14 sm:w-56" />
+                </div>
+                <div className="space-y-2 text-right">
+                  <Skeleton className="ml-auto h-7 w-20 rounded-full" />
+                  <Skeleton className="ml-auto h-4 w-24" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="rounded-2xl border border-border/60 bg-background/70 px-3 py-3">
+                    <Skeleton className="h-3 w-14" />
+                    <Skeleton className="mt-2 h-5 w-16" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </LoadingCard>
+
+        <LoadingCard className="border-violet-200/35 xl:col-span-7 dark:border-violet-800/25">
+          <div className="space-y-5 p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <Skeleton className="size-11 rounded-2xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-6 w-40" />
+                  <Skeleton className="h-3.5 w-36" />
+                </div>
+              </div>
+              <Skeleton className="size-9 rounded-lg" />
+            </div>
+
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-20" />
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <Skeleton className="h-10 w-52 max-w-full sm:h-11 sm:w-64" />
+                <Skeleton className="h-8 w-40 rounded-full" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/60 bg-background/70 p-1 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-border/60">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="px-4 py-3">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="mt-2 h-6 w-28" />
+                  <Skeleton className="mt-2 h-3.5 w-16" />
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3.5 w-16" />
+              </div>
+              {Array.from({ length: 2 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/70 px-3.5 py-3"
+                >
+                  <Skeleton className="size-10 rounded-xl" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-36 max-w-full" />
+                    <Skeleton className="h-3 w-28 max-w-full" />
+                  </div>
+                  <div className="space-y-1.5 text-right">
+                    <Skeleton className="ml-auto h-4 w-20" />
+                    <Skeleton className="ml-auto h-3 w-12" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </LoadingCard>
+      </div>
+
+      {/* Today's key rates */}
+      <div className="overflow-hidden rounded-3xl border border-amber-200/30 bg-gradient-to-br from-amber-50/40 via-background to-orange-50/30 p-3.5 dark:border-amber-800/25 dark:from-amber-950/15 dark:to-orange-950/10 sm:p-5">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="space-y-1.5">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-5 w-40" />
+          </div>
+          <Skeleton className="hidden h-3.5 w-32 sm:block" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="rounded-2xl border border-border/70 bg-card/80 p-3">
+              <Skeleton className="h-3.5 w-16" />
+              <Skeleton className="mt-2 h-6 w-24" />
+              <Skeleton className="mt-2 h-3 w-20" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* World map + world indexes */}
+      <div className="grid items-stretch gap-4 xl:grid-cols-12">
+        <LoadingCard className="min-h-[28rem] xl:col-span-8 sm:min-h-[34rem]">
+          <div className="flex h-full flex-col">
+            <div className="flex items-start justify-between gap-3 p-4 pb-3 sm:p-5 sm:pb-3">
+              <div className="flex items-start gap-3">
+                <Skeleton className="size-11 rounded-2xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-28" />
+                  <Skeleton className="h-3 w-36" />
+                </div>
+              </div>
+              <Skeleton className="size-9 rounded-lg" />
+            </div>
+            <Skeleton className="mx-4 mb-3 h-10 rounded-2xl sm:mx-5" />
+            <Skeleton className="min-h-0 flex-1 rounded-none" />
+          </div>
+        </LoadingCard>
+
+        <LoadingCard className="min-h-[28rem] xl:col-span-4 sm:min-h-[34rem]">
+          <div className="space-y-3 p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-3.5 w-40" />
+              </div>
+              <Skeleton className="size-8 rounded-lg" />
+            </div>
+            <div className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border/80">
+              {Array.from({ length: 9 }).map((_, index) => (
+                <div key={index} className="flex items-center justify-between gap-2 px-3 py-2.5">
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                  <div className="space-y-1.5 text-right">
+                    <Skeleton className="ml-auto h-4 w-16" />
+                    <Skeleton className="ml-auto h-3 w-12" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </LoadingCard>
+      </div>
+
+      {/* Market board cards */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, index) => (
           <MarketCardSkeleton key={index} />
         ))}
@@ -767,22 +958,38 @@ function StrategySkeleton() {
 
 function MarketCardSkeleton() {
   return (
-    <LoadingCard className="min-h-[24rem]">
+    <LoadingCard className="min-h-[26rem] sm:min-h-[30rem]">
       <div className="space-y-4 p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <Skeleton className="size-10 shrink-0 rounded-2xl" />
+            <Skeleton className="size-10 shrink-0 rounded-2xl sm:size-11" />
             <div className="min-w-0 space-y-2">
-              <Skeleton className="h-5 w-40 max-w-full" />
+              <Skeleton className="h-5 w-36 max-w-full" />
               <Skeleton className="h-3.5 w-28 max-w-full" />
             </div>
           </div>
-          <Skeleton className="size-9 rounded-full" />
+          <Skeleton className="size-9 rounded-lg sm:size-10" />
         </div>
-        <Skeleton className="h-20 rounded-2xl" />
         <div className="space-y-2">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <ListRowSkeleton key={index} compact />
+          <Skeleton className="h-3.5 w-16" />
+          <Skeleton className="h-8 w-40 max-w-full sm:h-9" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex min-h-[4rem] items-center justify-between gap-3 rounded-xl border border-border bg-muted/35 px-3 py-2.5"
+            >
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-3.5 w-32 max-w-full" />
+              </div>
+              <div className="space-y-1.5 text-right">
+                <Skeleton className="ml-auto h-4 w-16" />
+                <Skeleton className="ml-auto h-3.5 w-20" />
+              </div>
+            </div>
           ))}
         </div>
       </div>

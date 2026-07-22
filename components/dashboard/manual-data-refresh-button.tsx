@@ -167,13 +167,10 @@ export function ManualDataRefreshButton({
 
   const runner = useRefreshRunner({ jobs });
 
-  function openAndStart() {
+  function openDialog() {
     if (runner.running) return;
     runner.reset();
     setOpen(true);
-    window.setTimeout(() => {
-      void runner.run();
-    }, 40);
   }
 
   return (
@@ -182,7 +179,7 @@ export function ManualDataRefreshButton({
         type="button"
         size="sm"
         className="bg-gradient-to-r from-violet-500 to-fuchsia-500 font-semibold text-white shadow-md shadow-violet-500/25 transition-all hover:from-violet-500 hover:to-fuchsia-400 hover:text-white hover:shadow-violet-500/35"
-        onClick={openAndStart}
+        onClick={openDialog}
         disabled={runner.running}
       >
         <RotateCw className={runner.running ? "size-4 animate-spin" : "size-4"} />
@@ -204,6 +201,8 @@ export function ManualDataRefreshButton({
         steps={runner.steps}
         impact={runner.impact}
         errors={runner.errors}
+        onStart={() => void runner.run()}
+        startLabel="Start refresh"
         closeLabel="Close"
         autoCloseMs={2000}
       />

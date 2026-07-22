@@ -67,6 +67,7 @@ export function MarketRefreshButton({
   size = "sm",
   className,
   autoStart = true,
+  startLabel = "Start refresh",
 }: {
   onRefresh?: () => Promise<string | void>;
   jobs?: RefreshJob[];
@@ -79,6 +80,7 @@ export function MarketRefreshButton({
   className?: string;
   /** Open dialog and start immediately (default). */
   autoStart?: boolean;
+  startLabel?: string;
 }) {
   const style = COLOR_MAP[color];
   const [open, setOpen] = React.useState(false);
@@ -179,7 +181,7 @@ export function MarketRefreshButton({
         impact={runner.impact}
         errors={runner.errors}
         onStart={autoStart ? undefined : () => void runner.run()}
-        startLabel="Refresh now"
+        startLabel={startLabel}
       />
     </>
   );
