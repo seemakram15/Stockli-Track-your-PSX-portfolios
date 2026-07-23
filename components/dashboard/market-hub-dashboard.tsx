@@ -655,6 +655,7 @@ function SessionBadge({ label, status }: { label: string; status: string }) {
   const live = status === "open" || status === "pre-open";
   return (
     <span
+      suppressHydrationWarning
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
         live
@@ -665,7 +666,7 @@ function SessionBadge({ label, status }: { label: string; status: string }) {
       <span
         className={cn("size-1.5 rounded-full", live ? "animate-pulse bg-emerald-500" : "bg-muted-foreground/50")}
       />
-      PSX {label}
+      <span suppressHydrationWarning>PSX {label}</span>
     </span>
   );
 }
