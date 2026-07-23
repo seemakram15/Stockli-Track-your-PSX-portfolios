@@ -188,109 +188,116 @@ function DashboardSkeleton() {
         </div>
       </div>
 
-      {/* Key indexes + Portfolio overview */}
-      <div className="grid items-stretch gap-4 xl:grid-cols-12">
-        <LoadingCard className="border-emerald-200/35 xl:col-span-5 dark:border-emerald-800/25">
-          <div className="space-y-5 p-4 sm:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <Skeleton className="size-11 rounded-2xl" />
-                <div className="space-y-2">
-                  <Skeleton className="h-3 w-36" />
-                  <Skeleton className="h-6 w-32" />
-                  <Skeleton className="h-3.5 w-28" />
+      {/* Portfolio · comparison chart · key indexes */}
+      <div className="grid gap-4 lg:grid-cols-12 lg:items-stretch">
+        <LoadingCard className="order-1 lg:col-span-3">
+          <div className="flex h-full flex-col space-y-3 p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2.5">
+                <Skeleton className="size-8 rounded-xl" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-5 w-24" />
                 </div>
               </div>
-              <Skeleton className="size-9 rounded-lg" />
+              <Skeleton className="size-8 rounded-lg" />
             </div>
-
-            <div className="grid grid-cols-3 gap-1 rounded-2xl border border-border/70 bg-background/80 p-1">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="space-y-1.5 rounded-xl px-2 py-2.5 text-center">
-                  <Skeleton className="mx-auto h-4 w-14" />
-                  <Skeleton className="mx-auto h-3 w-16" />
-                  <Skeleton className="mx-auto h-4 w-12" />
+            <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-1 lg:gap-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="rounded-2xl border border-border/70 px-3 py-3">
+                  <Skeleton className="h-3 w-16" />
+                  <div className="mt-2 flex items-end justify-between gap-2">
+                    <Skeleton className="h-5 w-20 lg:h-6 lg:w-28" />
+                    <Skeleton className="hidden h-7 w-16 rounded-md lg:block" />
+                  </div>
                 </div>
               ))}
             </div>
-
-            <div className="space-y-3">
-              <div className="flex items-end justify-between gap-3">
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-28" />
-                  <Skeleton className="h-12 w-48 max-w-full sm:h-14 sm:w-56" />
-                </div>
-                <div className="space-y-2 text-right">
-                  <Skeleton className="ml-auto h-7 w-20 rounded-full" />
-                  <Skeleton className="ml-auto h-4 w-24" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="rounded-2xl border border-border/60 bg-background/70 px-3 py-3">
-                    <Skeleton className="h-3 w-14" />
-                    <Skeleton className="mt-2 h-5 w-16" />
-                  </div>
-                ))}
-              </div>
+            <div className="mt-auto border-t border-border/60 pt-3">
+              <Skeleton className="h-8 w-full rounded-lg" />
             </div>
           </div>
         </LoadingCard>
 
-        <LoadingCard className="border-violet-200/35 xl:col-span-7 dark:border-violet-800/25">
-          <div className="space-y-5 p-4 sm:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <Skeleton className="size-11 rounded-2xl" />
-                <div className="space-y-2">
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="h-6 w-40" />
-                  <Skeleton className="h-3.5 w-36" />
-                </div>
+        <LoadingCard className="order-3 lg:order-2 lg:col-span-6">
+          <div className="space-y-3 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1.5">
+                <Skeleton className="h-3 w-28" />
+                <Skeleton className="h-5 w-44" />
+                <Skeleton className="h-3 w-56 max-w-full" />
               </div>
-              <Skeleton className="size-9 rounded-lg" />
+              <Skeleton className="h-7 w-28 rounded-full" />
             </div>
 
-            <div className="space-y-2">
-              <Skeleton className="h-3 w-20" />
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <Skeleton className="h-10 w-52 max-w-full sm:h-11 sm:w-64" />
-                <Skeleton className="h-8 w-40 rounded-full" />
+            {/* Hint + duration pills (expand lives on the graph) */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Skeleton className="h-3 w-36" />
+              <div className="flex flex-wrap gap-0.5 rounded-lg border border-border/70 bg-muted/40 p-0.5">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <Skeleton key={index} className="h-6 w-8 rounded-md" />
+                ))}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/60 bg-background/70 p-1 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-border/60">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="px-4 py-3">
-                  <Skeleton className="h-3 w-16" />
-                  <Skeleton className="mt-2 h-6 w-28" />
-                  <Skeleton className="mt-2 h-3.5 w-16" />
+            {/* Total return cards */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="rounded-xl border border-border/70 px-2.5 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <Skeleton className="size-2 rounded-full" />
+                    <Skeleton className="h-2.5 w-14" />
+                  </div>
+                  <Skeleton className="mt-1.5 h-4 w-12" />
+                  <Skeleton className="mt-1 h-2.5 w-10" />
                 </div>
               ))}
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3.5 w-16" />
+            <Skeleton className="h-3 w-48" />
+
+            {/* Chart with expand overlay */}
+            <div className="relative">
+              <Skeleton className="absolute right-1 top-1 z-10 size-8 rounded-lg" />
+              <Skeleton className="h-[18rem] w-full rounded-2xl" />
+            </div>
+          </div>
+        </LoadingCard>
+
+        <LoadingCard className="order-2 lg:order-3 lg:col-span-3">
+          <div className="space-y-3 p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2.5">
+                <Skeleton className="size-8 rounded-xl" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-5 w-28" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
               </div>
-              {Array.from({ length: 2 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/70 px-3.5 py-3"
-                >
-                  <Skeleton className="size-10 rounded-xl" />
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-36 max-w-full" />
-                    <Skeleton className="h-3 w-28 max-w-full" />
+              <Skeleton className="size-8 rounded-lg" />
+            </div>
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="rounded-2xl border border-border/70 px-3 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="size-8 rounded-full" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-3 w-14" />
+                      </div>
+                    </div>
+                    <Skeleton className="mt-2 h-6 w-24" />
                   </div>
                   <div className="space-y-1.5 text-right">
-                    <Skeleton className="ml-auto h-4 w-20" />
-                    <Skeleton className="ml-auto h-3 w-12" />
+                    <Skeleton className="ml-auto h-5 w-14 rounded-full" />
+                    <Skeleton className="ml-auto h-3 w-16" />
                   </div>
                 </div>
-              ))}
-            </div>
+                <Skeleton className="mt-2 h-10 w-full rounded-lg" />
+              </div>
+            ))}
           </div>
         </LoadingCard>
       </div>

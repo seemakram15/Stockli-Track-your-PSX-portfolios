@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { SymbolField } from "./symbol-field";
 import { markPortfolioMutated } from "@/lib/cache/portfolio-mutations";
 import { addHolding, sellHolding, type ActionState } from "@/lib/actions/portfolio";
@@ -61,8 +62,8 @@ export function AddTradeDialog({
             Buys update your weighted-average cost; every trade is logged.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue={defaultTab} className="mt-2">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue={defaultTab} className="mt-1 gap-4">
+          <TabsList className="grid h-auto w-full grid-cols-2">
             <TabsTrigger value="buy">Buy</TabsTrigger>
             <TabsTrigger value="sell">Sell</TabsTrigger>
           </TabsList>
@@ -123,6 +124,7 @@ function TradeForm({
   const [price, setPrice] = React.useState("");
   const [qty, setQty] = React.useState("");
   const [fees, setFees] = React.useState("");
+  const [tradeDate, setTradeDate] = React.useState(today);
   const [priceLoading, setPriceLoading] = React.useState(false);
   const [selectedSymbol, setSelectedSymbol] = React.useState(defaultSymbol?.toUpperCase() ?? "");
   const priceTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -200,9 +202,9 @@ function TradeForm({
   }, [kind, taxSettings, avgBuyPrice, qty, price, fees]);
 
   return (
-    <form action={action} className="space-y-4 pt-4">
+    <form action={action} className="space-y-5 pt-2">
       <input type="hidden" name="portfolioId" value={portfolioId} />
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label>Symbol</Label>
         <SymbolField defaultValue={defaultSymbol ?? ""} required onSymbolChange={onSymbol} />
         {currentHolding != null && (
@@ -211,8 +213,8 @@ function TradeForm({
           </p>
         )}
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
           <Label htmlFor={`${kind}-qty`}>Quantity</Label>
           <Input
             id={`${kind}-qty`}
@@ -220,13 +222,13 @@ function TradeForm({
             type="number"
             min="1"
             step="1"
-            placeholder="100"
+            placeholder="e.g. 100"
             required
             value={qty}
             onChange={(e) => setQty(e.target.value)}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor={`${kind}-price`} className="flex items-center gap-1.5">
             Price (PKR)
             {priceLoading && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
@@ -237,15 +239,15 @@ function TradeForm({
             type="number"
             min="0"
             step="0.01"
-            placeholder="auto-filled"
+            placeholder="Latest quote (editable)"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             required
           />
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
           <Label htmlFor={`${kind}-fees`}>Broker fee (PKR)</Label>
           <Input
             id={`${kind}-fees`}
@@ -253,18 +255,26 @@ function TradeForm({
             type="number"
             min="0"
             step="0.01"
-            placeholder="0.00"
+            placeholder="e.g. 25.00"
             value={fees}
             onChange={(e) => setFees(e.target.value)}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor={`${kind}-date`}>Date</Label>
-          <Input id={`${kind}-date`} name="date" type="date" defaultValue={today} max={today} />
+          <DatePickerField
+            id={`${kind}-date`}
+            name="date"
+            value={tradeDate}
+            onChange={setTradeDate}
+            max={today}
+            required
+            placeholder="Select trade date"
+          />
         </div>
       </div>
       {kind === "sell" && estCGT !== null && estCGT > 0 && (
-        <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        <div className="rounded-xl border border-border/70 bg-muted/30 px-3.5 py-2.5 text-xs text-muted-foreground">
           Est. CGT: <span className="font-medium tabular-nums text-foreground">PKR {estCGT.toLocaleString("en-PK", { maximumFractionDigits: 0 })}</span>{" "}
           ({taxSettings?.taxFiler ? "15% filer" : "30% non-filer"}) — estimate only
         </div>
@@ -272,7 +282,7 @@ function TradeForm({
       <p className="text-xs text-muted-foreground">
         Price auto-fills with the latest quote — edit it to match your fill.
       </p>
-      <Button type="submit" className="w-full" disabled={pending} variant={kind === "sell" ? "destructive" : "default"}>
+      <Button type="submit" className="h-10 w-full rounded-xl" disabled={pending} variant={kind === "sell" ? "destructive" : "default"}>
         {pending && <Loader2 className="size-4 animate-spin" />}
         {kind === "buy" ? "Buy" : "Sell"}
       </Button>

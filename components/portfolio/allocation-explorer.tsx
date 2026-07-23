@@ -40,6 +40,9 @@ export function AllocationExplorer({
   title = "Allocation",
   description = "Explore exposure, invested amount and live P/L by portfolio.",
   className,
+  /** `tabs` = single chart with Holdings/Sectors toggles (portfolios overview).
+   *  `split` = holdings + sectors side-by-side on desktop (portfolio detail). */
+  layout = "tabs",
 }: {
   holdings: HoldingWithMetrics[];
   portfolios: PortfolioOption[];
@@ -48,6 +51,7 @@ export function AllocationExplorer({
   title?: string;
   description?: string;
   className?: string;
+  layout?: "tabs" | "split";
 }) {
   const [portfolioId, setPortfolioId] = React.useState(defaultPortfolioId);
   const [mode, setMode] = React.useState<AllocationMode>(defaultMode);
@@ -68,10 +72,15 @@ export function AllocationExplorer({
   const sectorData = React.useMemo(() => allocationBySector(filtered), [filtered]);
   const holdingData = React.useMemo(() => allocationByHoldingName(filtered), [filtered]);
   const chartData = mode === "sector" ? sectorData : holdingData;
-  const centerContent = React.useMemo(
-    () => getAllocationCenterContent(mode, sectorData.length, filtered),
-    [mode, sectorData.length, filtered]
+  const holdingCenter = React.useMemo(
+    () => getAllocationCenterContent("holding", sectorData.length, filtered),
+    [sectorData.length, filtered]
   );
+  const sectorCenter = React.useMemo(
+    () => getAllocationCenterContent("sector", sectorData.length, filtered),
+    [sectorData.length, filtered]
+  );
+  const centerContent = mode === "sector" ? sectorCenter : holdingCenter;
   const selectedName =
     portfolioId === "all" ? "All portfolios" : portfolioNames[portfolioId] ?? "Portfolio";
 
@@ -112,28 +121,97 @@ export function AllocationExplorer({
         </Dialog>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Tabs value={mode} onValueChange={(v) => setMode(v as AllocationMode)}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="holding">Holdings</TabsTrigger>
-            <TabsTrigger value="sector">Sectors</TabsTrigger>
-          </TabsList>
-          <TabsContent value="holding" className="mt-4">
-            <AllocationChart
-              data={holdingData}
-              maxSlices={Math.max(12, holdingData.length)}
-              showSliceLabels
-              legendVariant="holdingPairs"
-              centerContent={centerContent}
-            />
-          </TabsContent>
-          <TabsContent value="sector" className="mt-4">
-            <AllocationChart
-              data={sectorData}
-              maxSlices={8}
-              centerContent={centerContent}
-            />
-          </TabsContent>
-        </Tabs>
+        {layout === "split" ? (
+          <>
+            {/* Mobile / tablet: tabbed views */}
+            <div className="lg:hidden">
+              <Tabs value={mode} onValueChange={(v) => setMode(v as AllocationMode)}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="holding">Holdings</TabsTrigger>
+                  <TabsTrigger value="sector">Sectors</TabsTrigger>
+                </TabsList>
+                <TabsContent value="holding" className="mt-4">
+                  <AllocationChart
+                    data={holdingData}
+                    maxSlices={Math.max(12, holdingData.length)}
+                    sliceLabelMode="name"
+                    legendVariant="holdingPairs"
+                    centerContent={holdingCenter}
+                  />
+                </TabsContent>
+                <TabsContent value="sector" className="mt-4">
+                  <AllocationChart
+                    data={sectorData}
+                    maxSlices={8}
+                    chartStyle="pie"
+                    sliceLabelMode="percent"
+                    centerContent={sectorCenter}
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Desktop: holdings + sectors side by side */}
+            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-stretch">
+              <div className="min-w-0 space-y-3 pr-6">
+                <div>
+                  <p className="text-sm font-semibold tracking-tight">Allocation by holdings</p>
+                  <p className="text-xs text-muted-foreground">Share of portfolio market value</p>
+                </div>
+                <AllocationChart
+                  data={holdingData}
+                  maxSlices={Math.max(12, holdingData.length)}
+                  sliceLabelMode="name"
+                  legendVariant="holdingPairs"
+                  centerContent={holdingCenter}
+                />
+              </div>
+              <div
+                aria-hidden
+                className="mx-1 w-[2px] self-stretch rounded-full bg-foreground/25 dark:bg-foreground/35"
+              />
+              <div className="min-w-0 space-y-3 pl-6">
+                <div>
+                  <p className="text-sm font-semibold tracking-tight">Allocation by sectors</p>
+                  <p className="text-xs text-muted-foreground">% invested in each sector</p>
+                </div>
+                <AllocationChart
+                  data={sectorData}
+                  maxSlices={8}
+                  chartStyle="pie"
+                  sliceLabelMode="percent"
+                  centerContent={sectorCenter}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <Tabs value={mode} onValueChange={(v) => setMode(v as AllocationMode)}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="holding">Holdings</TabsTrigger>
+              <TabsTrigger value="sector">Sectors</TabsTrigger>
+            </TabsList>
+            <TabsContent value="holding" className="mt-4">
+              <AllocationChart
+                data={holdingData}
+                maxSlices={Math.max(12, holdingData.length)}
+                sliceLabelMode="name"
+                legendVariant="holdingPairs"
+                centerContent={holdingCenter}
+              />
+            </TabsContent>
+            <TabsContent value="sector" className="mt-4">
+              <AllocationChart
+                data={sectorData}
+                maxSlices={8}
+                chartStyle="pie"
+                sliceLabelMode="percent"
+                centerContent={sectorCenter}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
+
         <div className="grid grid-cols-2 gap-2 text-sm">
           <MiniStat label="Invested" value={formatPKR(summary.totalInvested)} />
           <MiniStat
@@ -279,7 +357,8 @@ function AllocationDialogBody({
             <AllocationChart
               data={chartData}
               maxSlices={mode === "holding" ? Math.max(12, chartData.length) : 8}
-              showSliceLabels={mode === "holding"}
+              chartStyle={mode === "sector" ? "pie" : "donut"}
+              sliceLabelMode={mode === "holding" ? "name" : "percent"}
               variant="expanded"
               legendVariant={mode === "holding" ? "holdingPairs" : "default"}
               centerContent={centerContent}
@@ -316,7 +395,6 @@ function getAllocationCenterContent(
     return (
       <div>
         <p className="text-xl font-semibold tabular-nums">{sectorCount}</p>
-        <p className="text-xs text-muted-foreground">sectors</p>
       </div>
     );
   }

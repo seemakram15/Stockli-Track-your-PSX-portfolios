@@ -64,14 +64,14 @@ export function CreatePortfolioDialog({
             <DialogTitle>New portfolio</DialogTitle>
             <DialogDescription>Group related positions together.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1.5">
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" name="name" placeholder="Long-Term Core" required />
+              <Input id="name" name="name" placeholder="e.g. Long-Term Core" required />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="description">Description (optional)</Label>
-              <Input id="description" name="description" placeholder="Blue-chip buy-and-hold" />
+              <Input id="description" name="description" placeholder="e.g. Blue-chip buy-and-hold" />
             </div>
           </div>
           <DialogFooter>

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { formatFlow, plColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -67,14 +68,13 @@ export function FipiLipiBoard({
         >
           <ChevronLeft className="size-4" />
         </Button>
-        <input
-          type="date"
+        <DatePickerField
           value={selected}
+          onChange={pickDate}
           min={data.dates[0]}
           max={data.dates[data.dates.length - 1]}
-          onChange={(e) => pickDate(e.target.value)}
-          aria-label="Trading date"
-          className="h-9 rounded-lg border border-border bg-background px-3 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/30"
+          placeholder="Select trading date"
+          buttonClassName="h-9 w-[11.5rem] font-semibold"
         />
         <Button
           variant="outline"
@@ -99,7 +99,7 @@ export function FipiLipiBoard({
               className={cn(
                 "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
                 currency === c
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-emerald-600 text-white shadow-sm dark:bg-emerald-500"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >

@@ -84,7 +84,7 @@ const fadeUp = {
 export function LandingHero({ demo }: { demo: boolean }) {
   const reduce = useReducedMotion();
   const primaryLabel = demo ? "Open demo" : "Start tracking free";
-  const primaryHref = demo ? "/portfolios" : "/signup";
+  const primaryHref = demo ? "/dashboard" : "/signup";
 
   const ap = (i: number) =>
     reduce ? {} : { custom: i, variants: fadeUp, initial: "hidden" as const, animate: "show" as const };

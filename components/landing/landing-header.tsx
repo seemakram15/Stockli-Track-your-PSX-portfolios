@@ -51,13 +51,13 @@ export function LandingHeader({
                 size="sm"
                 className="hidden gap-1.5 bg-emerald-500 text-white hover:bg-emerald-400 sm:inline-flex"
               >
-                <Link href="/portfolios">
-                  <LayoutDashboard className="size-4" /> Portfolio
+                <Link href="/dashboard">
+                  <LayoutDashboard className="size-4" /> Dashboard
                 </Link>
               </Button>
               <Link
-                href="/portfolios"
-                aria-label="Open portfolio"
+                href="/dashboard"
+                aria-label="Open dashboard"
                 className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-sky-500 text-xs font-semibold text-white shadow-sm"
               >
                 {initials}

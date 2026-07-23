@@ -111,16 +111,16 @@ export function CreateAlertDialog({
               Evaluated on each price refresh (~10 min) while the market is open.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1.5">
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
               <Label>Symbol</Label>
               <SymbolField defaultValue={defaultSymbol ?? ""} required onSymbolChange={onSymbol} />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
                 <Label>Condition</Label>
                 <Select name="condition" defaultValue="ABOVE">
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -129,7 +129,7 @@ export function CreateAlertDialog({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label htmlFor="target" className="flex items-center gap-1.5">
                   Target (PKR)
                   {priceLoading && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
@@ -140,7 +140,7 @@ export function CreateAlertDialog({
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="auto-filled"
+                  placeholder="Latest quote (editable)"
                   value={targetPrice}
                   onChange={(event) => setTargetPrice(event.target.value)}
                   required

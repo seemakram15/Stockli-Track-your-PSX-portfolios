@@ -206,11 +206,22 @@ export async function getPortfolioCalendar(
     }
   }
 
+  const merged = mergeCalendarDays(
+    Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date)),
+    persisted
+  );
+
+  // Recompute portfolio-level day return % from summed P/L vs prior market value.
+  let prevMarketValue = 0;
+  for (const day of merged) {
+    const basis = prevMarketValue;
+    day.dayPLPct = basis > 0 ? (day.dayPL / basis) * 100 : 0;
+    day.changePct = day.dayPLPct;
+    prevMarketValue = day.marketValue;
+  }
+
   return {
-    days: mergeCalendarDays(
-      Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date)),
-      persisted
-    ),
+    days: merged,
     hasPosition: true,
     firstDate:
       persisted[0]?.date && (!firstDate || persisted[0].date < firstDate)

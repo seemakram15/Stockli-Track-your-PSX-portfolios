@@ -136,24 +136,6 @@ export function CachedPortfolioDetailPage({
   const hasHistory = transactions.length > 0;
   const lastCalendarDay = data.calendar?.days.at(-1) ?? null;
 
-  // Portfolio value-over-time = each day's aggregated market value from the
-  // P/L calendar (sum of every holding's shares × close price that day).
-  // While the market's open, replace/append today's point with the live
-  // total so the chart moves in real time; once closed, trust the same
-  // EOD-settled data PLCalendar shows below it.
-  const today = psxLocalDateString();
-  const valueSeries = (data.calendar?.days ?? []).map((d) => ({
-    date: d.date,
-    close: d.marketValue,
-  }));
-  if (hasHoldings && shouldRefreshPsxData()) {
-    const liveTotal = liveHoldings.reduce((sum, h) => sum + h.marketValue, 0);
-    if (valueSeries.length > 0 && valueSeries[valueSeries.length - 1].date === today) {
-      valueSeries[valueSeries.length - 1] = { date: today, close: liveTotal };
-    } else {
-      valueSeries.push({ date: today, close: liveTotal });
-    }
-  }
   // Freeze calendar day-P/L only after the delayed feed settlement window ends.
   const dayPLOverride =
     !shouldRefreshPsxData() && lastCalendarDay && lastCalendarDay.date === psxLocalDateString()
@@ -215,14 +197,18 @@ export function CachedPortfolioDetailPage({
             <CardHeader className="flex-row items-start gap-3">
               <IconChip accent="emerald"><LineChart /></IconChip>
               <div>
-                <CardTitle>Portfolio value</CardTitle>
+                <CardTitle>Portfolio vs indexes</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Total market value over time, live while the market&apos;s open.
+                  Full-history period returns vs KSE100, KMI30 and KSE30 — same data as the dashboard.
                 </p>
               </div>
             </CardHeader>
             <CardContent>
-              <PortfolioValueChart days={valueSeries} />
+              <PortfolioValueChart
+                portfolioId={pf.id}
+                portfolioName={pf.name}
+                userId={userId}
+              />
             </CardContent>
           </Card>
         </ViewportLazy>
@@ -237,31 +223,45 @@ export function CachedPortfolioDetailPage({
         />
       ) : (
         <>
-          <div className={hasHoldings ? "grid gap-4 lg:grid-cols-3" : "grid gap-4"}>
-            <Card className={hasHoldings ? "lg:col-span-2" : ""}>
-              <CardContent className="px-0 pt-0 sm:px-2">
-                <Tabs defaultValue={hasHoldings ? "holdings" : "transactions"}>
-                  <div className="px-4 pt-4 sm:px-2">
-                    <TabsList className="h-auto w-full flex-wrap justify-start">
-                      {hasHoldings && <TabsTrigger value="holdings">Holdings</TabsTrigger>}
-                      <TabsTrigger value="transactions">
-                        Transactions ({transactions.length})
+          <div className="space-y-4">
+            <Card className="overflow-hidden">
+              <CardContent className="px-0 pt-0 sm:px-2 lg:px-0">
+                <Tabs defaultValue={hasHoldings ? "holdings" : "transactions"} className="gap-0">
+                  <div className="px-3 pt-3 sm:px-4 lg:px-5 lg:pt-4">
+                    <TabsList
+                      className={cn(
+                        "!grid !h-auto !w-full gap-1",
+                        hasHoldings ? "grid-cols-[1fr_1.35fr_1fr]" : "grid-cols-2",
+                      )}
+                    >
+                      {hasHoldings && (
+                        <TabsTrigger value="holdings" className="px-2 text-xs sm:px-3 sm:text-sm">
+                          Holdings
+                        </TabsTrigger>
+                      )}
+                      <TabsTrigger value="transactions" className="px-2 text-xs sm:px-3 sm:text-sm">
+                        Transactions
+                        <span className="ml-1 shrink-0 tabular-nums text-[10px] font-bold opacity-80 sm:text-[11px]">
+                          {transactions.length}
+                        </span>
                       </TabsTrigger>
-                      <TabsTrigger value="dividends">Dividends</TabsTrigger>
+                      <TabsTrigger value="dividends" className="px-2 text-xs sm:px-3 sm:text-sm">
+                        Dividends
+                      </TabsTrigger>
                     </TabsList>
                   </div>
                   {hasHoldings && (
-                    <TabsContent value="holdings" className="mt-2">
+                    <TabsContent value="holdings" className="mt-0">
                       <HoldingsTable holdings={holdings} rowActions={{ demo }} userId={userId} />
                     </TabsContent>
                   )}
-                  <TabsContent value="transactions" className="mt-2">
+                  <TabsContent value="transactions" className="mt-0">
                     <TransactionsPanel
                       transactions={transactions}
                       currentPriceBySymbol={currentPriceBySymbol}
                     />
                   </TabsContent>
-                  <TabsContent value="dividends" className="mt-2">
+                  <TabsContent value="dividends" className="mt-0">
                     {data?.portfolio.dividendIncome && data?.portfolio.taxSettings ? (
                       <DividendsPanel
                         dividendIncome={data.portfolio.dividendIncome}
@@ -277,15 +277,15 @@ export function CachedPortfolioDetailPage({
             </Card>
 
             {hasHoldings && (
-              <ViewportLazy minHeight={360} fallback={<DetailSectionSkeleton rows={6} />} className="h-full">
+              <ViewportLazy minHeight={360} fallback={<DetailSectionSkeleton rows={6} />}>
                 <AllocationExplorer
                   holdings={holdings}
                   portfolios={[pf]}
                   defaultPortfolioId={pf.id}
                   defaultMode="holding"
+                  layout="split"
                   title="Allocation"
                   description={`Explore ${pf.name}'s holdings, invested amount and live P/L.`}
-                  className="h-full"
                 />
               </ViewportLazy>
             )}
