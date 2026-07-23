@@ -58,35 +58,49 @@ export function usePersistentResource<T>({
   enabled?: boolean;
 }) {
   const [cached, setCached] = React.useState<CachedRecord<T> | null>(() =>
-    readInitialCached<T>(cacheKey, legacyCacheKeys)
+    // Memory only — never touch sessionStorage/IDB during useState init or SSR HTML
+    // will disagree with the hydrated client tree.
+    readMemoryCached<T>(cacheKey, legacyCacheKeys)
   );
   const [cacheReady, setCacheReady] = React.useState(() =>
-    Boolean(readInitialCached<T>(cacheKey, legacyCacheKeys))
+    Boolean(readMemoryCached<T>(cacheKey, legacyCacheKeys))
   );
   const [, setClockTick] = React.useState(0);
   const hasPauseRule = Boolean(pauseWhen);
   const isPrivateResource = isPrivateCacheKey(cacheKey);
   const keepPrevious = isPrivateResource ? false : keepPreviousData;
 
-  React.useEffect(() => {
+  // Hydrate device cache after mount (layout) so the first client render matches SSR,
+  // then paint from sessionStorage/IDB before the browser paints when possible.
+  React.useLayoutEffect(() => {
     let cancelled = false;
-    const memoryRecord = readInitialCached<T>(cacheKey, legacyCacheKeys);
-    setCached(memoryRecord);
-    setCacheReady(Boolean(memoryRecord));
+    const memoryRecord = readMemoryCached<T>(cacheKey, legacyCacheKeys);
     legacyCacheKeys.forEach((key) => {
       if (key && key !== cacheKey) {
         MEMORY_CACHE.delete(key);
         deleteStorageCached(key).catch(() => undefined);
       }
     });
-    // Private keys are already sync-hydrated from sessionStorage above.
-    // Public keys still need IndexedDB — hydrate without blocking the network.
-    if (isPrivateCacheKey(cacheKey) && memoryRecord) {
-      setCacheReady(true);
-      return () => {
-        cancelled = true;
-      };
+
+    if (isPrivateCacheKey(cacheKey)) {
+      const privateRecord = readPrivateCached<T>(cacheKey) ?? memoryRecord;
+      if (privateRecord) {
+        writeMemoryCached(privateRecord);
+        if (!cancelled) {
+          setCached(privateRecord);
+          setCacheReady(true);
+        }
+        return () => {
+          cancelled = true;
+        };
+      }
     }
+
+    if (memoryRecord) {
+      setCached(memoryRecord);
+      setCacheReady(true);
+    }
+
     readStorageCached<T>(cacheKey)
       .then((record) => {
         if (record) writeMemoryCached(record);
@@ -485,20 +499,6 @@ function readMemoryCached<T>(
     if (legacy) return { ...legacy, key: cacheKey };
   }
   return null;
-}
-
-/** Sync hydrate: memory first, then private sessionStorage (instant portfolio/stock paint). */
-function readInitialCached<T>(
-  cacheKey: string,
-  legacyCacheKeys: string[]
-): CachedRecord<T> | null {
-  const memory = readMemoryCached<T>(cacheKey, legacyCacheKeys);
-  if (memory) return memory;
-  if (typeof window === "undefined") return null;
-  if (!isPrivateCacheKey(cacheKey)) return null;
-  const privateRecord = readPrivateCached<T>(cacheKey);
-  if (privateRecord) writeMemoryCached(privateRecord);
-  return privateRecord;
 }
 
 function writeMemoryCached<T>(record: CachedRecord<T>) {
