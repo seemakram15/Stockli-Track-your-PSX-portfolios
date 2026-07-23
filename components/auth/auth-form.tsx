@@ -39,12 +39,12 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+    <div className="space-y-2">
+      <Label htmlFor={htmlFor} className="text-[13px] font-medium tracking-tight text-foreground/85">
         {label}
       </Label>
       <div className="relative">
-        <Icon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Icon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         {children}
       </div>
     </div>
@@ -99,7 +99,7 @@ export function AuthForm({
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}
 
       {mode === "signup" && (
@@ -107,9 +107,9 @@ export function AuthForm({
           <Input
             id="displayName"
             name="displayName"
-            placeholder="Asad Khan"
+            placeholder="e.g. Asad Khan"
             autoComplete="name"
-            className="h-11 pl-9"
+            className="h-11 pl-10"
           />
         </Field>
       )}
@@ -120,10 +120,10 @@ export function AuthForm({
           name="email"
           type="email"
           defaultValue={state.email ?? initialState?.email ?? ""}
-          placeholder="you@example.com"
+          placeholder="e.g. you@example.com"
           autoComplete="email"
           required
-          className="h-11 pl-9"
+          className="h-11 pl-10"
         />
       </Field>
 
@@ -136,7 +136,7 @@ export function AuthForm({
             placeholder="••••••••"
             autoComplete={mode === "login" ? "current-password" : "new-password"}
             required
-            className="h-11 pl-9 pr-10"
+            className="h-11 pl-10 pr-10"
           />
           <button
             type="button"

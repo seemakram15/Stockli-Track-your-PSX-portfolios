@@ -554,7 +554,7 @@ function ToggleGroup({
             className={cn(
               "rounded-2xl border px-4 py-3 text-sm font-semibold transition",
               value === itemValue
-                ? "border-violet-500/40 bg-violet-500/10 text-violet-700 shadow-soft dark:text-violet-200"
+                ? "border-emerald-500/40 bg-emerald-600 text-white shadow-sm dark:bg-emerald-500"
                 : "bg-background text-muted-foreground hover:border-foreground/20 hover:text-foreground"
             )}
           >

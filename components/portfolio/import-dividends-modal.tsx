@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { cn } from "@/lib/utils";
 import { saveCdcDividends } from "@/lib/actions/dividends";
 import { markPortfolioMutated } from "@/lib/cache/portfolio-mutations";
@@ -232,7 +233,7 @@ export function ImportDividendsModal({ open, onOpenChange, portfolioId }: Props)
         ) : (
           <>
             {/* Tabs */}
-            <div className="flex shrink-0 border-b border-border">
+            <div className="mx-4 mt-1 flex shrink-0 gap-1 rounded-xl bg-muted/80 p-1">
               <TabBtn active={tab === "pdf"} onClick={() => setTab("pdf")} icon={<FileUp className="size-3.5" />}>
                 Import PDF
               </TabBtn>
@@ -345,8 +346,10 @@ function TabBtn({
     <button
       onClick={onClick}
       className={cn(
-        "flex flex-1 items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors",
-        active ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
+        "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold transition-colors",
+        active
+          ? "bg-emerald-600 text-white shadow-sm dark:bg-emerald-500"
+          : "text-muted-foreground hover:text-foreground"
       )}
     >
       {icon}
@@ -476,23 +479,24 @@ function ManualEntryForm({
           <Field label="Symbol" required>
             <Input
               className="h-9 font-mono text-sm uppercase font-semibold"
-              placeholder="OGDC"
+              placeholder="e.g. OGDC"
               value={form.symbol}
               onChange={(e) => onChange("symbol", e.target.value.toUpperCase())}
             />
           </Field>
           <Field label="Payment Date" required>
-            <Input
-              type="date"
-              className="h-9 text-sm"
+            <DatePickerField
               value={form.paymentDate}
-              onChange={(e) => onChange("paymentDate", e.target.value)}
+              onChange={(iso) => onChange("paymentDate", iso)}
+              placeholder="Select payment date"
+              buttonClassName="h-9"
+              required
             />
           </Field>
           <Field label="Financial Year">
             <Input
               className="h-9 text-sm"
-              placeholder="2024-25"
+              placeholder="e.g. 2024-25"
               value={form.financialYear}
               onChange={(e) => onChange("financialYear", e.target.value)}
             />
@@ -508,7 +512,7 @@ function ManualEntryForm({
             <Input
               type="number" min="0" step="0.0001"
               className="h-9 text-sm"
-              placeholder="5.0000"
+              placeholder="e.g. 5.0000"
               value={form.ratePerSecurity || ""}
               onChange={(e) => onChange("ratePerSecurity", num(e.target.value))}
             />
@@ -517,7 +521,7 @@ function ManualEntryForm({
             <Input
               type="number" min="0" step="1"
               className="h-9 text-sm"
-              placeholder="500"
+              placeholder="e.g. 500"
               value={form.noOfSecurities || ""}
               onChange={(e) => onChange("noOfSecurities", parseInt(e.target.value) || 0)}
             />
@@ -533,7 +537,7 @@ function ManualEntryForm({
             <Input
               type="number" min="0" step="0.01"
               className="h-9 text-sm"
-              placeholder="2,500.00"
+              placeholder="e.g. 2,500.00"
               value={form.grossAmount || ""}
               onChange={(e) => onChange("grossAmount", num(e.target.value))}
             />
@@ -542,7 +546,7 @@ function ManualEntryForm({
             <Input
               type="number" min="0" step="0.01"
               className="h-9 text-sm text-cyan-600 dark:text-cyan-400"
-              placeholder="0.00"
+              placeholder="e.g. 0.00"
               value={form.zakatDeducted || ""}
               onChange={(e) => onChange("zakatDeducted", num(e.target.value))}
             />
@@ -551,7 +555,7 @@ function ManualEntryForm({
             <Input
               type="number" min="0" step="0.01"
               className="h-9 text-sm text-loss"
-              placeholder="750.00"
+              placeholder="e.g. 750.00"
               value={form.taxDeducted || ""}
               onChange={(e) => onChange("taxDeducted", num(e.target.value))}
             />
@@ -561,7 +565,7 @@ function ManualEntryForm({
               <Input
                 type="number" min="0" step="0.01"
                 className="h-9 text-sm font-semibold text-gain"
-                placeholder="1,750.00"
+                placeholder="e.g. 1,750.00"
                 value={form.netAmount || ""}
                 onChange={(e) => onChange("netAmount", num(e.target.value))}
               />

@@ -57,7 +57,7 @@ export function AuthDialogPanel({
   return (
     <div>
       {/* Branded banner (full-bleed to the dialog edges) */}
-      <div className="relative -mx-4 -mt-4 overflow-hidden rounded-t-xl bg-gradient-to-br from-[#06120f] via-[#0c241d] to-[#0a2030] px-5 pb-6 pt-7 text-white">
+      <div className="relative -mx-5 -mt-5 overflow-hidden rounded-t-2xl bg-gradient-to-br from-[#06120f] via-[#0c241d] to-[#0a2030] px-5 pb-6 pt-7 text-white sm:-mx-6 sm:-mt-6 sm:px-6">
         <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-emerald-500/25 blur-3xl" />
         <div className="pointer-events-none absolute inset-0 bg-grid-faint opacity-40 [mask-image:radial-gradient(70%_70%_at_30%_0%,black,transparent)]" />
 

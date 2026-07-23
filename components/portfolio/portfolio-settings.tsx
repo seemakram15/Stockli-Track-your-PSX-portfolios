@@ -75,14 +75,14 @@ export function PortfolioSettings({
           <DialogHeader>
             <DialogTitle>Portfolio settings</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1.5">
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
               <Label htmlFor="pf-name">Name</Label>
-              <Input id="pf-name" name="name" defaultValue={name} required />
+              <Input id="pf-name" name="name" defaultValue={name} placeholder="e.g. Growth Portfolio" required />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="pf-desc">Description</Label>
-              <Input id="pf-desc" name="description" defaultValue={description ?? ""} />
+              <Input id="pf-desc" name="description" defaultValue={description ?? ""} placeholder="Optional notes about this portfolio" />
             </div>
           </div>
           <DialogFooter className="justify-between sm:justify-between">

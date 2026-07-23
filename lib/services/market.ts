@@ -146,10 +146,17 @@ export async function getIndexDetail(symbol: string): Promise<IndexDetail | null
   const change = s?.change ?? (prevClose != null ? current - prevClose : 0);
   const changePct = s?.changePct ?? (prevClose ? (change / prevClose) * 100 : 0);
 
-  // Returns: `current` (live) vs an EOD close N trading days back.
-  const back = (n: number) => {
-    const base = candles[candles.length - 1 - n]?.close;
-    return base ? ((current - base) / base) * 100 : 0;
+  // Returns: PSX-style calendar lookbacks (latest vs close on/before N days ago).
+  const calendarBack = (days: number) => {
+    if (!candles.length) return 0;
+    const lastTime = candles[candles.length - 1]?.time ?? 0;
+    const target = lastTime - days * 86_400;
+    let base = candles[0];
+    for (const candle of candles) {
+      if (candle.time <= target) base = candle;
+      else break;
+    }
+    return base?.close ? ((current - base.close) / base.close) * 100 : 0;
   };
   const lastYear = candles.length
     ? new Date(candles[candles.length - 1].time * 1000).getUTCFullYear()
@@ -172,7 +179,14 @@ export async function getIndexDetail(symbol: string): Promise<IndexDetail | null
     high: s?.high ?? null,
     low: s?.low ?? null,
     prevClose,
-    returns: { d1: changePct, w1: back(5), m1: back(22), m3: back(66), y1: back(252), ytd },
+    returns: {
+      d1: changePct,
+      w1: calendarBack(7),
+      m1: calendarBack(30),
+      m3: calendarBack(91),
+      y1: calendarBack(365),
+      ytd,
+    },
     week52High,
     week52Low,
     volume: constituents.reduce((a, c) => a + (c.volume ?? 0), 0) || null,

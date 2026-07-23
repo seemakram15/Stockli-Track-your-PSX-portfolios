@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const siteUrl = resolveSiteUrlFromRequestUrl(request.url);
   const code = searchParams.get("code");
-  const next = safeRedirectPath(searchParams.get("next"), "/portfolios");
+  const next = safeRedirectPath(searchParams.get("next"), "/dashboard");
   const tokenHash = searchParams.get("token_hash");
   const type = normalizeOtpType(searchParams.get("type"));
   const supabase = await createClient();

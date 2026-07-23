@@ -59,7 +59,7 @@ export default async function AppLayout({
                 isGuest={isGuest}
                 guestPageAccess={guestPageAccess}
               />
-              <Link href="/portfolios" className="hidden shrink-0 lg:flex">
+              <Link href="/dashboard" className="hidden shrink-0 lg:flex">
                 <Logo beta />
               </Link>
               <div className="hidden h-8 w-px shrink-0 bg-border lg:block" />

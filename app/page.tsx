@@ -178,9 +178,9 @@ export default async function Home() {
 
   // A real signed-in visitor landing on the marketing page (e.g. following an
   // old bookmark, or the canonical redirect from the site root) should go
-  // straight to their portfolio — demo mode keeps its own "Open demo" flow.
+  // straight to the dashboard — demo mode keeps its own "Open demo" flow.
   if (authed && !isDemoMode) {
-    redirect("/portfolios");
+    redirect("/dashboard");
   }
 
   // The landing page ("/") isn't itself a registered nav page, so it can't
@@ -194,7 +194,7 @@ export default async function Home() {
         PAGE_REGISTRY.map((entry) => [entry.key, appSettings ? appSettings.isPageEnabled(entry.key) : true])
       )
     : null;
-  const primaryHref = isDemoMode ? "/portfolios" : "/signup";
+  const primaryHref = isDemoMode ? "/dashboard" : "/signup";
   const primaryLabel = isDemoMode ? "Open demo" : "Start tracking free";
 
   const structuredData = {
@@ -368,8 +368,8 @@ export default async function Home() {
                   variant="outline"
                   className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
                 >
-                  <Link href={isDemoMode ? "/portfolios" : authed ? "/portfolios" : "/login"}>
-                    {authed || isDemoMode ? "Open portfolio" : "Sign in"}
+                  <Link href={isDemoMode ? "/dashboard" : authed ? "/dashboard" : "/login"}>
+                    {authed || isDemoMode ? "Open dashboard" : "Sign in"}
                   </Link>
                 </Button>
               </div>

@@ -38,21 +38,21 @@ export function HoldingsTable({
   const [mobileView, setMobileView] = React.useState<"detailed" | "compact">("compact");
 
   const MobileToggle = (
-    <div className="flex items-center px-3 pb-1 pt-2 sm:hidden">
+    <div className="flex items-center px-3 pb-1 pt-2 sm:px-4 lg:hidden">
       <div
-        className="relative flex h-8 cursor-pointer select-none items-center rounded-full bg-muted p-0.5"
+        className="relative flex h-9 cursor-pointer select-none items-center rounded-xl bg-muted/80 p-1"
         onClick={() => setMobileView((v) => (v === "compact" ? "detailed" : "compact"))}
       >
         <div
           className={cn(
-            "absolute top-0.5 h-7 w-[calc(50%-2px)] rounded-full bg-primary transition-transform duration-200",
-            mobileView === "detailed" ? "translate-x-[calc(100%+4px)]" : "translate-x-0.5",
+            "absolute top-1 h-7 w-[calc(50%-4px)] rounded-lg bg-emerald-600 shadow-sm transition-transform duration-200 dark:bg-emerald-500",
+            mobileView === "detailed" ? "translate-x-[calc(100%+4px)]" : "translate-x-0",
           )}
         />
-        <span className={cn("relative z-10 w-20 text-center text-xs font-semibold transition-colors", mobileView === "compact" ? "text-primary-foreground" : "text-muted-foreground")}>
+        <span className={cn("relative z-10 w-20 text-center text-xs font-semibold transition-colors", mobileView === "compact" ? "text-white" : "text-muted-foreground")}>
           Compact
         </span>
-        <span className={cn("relative z-10 w-20 text-center text-xs font-semibold transition-colors", mobileView === "detailed" ? "text-primary-foreground" : "text-muted-foreground")}>
+        <span className={cn("relative z-10 w-20 text-center text-xs font-semibold transition-colors", mobileView === "detailed" ? "text-white" : "text-muted-foreground")}>
           Detailed
         </span>
       </div>
@@ -120,106 +120,211 @@ export function HoldingsTable({
 
   return (
     <>
-      {MobileToggle}
-      <div className="space-y-2 p-3 sm:hidden">
-        {rows.map((h) => {
-          const actions = rowActions ? (
-            <HoldingRowActions
-              portfolioId={h.portfolio_id}
-              holdingId={h.id}
-              symbol={h.symbol}
-              quantity={h.quantity}
-              demo={rowActions.demo}
-              userId={userId}
-            />
-          ) : null;
-          return mobileView === "compact" ? (
-            <MobileHoldingCardCompact
-              key={h.id}
-              holding={h}
-              portfolioName={showPortfolio ? portfolioNames?.[h.portfolio_id] : undefined}
-            />
-          ) : (
-            <MobileHoldingCard
-              key={h.id}
-              holding={h}
-              portfolioName={showPortfolio ? portfolioNames?.[h.portfolio_id] : undefined}
-              actions={actions}
-            />
-          );
-        })}
+      {/* Cards below lg so columns never overlay on tablet/phone */}
+      <div className="lg:hidden">
+        {MobileToggle}
+        <div className="space-y-2 p-3 sm:p-4">
+          {rows.map((h) => {
+            const actions = rowActions ? (
+              <HoldingRowActions
+                portfolioId={h.portfolio_id}
+                holdingId={h.id}
+                symbol={h.symbol}
+                quantity={h.quantity}
+                demo={rowActions.demo}
+                userId={userId}
+              />
+            ) : null;
+            return mobileView === "compact" ? (
+              <MobileHoldingCardCompact
+                key={h.id}
+                holding={h}
+                portfolioName={showPortfolio ? portfolioNames?.[h.portfolio_id] : undefined}
+              />
+            ) : (
+              <MobileHoldingCard
+                key={h.id}
+                holding={h}
+                portfolioName={showPortfolio ? portfolioNames?.[h.portfolio_id] : undefined}
+                actions={actions}
+              />
+            );
+          })}
+        </div>
       </div>
 
-      <div className="hidden overflow-x-auto scrollbar-thin sm:block">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead>Symbol</TableHead>
-            {showPortfolio && <TableHead className="hidden md:table-cell">Portfolio</TableHead>}
-            <TableHead className="text-right">Qty</TableHead>
-            <TableHead className="hidden text-right sm:table-cell">Avg Cost</TableHead>
-            <TableHead className="text-right">Current</TableHead>
-            <TableHead className="text-right">Day P/L</TableHead>
-            <TableHead className="text-right">Mkt Value</TableHead>
-            <TableHead className="text-right">Unreal. P/L</TableHead>
-            {rowActions && <TableHead className="w-10" />}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((h) => (
-            <TableRow key={h.id} className="group">
-              <TableCell>
-                <StockIdentity
-                  href={`/stock/${h.symbol}`}
-                  symbol={h.symbol}
-                  name={h.ticker?.company_name ?? h.ticker?.sector}
-                  size="xs"
-                />
-              </TableCell>
-              {showPortfolio && (
-                <TableCell className="hidden text-muted-foreground md:table-cell">
-                  {portfolioNames?.[h.portfolio_id] ?? "—"}
-                </TableCell>
-              )}
-              <TableCell className="text-right tabular-nums">
-                {formatNumber(h.quantity, 0)}
-              </TableCell>
-              <TableCell className="hidden text-right tabular-nums text-muted-foreground sm:table-cell">
-                {formatPKR(h.avg_buy_price)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatPKR(h.livePrice)}
-              </TableCell>
-              <TableCell className="text-right">
-                <DailyPLValue value={h.dayChange} pct={h.dayChangePct} />
-              </TableCell>
-              <TableCell className="text-right tabular-nums font-medium">
-                {formatPKR(h.marketValue)}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className={cn("font-medium tabular-nums", plColorClass(h.unrealizedPL))}>
-                  {formatPKR(h.unrealizedPL, { sign: true })}
-                </div>
-                <ChangeBadge pct={h.unrealizedPLPct} className="justify-end text-xs" />
-              </TableCell>
-              {rowActions && (
-                <TableCell className="text-right">
-                  <HoldingRowActions
-                    portfolioId={h.portfolio_id}
-                    holdingId={h.id}
-                    symbol={h.symbol}
-                    quantity={h.quantity}
-                    demo={rowActions.demo}
-                    userId={userId}
-                  />
-                </TableCell>
-              )}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+      <DesktopHoldingsBoard
+        rows={rows}
+        showPortfolio={showPortfolio}
+        portfolioNames={portfolioNames}
+        rowActions={rowActions}
+        userId={userId}
+      />
     </>
+  );
+}
+
+function DesktopHoldingsBoard({
+  rows,
+  showPortfolio,
+  portfolioNames,
+  rowActions,
+  userId,
+}: {
+  rows: HoldingWithMetrics[];
+  showPortfolio: boolean;
+  portfolioNames?: Record<string, string>;
+  rowActions?: { demo?: boolean };
+  userId?: string | null;
+}) {
+  const totals = React.useMemo(() => {
+    return rows.reduce(
+      (acc, h) => {
+        acc.marketValue += h.marketValue;
+        acc.dayChange += h.dayChange;
+        acc.unrealizedPL += h.unrealizedPL;
+        acc.costBasis += h.costBasis;
+        return acc;
+      },
+      { marketValue: 0, dayChange: 0, unrealizedPL: 0, costBasis: 0 }
+    );
+  }, [rows]);
+
+  const dayPct =
+    totals.marketValue - totals.dayChange !== 0
+      ? (totals.dayChange / (totals.marketValue - totals.dayChange)) * 100
+      : 0;
+  const unrealizedPct =
+    totals.costBasis !== 0 ? (totals.unrealizedPL / totals.costBasis) * 100 : 0;
+
+  /* Symbol | Qty | Current | Avg | Day P/L | Unrealized | Invested | Mkt value | Actions */
+  const cols =
+    "grid w-full grid-cols-[minmax(0,1.25fr)_minmax(0,0.35fr)_minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,0.9fr)_4.75rem] items-center gap-x-1.5 px-3 xl:gap-x-2.5 xl:px-5";
+
+  const cell = "min-w-0 overflow-hidden text-right";
+  const money = "block truncate whitespace-nowrap text-sm font-normal tabular-nums text-foreground";
+
+  return (
+    <div className="hidden text-sm lg:block">
+      <div
+        className={cn(
+          cols,
+          "border-b border-border/80 py-2.5 text-sm font-medium text-muted-foreground",
+        )}
+      >
+        <div className="min-w-0 text-left">Symbol</div>
+        <div className="text-right">Qty</div>
+        <div className="text-right">Current</div>
+        <div className="text-right">Avg price</div>
+        <div className="text-right">Day P/L</div>
+        <div className="text-right">Unrealized</div>
+        <div className="text-right">Invested</div>
+        <div className="text-right">Mkt value</div>
+        <div aria-hidden />
+      </div>
+
+      {rows.map((h) => (
+        <div
+          key={h.id}
+          className={cn(
+            cols,
+            "group border-b border-border/50 py-2.5 transition-colors last:border-b-0 hover:bg-muted/25",
+          )}
+        >
+          <div className="min-w-0 overflow-hidden pr-1">
+            <StockIdentity
+              href={`/stock/${h.symbol}`}
+              symbol={h.symbol}
+              name={
+                showPortfolio
+                  ? portfolioNames?.[h.portfolio_id] ??
+                    h.ticker?.company_name ??
+                    h.ticker?.sector
+                  : h.ticker?.company_name ?? h.ticker?.sector
+              }
+              size="xs"
+            />
+          </div>
+          <div className={cn(cell, money)}>{formatNumber(h.quantity, 0)}</div>
+          <div className={cell}>
+            <div className={money}>{formatPKR(h.livePrice)}</div>
+          </div>
+          <div className={cell}>
+            <div className={cn(money, "text-muted-foreground")}>
+              {formatPKR(h.avg_buy_price)}
+            </div>
+          </div>
+          <div className={cell}>
+            <AlignedPL value={h.dayChange} pct={h.dayChangePct} />
+          </div>
+          <div className={cell}>
+            <AlignedPL value={h.unrealizedPL} pct={h.unrealizedPLPct} />
+          </div>
+          <div className={cell}>
+            <div className={money}>{formatPKR(h.costBasis)}</div>
+          </div>
+          <div className={cell}>
+            <div className={cn(money, "tracking-tight")}>
+              {formatPKR(h.marketValue)}
+            </div>
+          </div>
+          <div className="flex w-full shrink-0 justify-end gap-0 opacity-70 transition group-hover:opacity-100 [&_button]:size-7">
+            {rowActions ? (
+              <HoldingRowActions
+                portfolioId={h.portfolio_id}
+                holdingId={h.id}
+                symbol={h.symbol}
+                quantity={h.quantity}
+                demo={rowActions.demo}
+                userId={userId}
+              />
+            ) : null}
+          </div>
+        </div>
+      ))}
+
+      <div className={cn(cols, "border-t border-border/80 bg-muted/20 py-2.5")}>
+        <div className="min-w-0 overflow-hidden">
+          <p className="text-sm font-medium text-muted-foreground">
+            Portfolio totals
+          </p>
+          <p className="text-sm font-normal text-foreground">
+            {rows.length} holding{rows.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        <div />
+        <div />
+        <div />
+        <div className={cell}>
+          <AlignedPL value={totals.dayChange} pct={dayPct} />
+        </div>
+        <div className={cell}>
+          <AlignedPL value={totals.unrealizedPL} pct={unrealizedPct} />
+        </div>
+        <div className={cell}>
+          <div className={money}>{formatPKR(totals.costBasis)}</div>
+        </div>
+        <div className={cell}>
+          <div className={cn(money, "tracking-tight")}>
+            {formatPKR(totals.marketValue)}
+          </div>
+        </div>
+        <div />
+      </div>
+    </div>
+  );
+}
+
+function AlignedPL({ value, pct }: { value: number; pct: number }) {
+  return (
+    <div className="min-w-0 overflow-hidden text-right leading-tight">
+      <div className={cn("truncate text-sm font-normal tabular-nums", plColorClass(value))}>
+        {formatPKR(value, { sign: true })}
+      </div>
+      <div className={cn("truncate text-xs font-normal tabular-nums", plColorClass(pct))}>
+        {formatPercent(pct)}
+      </div>
+    </div>
   );
 }
 
@@ -279,21 +384,21 @@ function MobileHoldingCard({
       {/* Row 1: Avg Buy | Shares */}
       <div className="grid grid-cols-2">
         <div className="px-4 py-2.5">
-          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Avg Buy</p>
-          <p className="tabular-nums font-semibold text-foreground">{formatNumber(holding.avg_buy_price, 2)}</p>
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Avg price</p>
+          <p className="font-semibold tabular-nums text-foreground">{formatNumber(holding.avg_buy_price, 2)}</p>
         </div>
         <div className="border-l border-amber-500/20 px-4 py-2.5">
-          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Shares</p>
-          <p className="tabular-nums font-semibold text-foreground">{formatNumber(holding.quantity, 0)}</p>
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Qty</p>
+          <p className="font-semibold tabular-nums text-foreground">{formatNumber(holding.quantity, 0)}</p>
         </div>
       </div>
 
       <AmberRule />
 
-      {/* Row 2: Day's P/L | Total P/L */}
+      {/* Row 2: Day's P/L | Unrealized */}
       <div className="grid grid-cols-2">
         <div className="px-4 py-2.5">
-          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Day&apos;s P/L</p>
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Day P/L</p>
           <p className={cn("font-semibold leading-tight tabular-nums", dayClass)}>
             {formatPKR(holding.dayChange, { sign: true })}
           </p>
@@ -302,7 +407,7 @@ function MobileHoldingCard({
           </p>
         </div>
         <div className="border-l border-amber-500/20 px-4 py-2.5">
-          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Total P/L</p>
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Unrealized</p>
           <p className={cn("font-semibold leading-tight tabular-nums", totalClass)}>
             {formatPKR(holding.unrealizedPL, { sign: true })}
           </p>
@@ -314,15 +419,15 @@ function MobileHoldingCard({
 
       <AmberRule />
 
-      {/* Row 3: Total Cost | Mkt Value */}
+      {/* Row 3: Invested | Mkt Value */}
       <div className="grid grid-cols-2">
         <div className="px-4 py-2.5 pb-4">
-          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Total Cost</p>
-          <p className="tabular-nums font-semibold text-foreground">{formatPKR(holding.costBasis)}</p>
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Invested</p>
+          <p className="font-semibold tabular-nums text-foreground">{formatPKR(holding.costBasis)}</p>
         </div>
         <div className="border-l border-amber-500/20 px-4 py-2.5 pb-4">
-          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Mkt Value</p>
-          <p className="tabular-nums font-semibold text-foreground">{formatPKR(holding.marketValue)}</p>
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Mkt value</p>
+          <p className="font-semibold tabular-nums text-foreground">{formatPKR(holding.marketValue)}</p>
         </div>
       </div>
     </article>
@@ -354,7 +459,7 @@ function MobileHoldingCardCompact({
         </span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground tabular-nums">
+        <span className="text-sm tabular-nums text-muted-foreground">
           {formatNumber(holding.quantity, 0)} × {formatNumber(holding.livePrice, 2)}
         </span>
         <span className={cn("text-sm font-semibold tabular-nums", dayClass)}>
