@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSampleMode } from "@/lib/auth/roles";
 import { normalizeSymbol } from "@/lib/security/validation";
+import {
+  GUEST_SAVE_BLOCKED_MSG,
+  GENERIC_SAVE_FAILED_MSG,
+  SIGN_IN_AGAIN_MSG,
+  toUserFacingError,
+} from "@/lib/user-messages";
 
 export interface ToggleState {
   watching?: boolean;
@@ -36,19 +42,20 @@ export async function toggleWatchlist(
 ): Promise<ToggleState> {
   const symbol = normalizeSymbol(formData.get("symbol"));
   const watching = String(formData.get("watching") ?? "") === "true";
-  if (await isSampleMode())
-    return { error: "Sign in to save changes. You’re browsing as a guest right now." };
-  if (!symbol) return { error: "Invalid symbol" };
+  if (await isSampleMode()) return { error: GUEST_SAVE_BLOCKED_MSG };
+  if (!symbol) return { error: "Enter a valid stock symbol." };
 
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return { error: "Not authenticated" };
+    if (!user) return { error: SIGN_IN_AGAIN_MSG };
 
     const wlId = await ensureWatchlist(supabase, user.id);
-    if (!wlId) return { error: "Could not access watchlist" };
+    if (!wlId) {
+      return { error: "We couldn’t open your watchlist. Please try again." };
+    }
 
     if (watching) {
       await supabase
@@ -65,7 +72,7 @@ export async function toggleWatchlist(
     revalidatePath(`/stock/${symbol}`);
     return { watching: !watching };
   } catch (e) {
-    return { error: String(e) };
+    return { error: toUserFacingError(e, GENERIC_SAVE_FAILED_MSG) };
   }
 }
 

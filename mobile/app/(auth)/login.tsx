@@ -5,6 +5,30 @@ import { router } from "expo-router";
 import { Mail, Lock, Eye, EyeOff, ChevronLeft } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 
+function friendlyAuthError(message?: string | null) {
+  const normalized = (message ?? "").toLowerCase();
+  if (!normalized) return "Something went wrong. Please try again.";
+  if (normalized.includes("invalid login credentials") || normalized.includes("invalid_credentials")) {
+    return "Your email or password is incorrect. Check both and try again.";
+  }
+  if (normalized.includes("email not confirmed")) {
+    return "Confirm your email first, then sign in.";
+  }
+  if (normalized.includes("user already registered")) {
+    return "An account with this email already exists. Try signing in.";
+  }
+  if (normalized.includes("otp") || normalized.includes("token")) {
+    return "That code is invalid or expired. Request a new one and try again.";
+  }
+  if (normalized.includes("rate limit") || normalized.includes("too many")) {
+    return "Too many attempts. Please wait a few minutes, then try again.";
+  }
+  if (normalized.includes("network") || normalized.includes("fetch")) {
+    return "Network issue. Check your connection and try again.";
+  }
+  return "We couldn’t complete that. Please try again.";
+}
+
 export default function LoginScreen() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -17,7 +41,7 @@ export default function LoginScreen() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setLoading(false);
-    if (error) Alert.alert("Sign in failed", error.message);
+    if (error) Alert.alert("Sign in failed", friendlyAuthError(error.message));
   }
 
   const canSubmit = email.trim().length > 0 && password.length > 0;

@@ -121,6 +121,7 @@ async function main() {
     smtp_sender_name: smtpSenderName,
     rate_limit_email_sent: rateLimitEmailSent,
     otp_expiry: Number.isFinite(otpExpirySeconds) ? otpExpirySeconds : 600,
+    mailer_otp_length: 6,
     mailer_subjects_confirmation: "Your Stockli confirmation code",
     mailer_templates_confirmation_content: confirmationTemplate,
     mailer_subjects_recovery: "Your Stockli password reset code",

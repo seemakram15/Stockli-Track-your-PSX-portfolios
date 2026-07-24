@@ -8,7 +8,7 @@ These templates cover the current Stockli auth flows:
 
 ## OTP flow (current)
 
-Emails show `{{ .Token }}` (usually 6–8 digits). Codes expire in **10 minutes**
+Emails show `{{ .Token }}` (**6 digits** via `mailer_otp_length: 6`). Codes expire in **10 minutes**
 (`otp_expiry: 600` via `npm run supabase:auth-email:apply`).
 
 | Flow | Email | App step | Verify |
@@ -69,7 +69,8 @@ Still required for Google OAuth and legacy links:
 - `npm run supabase:auth-email:check`
 - `npm run supabase:auth-email:apply`
 
-Pushes templates, subjects, sender name, redirect URLs, and **`otp_expiry` (default 600 seconds)**.
+Pushes templates, subjects, sender name, redirect URLs, **`otp_expiry` (default 600 seconds)**,
+and **`mailer_otp_length: 6`**.
 
 Required:
 

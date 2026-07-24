@@ -17,6 +17,10 @@ import type {
   FundHolding,
   SaveHoldingInput,
 } from "@/lib/types/fund-holdings";
+import {
+  SIGN_IN_AGAIN_MSG,
+  toUserFacingError,
+} from "@/lib/user-messages";
 
 async function invalidateDerivedFundCaches(): Promise<void> {
   await Promise.allSettled([
@@ -50,14 +54,14 @@ export async function saveHoldings(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const user = await getRequestUser();
-    if (!user) return { ok: false, error: "Not authenticated" };
+    if (!user) return { ok: false, error: SIGN_IN_AGAIN_MSG };
     const amc = getAmcForFund(fundName);
     await savePeriodHoldings(fundName, amc, year, month, holdings, status, user.id);
     await invalidateDerivedFundCaches();
     return { ok: true };
   } catch (e) {
     console.error("[fund-holdings] saveHoldings failed:", e);
-    return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
+    return { ok: false, error: toUserFacingError(e, "We couldn’t save fund holdings. Please try again.") };
   }
 }
 
@@ -72,7 +76,7 @@ export async function deleteHoldings(
     return { ok: true };
   } catch (e) {
     console.error("[fund-holdings] deleteHoldings failed:", e);
-    return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };
+    return { ok: false, error: toUserFacingError(e, "We couldn’t delete those holdings. Please try again.") };
   }
 }
 

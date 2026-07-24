@@ -39,7 +39,7 @@ export function AuthCardShell({
         <Logo surface={brandSurface} />
       </Link>
 
-      <Card variant="feature" className="p-6 sm:p-7">
+      <Card variant="feature" className="relative overflow-hidden p-6 sm:p-7">
         <div className="mb-6">
           <IconChip accent={accent} variant="gradient" size="lg">
             {icon}

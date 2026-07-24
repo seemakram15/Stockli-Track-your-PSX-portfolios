@@ -29,7 +29,7 @@ const AUTH_COPY: Record<AuthMode, { title: string; description: string }> = {
   },
   "forgot-password": {
     title: "Reset your password",
-    description: "We will email a one-time reset code that expires in 10 minutes.",
+    description: "We will email a 6-digit reset code that expires in 10 minutes.",
   },
 };
 
@@ -52,7 +52,13 @@ export function AuthDialogPanel({
   onModeChange: (mode: AuthMode) => void;
   initialState?: AuthStateInput;
 }) {
-  const formKey = `${mode}:${initialState?.error ?? ""}:${initialState?.message ?? ""}:${initialState?.email ?? ""}`;
+  const [formEpoch, setFormEpoch] = React.useState(0);
+  const formKey = `${mode}:${formEpoch}:${initialState?.error ?? ""}:${initialState?.message ?? ""}:${initialState?.email ?? ""}`;
+
+  function handleModeChange(next: AuthMode) {
+    onModeChange(next);
+    setFormEpoch((value) => value + 1);
+  }
 
   return (
     <div>
@@ -92,13 +98,13 @@ export function AuthDialogPanel({
         </div>
       </div>
 
-      <div className="pt-5">
+      <div className="relative overflow-hidden pt-5">
         <AuthForm
           key={formKey}
           mode={mode}
           redirectTo={redirectTo}
           demo={demo}
-          onModeChange={onModeChange}
+          onModeChange={handleModeChange}
           initialState={initialState}
         />
       </div>

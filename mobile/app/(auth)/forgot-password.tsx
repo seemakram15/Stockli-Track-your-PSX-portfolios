@@ -14,6 +14,30 @@ import { supabase } from "@/lib/supabase";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
+function friendlyAuthError(message?: string | null) {
+  const normalized = (message ?? "").toLowerCase();
+  if (!normalized) return "Something went wrong. Please try again.";
+  if (normalized.includes("invalid login credentials") || normalized.includes("invalid_credentials")) {
+    return "Your email or password is incorrect. Check both and try again.";
+  }
+  if (normalized.includes("email not confirmed")) {
+    return "Confirm your email first, then sign in.";
+  }
+  if (normalized.includes("user already registered")) {
+    return "An account with this email already exists. Try signing in.";
+  }
+  if (normalized.includes("otp") || normalized.includes("token")) {
+    return "That code is invalid or expired. Request a new one and try again.";
+  }
+  if (normalized.includes("rate limit") || normalized.includes("too many")) {
+    return "Too many attempts. Please wait a few minutes, then try again.";
+  }
+  if (normalized.includes("network") || normalized.includes("fetch")) {
+    return "Network issue. Check your connection and try again.";
+  }
+  return "We couldn’t complete that. Please try again.";
+}
+
 type Step = "request" | "otp" | "password";
 
 export default function ForgotPasswordScreen() {
@@ -31,7 +55,7 @@ export default function ForgotPasswordScreen() {
     const { error } = await supabase.auth.resetPasswordForEmail(normalized);
     setLoading(false);
     if (error) {
-      Alert.alert("Error", error.message);
+      Alert.alert("Error", friendlyAuthError(error.message));
       return;
     }
     setStep("otp");
@@ -53,7 +77,7 @@ export default function ForgotPasswordScreen() {
     });
     setLoading(false);
     if (error) {
-      Alert.alert("Invalid code", error.message);
+      Alert.alert("Invalid code", friendlyAuthError(error.message));
       return;
     }
     setStep("password");
@@ -75,7 +99,7 @@ export default function ForgotPasswordScreen() {
     }
     setLoading(false);
     if (error) {
-      Alert.alert("Error", error.message);
+      Alert.alert("Error", friendlyAuthError(error.message));
       return;
     }
     Alert.alert("Password updated", "Sign in with your new password.");
@@ -130,8 +154,8 @@ export default function ForgotPasswordScreen() {
                 value={otp}
                 onChangeText={setOtp}
                 keyboardType="number-pad"
-                maxLength={8}
-                placeholder="12345678"
+                maxLength={6}
+                placeholder="123456"
                 placeholderTextColor="#7a9098"
                 autoComplete="one-time-code"
                 style={{

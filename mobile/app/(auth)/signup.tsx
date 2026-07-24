@@ -5,6 +5,30 @@ import { router } from "expo-router";
 import { User, Mail, Lock, Eye, EyeOff, ChevronLeft } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 
+function friendlyAuthError(message?: string | null) {
+  const normalized = (message ?? "").toLowerCase();
+  if (!normalized) return "Something went wrong. Please try again.";
+  if (normalized.includes("invalid login credentials") || normalized.includes("invalid_credentials")) {
+    return "Your email or password is incorrect. Check both and try again.";
+  }
+  if (normalized.includes("email not confirmed")) {
+    return "Confirm your email first, then sign in.";
+  }
+  if (normalized.includes("user already registered")) {
+    return "An account with this email already exists. Try signing in.";
+  }
+  if (normalized.includes("otp") || normalized.includes("token")) {
+    return "That code is invalid or expired. Request a new one and try again.";
+  }
+  if (normalized.includes("rate limit") || normalized.includes("too many")) {
+    return "Too many attempts. Please wait a few minutes, then try again.";
+  }
+  if (normalized.includes("network") || normalized.includes("fetch")) {
+    return "Network issue. Check your connection and try again.";
+  }
+  return "We couldn’t complete that. Please try again.";
+}
+
 export default function SignupScreen() {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -24,14 +48,14 @@ export default function SignupScreen() {
       options: { data: { display_name: name.trim() } },
     });
     setLoading(false);
-    if (error) Alert.alert("Sign up failed", error.message);
+    if (error) Alert.alert("Sign up failed", friendlyAuthError(error.message));
     else setStep("otp");
   }
 
   async function handleVerifyOtp() {
     const token = otp.replace(/\D/g, "");
     if (token.length < 6) {
-      Alert.alert("Missing code", "Enter the full confirmation code from your email.");
+      Alert.alert("Missing code", "Enter the 6-digit confirmation code from your email.");
       return;
     }
     setLoading(true);
@@ -43,7 +67,7 @@ export default function SignupScreen() {
     if (!error) await supabase.auth.signOut();
     setLoading(false);
     if (error) {
-      Alert.alert("Invalid code", error.message);
+      Alert.alert("Invalid code", friendlyAuthError(error.message));
       return;
     }
     Alert.alert("Email verified", "Sign in with your password to continue.");
@@ -57,7 +81,7 @@ export default function SignupScreen() {
       email: email.trim().toLowerCase(),
     });
     setLoading(false);
-    if (error) Alert.alert("Could not resend", error.message);
+    if (error) Alert.alert("Could not resend", friendlyAuthError(error.message));
     else Alert.alert("Code sent", "A fresh 10-minute confirmation code is on the way.");
   }
 
@@ -108,7 +132,7 @@ export default function SignupScreen() {
                 <Text style={{ fontSize: 15, color: "#7a9098", lineHeight: 24 }}>
                   {step === "form"
                     ? "Join thousands of PSX investors today"
-                    : `We emailed a 10-minute code to ${email.trim().toLowerCase()}`}
+                We emailed a 6-digit code to {email.trim().toLowerCase()}
                 </Text>
               </View>
 
@@ -118,7 +142,7 @@ export default function SignupScreen() {
                     value={otp}
                     onChangeText={setOtp}
                     keyboardType="number-pad"
-                    maxLength={8}
+                    maxLength={6}
                     placeholder="12345678"
                     placeholderTextColor="#3a5058"
                     autoComplete="one-time-code"

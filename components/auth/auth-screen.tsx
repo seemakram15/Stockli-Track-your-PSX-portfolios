@@ -27,6 +27,7 @@ export function AuthScreen({
   clearPrivateCachesOnMount?: boolean;
 }) {
   const router = useRouter();
+  const [formEpoch, setFormEpoch] = React.useState(0);
 
   React.useEffect(() => {
     if (!clearPrivateCachesOnMount) return;
@@ -34,12 +35,17 @@ export function AuthScreen({
   }, [clearPrivateCachesOnMount]);
 
   function go(next: AuthMode) {
+    if (next === mode) {
+      setFormEpoch((value) => value + 1);
+      return;
+    }
     const qs = next === "login" && redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : "";
     router.push(`/${next}${qs}`);
   }
 
   return (
     <AuthForm
+      key={formEpoch}
       mode={mode}
       redirectTo={redirectTo}
       demo={demo}

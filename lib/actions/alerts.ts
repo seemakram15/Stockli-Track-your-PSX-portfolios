@@ -5,6 +5,12 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { isSampleMode } from "@/lib/auth/roles";
 import { normalizeSymbol } from "@/lib/security/validation";
+import {
+  GUEST_SAVE_BLOCKED_MSG,
+  GENERIC_SAVE_FAILED_MSG,
+  SIGN_IN_AGAIN_MSG,
+  toUserFacingError,
+} from "@/lib/user-messages";
 
 export interface AlertActionState {
   ok?: boolean;
@@ -20,21 +26,20 @@ const alertSchema = z.object({
     .transform((value, ctx) => {
       const symbol = normalizeSymbol(value);
       if (!symbol) {
-        ctx.addIssue({ code: "custom", message: "Invalid symbol" });
+        ctx.addIssue({ code: "custom", message: "Enter a valid stock symbol." });
         return z.NEVER;
       }
       return symbol;
     }),
   condition: z.enum(["ABOVE", "BELOW"]),
-  target_price: z.coerce.number().positive("Target must be > 0"),
+  target_price: z.coerce.number().positive("Enter a target price greater than zero."),
 });
 
 export async function createAlert(
   _prev: AlertActionState,
   formData: FormData
 ): Promise<AlertActionState> {
-  if (await isSampleMode())
-    return { error: "Sign in to save changes. You’re browsing as a guest right now." };
+  if (await isSampleMode()) return { error: GUEST_SAVE_BLOCKED_MSG };
   const parsed = alertSchema.safeParse({
     symbol: formData.get("symbol"),
     condition: formData.get("condition"),
@@ -47,7 +52,7 @@ export async function createAlert(
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return { error: "Not authenticated" };
+    if (!user) return { error: SIGN_IN_AGAIN_MSG };
 
     const { error } = await supabase.from("alerts").insert({
       user_id: user.id,
@@ -55,11 +60,11 @@ export async function createAlert(
       condition: parsed.data.condition,
       target_price: parsed.data.target_price,
     });
-    if (error) return { error: error.message };
+    if (error) return { error: toUserFacingError(error, "We couldn’t create that alert. Please try again.") };
     revalidatePath("/alerts");
     return { ok: true, message: "Alert created." };
   } catch (e) {
-    return { error: String(e) };
+    return { error: toUserFacingError(e, GENERIC_SAVE_FAILED_MSG) };
   }
 }
 

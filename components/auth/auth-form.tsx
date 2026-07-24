@@ -8,11 +8,9 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  KeyRound,
   Loader2,
   Lock,
   Mail,
-  ShieldCheck,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -21,14 +19,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   requestPasswordReset,
-  resendSignupConfirmation,
   signIn,
   signUp,
-  verifyRecoveryOtp,
-  verifySignupOtp,
   type AuthState,
 } from "@/lib/actions/auth";
 import { ACCOUNT_WARMUP_FLAG } from "@/components/auth/account-warmup";
+import { OtpVerificationPanel } from "@/components/auth/otp-verification";
 
 function Field({
   label,
@@ -81,27 +77,35 @@ export function AuthForm({
     state.email
   ) {
     return (
-      <OtpVerificationView
-        kind="signup"
-        email={state.email}
-        message={state.message}
-        error={state.error}
-        demo={demo}
-        onModeChange={onModeChange}
-      />
+      <>
+        <div className="min-h-[22rem]" aria-hidden />
+        <div className="absolute inset-0 z-20">
+          <OtpVerificationPanel
+            kind="signup"
+            email={state.email}
+            error={state.error}
+            demo={demo}
+            onModeChange={onModeChange}
+          />
+        </div>
+      </>
     );
   }
 
   if (mode === "forgot-password" && state.nextStep === "reset-email-sent" && state.email) {
     return (
-      <OtpVerificationView
-        kind="recovery"
-        email={state.email}
-        message={state.message}
-        error={state.error}
-        demo={demo}
-        onModeChange={onModeChange}
-      />
+      <>
+        <div className="min-h-[22rem]" aria-hidden />
+        <div className="absolute inset-0 z-20">
+          <OtpVerificationPanel
+            kind="recovery"
+            email={state.email}
+            error={state.error}
+            demo={demo}
+            onModeChange={onModeChange}
+          />
+        </div>
+      </>
     );
   }
 
@@ -114,7 +118,7 @@ export function AuthForm({
           <Input
             id="displayName"
             name="displayName"
-            placeholder="e.g. Asad Khan"
+            placeholder="e.g. Waseem Akram"
             autoComplete="name"
             className="h-11 pl-10"
           />
@@ -276,133 +280,5 @@ export function AuthForm({
         )}
       </p>
     </form>
-  );
-}
-
-function OtpVerificationView({
-  kind,
-  email,
-  message,
-  error,
-  demo,
-  onModeChange,
-}: {
-  kind: "signup" | "recovery";
-  email: string;
-  message?: string;
-  error?: string;
-  demo?: boolean;
-  onModeChange?: (mode: "login" | "signup" | "forgot-password") => void;
-}) {
-  const verifyAction = kind === "signup" ? verifySignupOtp : verifyRecoveryOtp;
-  const resendAction = kind === "signup" ? resendSignupConfirmation : requestPasswordReset;
-  const [verifyState, verifyFormAction, verifyPending] = useActionState<AuthState, FormData>(
-    verifyAction,
-    {}
-  );
-  const [resendState, resendFormAction, resendPending] = useActionState<AuthState, FormData>(
-    resendAction,
-    {}
-  );
-
-  const note = resendState.message ?? verifyState.message ?? message;
-  const issue = verifyState.error ?? resendState.error ?? error;
-  const isSignup = kind === "signup";
-
-  return (
-    <div className="space-y-4">
-      <div
-        className={
-          isSignup
-            ? "rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm"
-            : "rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm"
-        }
-      >
-        <div className="flex items-start gap-3">
-          <span
-            className={
-              isSignup
-                ? "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white"
-                : "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
-            }
-          >
-            {isSignup ? <ShieldCheck className="size-4" /> : <KeyRound className="size-4" />}
-          </span>
-          <div className="min-w-0">
-            <p className="font-semibold text-foreground">
-              {isSignup ? "Enter your confirmation code" : "Enter your reset code"}
-            </p>
-            <p className="mt-1 text-muted-foreground">
-              We emailed a one-time code to{" "}
-              <span className="font-medium text-foreground">{email}</span>. It expires in 10
-              minutes.
-            </p>
-            {note ? <p className="mt-2 text-muted-foreground">{note}</p> : null}
-          </div>
-        </div>
-      </div>
-
-      {issue ? (
-        <p className="flex items-start gap-2 rounded-lg bg-loss/10 px-3 py-2 text-sm text-loss">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          {issue}
-        </p>
-      ) : null}
-
-      <form action={verifyFormAction} className="space-y-3">
-        <input type="hidden" name="email" value={email} />
-        <div className="space-y-2">
-          <Label htmlFor="otp" className="text-[13px] font-medium tracking-tight text-foreground/85">
-            {isSignup ? "Confirmation code" : "Reset code"}
-          </Label>
-          <Input
-            id="otp"
-            name="otp"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]*"
-            maxLength={8}
-            placeholder="12345678"
-            required
-            className="h-12 text-center font-mono text-xl tracking-[0.35em]"
-          />
-        </div>
-        <Button
-          type="submit"
-          disabled={verifyPending || demo}
-          className="h-11 w-full gap-2 bg-gradient-to-r from-emerald-500 to-emerald-400 text-base font-semibold text-white shadow-lg shadow-emerald-500/25"
-        >
-          {verifyPending ? <Loader2 className="size-4 animate-spin" /> : null}
-          {isSignup ? "Verify email" : "Continue to new password"}
-        </Button>
-      </form>
-
-      <form action={resendFormAction}>
-        <input type="hidden" name="email" value={email} />
-        <Button
-          type="submit"
-          variant="outline"
-          className="h-11 w-full gap-2"
-          disabled={resendPending || demo}
-        >
-          {resendPending ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />}
-          Resend code
-        </Button>
-      </form>
-
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Button
-          type="button"
-          variant="ghost"
-          className="h-11"
-          onClick={() => onModeChange?.(isSignup ? "signup" : "forgot-password")}
-        >
-          Use another email
-        </Button>
-        <Button type="button" className="h-11" onClick={() => onModeChange?.("login")}>
-          Back to sign in
-        </Button>
-      </div>
-    </div>
   );
 }

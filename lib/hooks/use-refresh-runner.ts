@@ -106,10 +106,14 @@ export function useRefreshRunner({
       }
       onComplete?.({ impact: lastImpact, errors: failures });
     } catch (error) {
-      const text = error instanceof Error ? error.message : "Refresh failed.";
+      const text = "Refresh couldn’t finish. Please try again in a moment.";
       setPhase("error");
       setHeadline(text);
-      setErrors([text]);
+      setErrors([
+        error instanceof Error && error.message
+          ? "One of the refresh steps failed."
+          : text,
+      ]);
       toast.error(text);
     }
   }, [onComplete]);

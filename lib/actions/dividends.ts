@@ -35,7 +35,7 @@ export async function saveCdcDividends(
 
   for (const r of records) {
     if (!r.symbol || !r.paymentDate) {
-      errors.push(`${r.companyName}: missing symbol or payment date`);
+      errors.push(`${r.companyName}: missing symbol or payment date.`);
       continue;
     }
 
@@ -60,7 +60,7 @@ export async function saveCdcDividends(
       if (error.code === "23505") {
         skipped++;
       } else {
-        errors.push(`${r.companyName}: ${error.message}`);
+        errors.push(`${r.companyName}: couldn’t save this dividend.`);
       }
     } else {
       saved++;

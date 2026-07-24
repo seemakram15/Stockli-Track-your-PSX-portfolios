@@ -51,19 +51,29 @@ function authErrorMessage(error: AuthErrorLike) {
   const status = typeof error === "object" && error ? error.status : undefined;
   const normalized = message.toLowerCase();
   if (!message || normalized === "{}" || normalized === "internal server error") {
-    return "We could not send the authentication email right now. Please try again in a minute. If it keeps happening, our email delivery settings need attention.";
+    return "Something went wrong on our side. Please try again in a minute.";
   }
   if (status && status >= 500) {
-    return "We could not complete that auth request right now. Please try again in a minute.";
+    return "We couldn’t complete that request right now. Please try again shortly.";
   }
   if (normalized.includes("rate limit") || normalized.includes("too many")) {
-    return "Too many emails were requested. Please wait a few minutes before trying again.";
+    return "Too many attempts. Please wait a few minutes, then try again.";
+  }
+  if (
+    normalized.includes("invalid login credentials") ||
+    normalized.includes("invalid_credentials") ||
+    normalized.includes("invalid email or password")
+  ) {
+    return "Your email or password is incorrect. Check both and try again.";
   }
   if (normalized.includes("email not confirmed")) {
-    return "Please confirm your email first. Enter the one-time code we sent, then sign in.";
+    return "Confirm your email first. Enter the 6-digit code we sent, then sign in.";
   }
   if (normalized.includes("user already registered")) {
-    return "This email is already registered. Try signing in or reset your password if you forgot it.";
+    return "An account with this email already exists. Sign in, or reset your password if you forgot it.";
+  }
+  if (normalized.includes("password should be") || normalized.includes("password is known")) {
+    return "Choose a stronger password (at least 8 characters).";
   }
   if (
     normalized.includes("otp_expired") ||
@@ -73,9 +83,36 @@ function authErrorMessage(error: AuthErrorLike) {
     normalized.includes("email link is invalid") ||
     normalized.includes("token is expired")
   ) {
-    return "That code is invalid or expired. Request a fresh code and try again within 10 minutes.";
+    return "That code is invalid or expired. Request a new one and try again within 10 minutes.";
   }
-  return message;
+  // Never leak raw provider text to the UI.
+  return "We couldn’t complete that. Please try again.";
+}
+
+async function findAuthUserByEmail(email: string) {
+  if (!isSupabaseAdminConfigured) return null;
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (error) return null;
+    return data.users.find((user) => user.email?.toLowerCase() === email) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveInvalidLoginMessage(email: string) {
+  const matchingUser = await findAuthUserByEmail(email);
+  if (!matchingUser) {
+    return "No Stockli account found with this email.";
+  }
+  if (!matchingUser.email_confirmed_at) {
+    return "This email isn’t confirmed yet. Enter the 6-digit code we sent, then sign in.";
+  }
+  return "Incorrect password. Try again, or reset your password.";
 }
 
 async function resolveAuthSiteUrl() {
@@ -169,18 +206,18 @@ function authRateLimitMessage(
 ) {
   const wait = formatRetryAfter(retryAfterSeconds);
   if (action === "login") {
-    return `Too many sign-in attempts were made from this device. Please wait ${wait} before trying again.`;
+    return `Too many sign-in attempts. Please wait ${wait}, then try again.`;
   }
   if (action === "signup") {
-    return `Too many sign-up attempts were made recently. Please wait ${wait} before creating another account.`;
+    return `Too many sign-up attempts. Please wait ${wait}, then try again.`;
   }
   if (action === "resend-signup") {
-    return `Too many confirmation emails were requested. Please wait ${wait} before asking for another one.`;
+    return `Too many code requests. Please wait ${wait} before asking for another.`;
   }
   if (action === "verify-signup-otp" || action === "verify-recovery-otp") {
-    return `Too many code attempts were made. Please wait ${wait} before trying again.`;
+    return `Too many code attempts. Please wait ${wait}, then try again.`;
   }
-  return `Too many password reset requests were made recently. Please wait ${wait} before trying again.`;
+  return `Too many password reset requests. Please wait ${wait}, then try again.`;
 }
 
 function normalizeEmail(value: unknown) {
@@ -188,7 +225,7 @@ function normalizeEmail(value: unknown) {
 }
 
 function normalizeOtp(value: unknown) {
-  return String(value ?? "").replace(/\D/g, "").slice(0, 8);
+  return String(value ?? "").replace(/\D/g, "").slice(0, 6);
 }
 
 export async function signIn(
@@ -199,7 +236,11 @@ export async function signIn(
 
   const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) return { error: "Email and password are required." };
+  if (!email && !password) {
+    return { error: "Enter your email and password to sign in." };
+  }
+  if (!email) return { error: "Enter your email address." };
+  if (!password) return { error: "Enter your password.", email };
 
   const rateLimit = await checkAuthRateLimit("login", email);
   if (!rateLimit.allowed) {
@@ -208,7 +249,19 @@ export async function signIn(
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: authErrorMessage(error) };
+  if (error) {
+    const normalized = (error.message ?? "").toLowerCase();
+    const invalidCredentials =
+      normalized.includes("invalid login credentials") ||
+      normalized.includes("invalid_credentials") ||
+      normalized.includes("invalid email or password");
+
+    if (invalidCredentials) {
+      return { error: await resolveInvalidLoginMessage(email), email };
+    }
+
+    return { error: authErrorMessage(error), email };
+  }
 
   redirect(safeRedirectPath(formData.get("redirectTo")));
 }
@@ -222,9 +275,14 @@ export async function signUp(
   const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
   const displayName = String(formData.get("displayName") ?? "").trim();
-  if (!email || !password) return { error: "Email and password are required." };
-  if (password.length < 8)
-    return { error: "Password must be at least 8 characters." };
+  if (!email && !password) {
+    return { error: "Enter your name, email, and password to create an account." };
+  }
+  if (!email) return { error: "Enter your email address." };
+  if (!password) return { error: "Choose a password.", email };
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters.", email };
+  }
 
   const rateLimit = await checkAuthRateLimit("signup", email);
   if (!rateLimit.allowed) {
@@ -245,7 +303,6 @@ export async function signUp(
 
   return {
     email,
-    message: `We emailed a ${OTP_EXPIRY_MINUTES}-minute confirmation code. Enter it below to activate your account.`,
     nextStep: "confirm-signup",
   };
 }
@@ -257,7 +314,7 @@ export async function resendSignupConfirmation(
   if (isDemoMode) return { error: DEMO_MSG };
 
   const email = normalizeEmail(formData.get("email"));
-  if (!email) return { error: "Email is required.", nextStep: "confirm-signup" };
+  if (!email) return { error: "Enter your email address.", nextStep: "confirm-signup" };
 
   const rateLimit = await checkAuthRateLimit("resend-signup", email);
   if (!rateLimit.allowed) {
@@ -288,7 +345,7 @@ export async function resendSignupConfirmation(
 
   return {
     email,
-    message: `A fresh confirmation code is on the way. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
+    message: "New code sent. Check your inbox — it expires in 10 minutes.",
     nextStep: "confirm-signup",
   };
 }
@@ -301,10 +358,10 @@ export async function verifySignupOtp(
 
   const email = normalizeEmail(formData.get("email"));
   const token = normalizeOtp(formData.get("otp"));
-  if (!email) return { error: "Email is required.", nextStep: "confirm-signup" };
-  if (token.length < 6) {
+  if (!email) return { error: "Enter your email address.", nextStep: "confirm-signup" };
+  if (token.length !== 6) {
     return {
-      error: "Enter the full confirmation code from your email.",
+      error: "Enter the 6-digit confirmation code from your email.",
       email,
       nextStep: "confirm-signup",
     };
@@ -338,7 +395,7 @@ export async function verifySignupOtp(
   redirect(
     buildLoginUrl(
       siteUrl,
-      "Email verified successfully. Sign in to continue to your Stockli portfolio.",
+      "Email verified. Sign in to open your Stockli portfolio.",
       email
     )
   );
@@ -351,7 +408,7 @@ export async function requestPasswordReset(
   if (isDemoMode) return { error: DEMO_MSG };
 
   const email = normalizeEmail(formData.get("email"));
-  if (!email) return { error: "Email is required." };
+  if (!email) return { error: "Enter your email address." };
 
   const rateLimit = await checkAuthRateLimit("forgot-password", email);
   if (!rateLimit.allowed) {
@@ -361,41 +418,29 @@ export async function requestPasswordReset(
     };
   }
 
-  const genericResetMessage = `If this email belongs to a Stockli account, we just sent a ${OTP_EXPIRY_MINUTES}-minute reset code. Check inbox, spam, junk, or promotions.`;
+  const genericResetMessage =
+    "If this email has a Stockli account, we sent a 6-digit reset code. Check inbox and spam — it expires in 10 minutes.";
   const siteUrl = await resolveAuthSiteUrl();
-  if (isSupabaseAdminConfigured) {
-    const admin = createAdminClient();
-    const { data: usersData, error: usersError } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
+  const matchingUser = await findAuthUserByEmail(email);
+
+  if (matchingUser && !matchingUser.email_confirmed_at) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: `${siteUrl}/auth/callback`,
+      },
     });
 
-    if (!usersError) {
-      const matchingUser = usersData.users.find(
-        (user) => user.email?.toLowerCase() === email
-      );
-
-      if (matchingUser && !matchingUser.email_confirmed_at) {
-        const supabase = await createClient();
-        const { error } = await supabase.auth.resend({
-          type: "signup",
-          email,
-          options: {
-            emailRedirectTo: `${siteUrl}/auth/callback`,
-          },
-        });
-
-        if (error) {
-          return { error: authErrorMessage(error), email };
-        }
-
-        return {
-          email,
-          message: `This account still needs email confirmation. Enter the ${OTP_EXPIRY_MINUTES}-minute code we just emailed, then you can reset your password.`,
-          nextStep: "confirm-signup",
-        };
-      }
+    if (error) {
+      return { error: authErrorMessage(error), email };
     }
+
+    return {
+      email,
+      nextStep: "confirm-signup",
+    };
   }
 
   const supabase = await createClient();
@@ -420,10 +465,10 @@ export async function verifyRecoveryOtp(
 
   const email = normalizeEmail(formData.get("email"));
   const token = normalizeOtp(formData.get("otp"));
-  if (!email) return { error: "Email is required.", nextStep: "reset-email-sent" };
-  if (token.length < 6) {
+  if (!email) return { error: "Enter your email address.", nextStep: "reset-email-sent" };
+  if (token.length !== 6) {
     return {
-      error: "Enter the full reset code from your email.",
+      error: "Enter the 6-digit reset code from your email.",
       email,
       nextStep: "reset-email-sent",
     };
@@ -490,7 +535,7 @@ export async function updatePassword(
   const siteUrl = await resolveAuthSiteUrl();
   await supabase.auth.signOut();
   redirect(
-    buildLoginUrl(siteUrl, "Password updated successfully. Sign in with your new password.", email)
+    buildLoginUrl(siteUrl, "Password updated. Sign in with your new password.", email)
   );
 }
 

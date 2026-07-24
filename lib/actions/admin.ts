@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isDemoMode } from "@/lib/config";
-import { ADMIN_ACTION_UNAVAILABLE_MSG } from "@/lib/user-messages";
+import {
+  ADMIN_ACTION_UNAVAILABLE_MSG,
+  NO_PERMISSION_MSG,
+  SIGN_IN_AGAIN_MSG,
+  toUserFacingError,
+} from "@/lib/user-messages";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/services/system-notifications";
@@ -41,14 +46,14 @@ async function requireSuperadmin() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated." as const };
+  if (!user) return { error: SIGN_IN_AGAIN_MSG };
 
   const { data: me } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  if (me?.role !== "superadmin") return { error: "Forbidden." as const };
+  if (me?.role !== "superadmin") return { error: NO_PERMISSION_MSG };
 
   return { user };
 }
@@ -75,7 +80,7 @@ export async function setUserRole(
     userId: formData.get("userId"),
     makeAdmin: formData.get("makeAdmin"),
   });
-  if (!parsed.success) return { error: "Invalid request." };
+  if (!parsed.success) return { error: "That request looks incomplete. Refresh and try again." };
   const { userId } = parsed.data;
   const makeAdmin = parsed.data.makeAdmin === "true";
 
@@ -92,7 +97,7 @@ export async function setUserRole(
       .select("id", { count: "exact", head: true })
       .eq("role", "superadmin");
     if ((count ?? 0) <= 1) {
-      return { error: "Cannot revoke the last remaining superadmin." };
+      return { error: "You can’t remove the last remaining superadmin." };
     }
   }
 
@@ -100,13 +105,13 @@ export async function setUserRole(
     .from("profiles")
     .update({ role: makeAdmin ? "superadmin" : "user" })
     .eq("id", userId);
-  if (error) return { error: error.message };
+  if (error) return { error: toUserFacingError(error, "We couldn’t update that user’s role. Please try again.") };
 
   revalidatePath("/control-panel/users");
   revalidatePath(`/control-panel/users/${userId}`);
   return {
     ok: true,
-    message: makeAdmin ? "Superadmin granted." : "Superadmin revoked.",
+    message: makeAdmin ? "Superadmin access granted." : "Superadmin access revoked.",
   };
 }
 
@@ -163,7 +168,7 @@ export async function deleteUserAccount(
     userId: formData.get("userId"),
     confirmation: formData.get("confirmation"),
   });
-  if (!parsed.success) return { error: "Invalid request." };
+  if (!parsed.success) return { error: "That request looks incomplete. Refresh and try again." };
 
   const auth = await requireSuperadmin();
   if ("error" in auth) return { error: auth.error };

@@ -7,6 +7,11 @@ import { isSampleMode } from "@/lib/auth/roles";
 import { normalizeSymbol } from "@/lib/security/validation";
 import { weightedAvgPrice } from "@/lib/services/metrics";
 import type { Holding } from "@/lib/types";
+import {
+  GUEST_SAVE_BLOCKED_MSG,
+  GENERIC_SAVE_FAILED_MSG,
+  toUserFacingError,
+} from "@/lib/user-messages";
 
 export interface ActionState {
   error?: string;
@@ -16,7 +21,7 @@ export interface ActionState {
 }
 
 const DEMO_BLOCK: ActionState = {
-  error: "Sign in to save changes. You’re browsing as a guest right now.",
+  error: GUEST_SAVE_BLOCKED_MSG,
 };
 
 async function requireUser() {
@@ -40,7 +45,7 @@ async function requireOwnedPortfolio(
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error("Portfolio not found.");
   if (!data) throw new Error("Portfolio not found.");
   return data.id;
 }
@@ -48,7 +53,7 @@ async function requireOwnedPortfolio(
 // ── Portfolios ────────────────────────────────────────────────
 
 const portfolioSchema = z.object({
-  name: z.string().min(1, "Name is required").max(80),
+  name: z.string().min(1, "Enter a portfolio name.").max(80),
   description: z.string().max(280).optional(),
 });
 
@@ -74,12 +79,12 @@ export async function createPortfolio(
       })
       .select("id")
       .single();
-    if (error) return { error: error.message };
+    if (error) return { error: toUserFacingError(error, GENERIC_SAVE_FAILED_MSG) };
     revalidatePath("/portfolios");
     revalidatePath("/dashboard");
     return { ok: true, portfolioId: created.id, message: "Portfolio created." };
   } catch (e) {
-    return { error: String(e) };
+    return { error: toUserFacingError(e, GENERIC_SAVE_FAILED_MSG) };
   }
 }
 
@@ -94,7 +99,7 @@ export async function updatePortfolio(
     description: formData.get("description") || undefined,
   });
   if (!id || !parsed.success)
-    return { error: parsed.success ? "Missing id" : parsed.error.issues[0].message };
+    return { error: parsed.success ? "That portfolio couldn’t be found. Refresh and try again." : parsed.error.issues[0].message };
 
   try {
     const { supabase, user } = await requireUser();
@@ -104,13 +109,13 @@ export async function updatePortfolio(
       .update({ name: parsed.data.name, description: parsed.data.description ?? null })
       .eq("id", id)
       .eq("user_id", user.id);
-    if (error) return { error: error.message };
+    if (error) return { error: toUserFacingError(error, GENERIC_SAVE_FAILED_MSG) };
     revalidatePath("/portfolios");
     revalidatePath(`/portfolios/${id}`);
     revalidatePath("/dashboard");
-    return { ok: true, message: "Saved." };
+    return { ok: true, message: "Portfolio details saved." };
   } catch (e) {
-    return { error: String(e) };
+    return { error: toUserFacingError(e, GENERIC_SAVE_FAILED_MSG) };
   }
 }
 
@@ -136,7 +141,7 @@ const tradeSchema = z.object({
     .transform((value, ctx) => {
       const symbol = normalizeSymbol(value);
       if (!symbol) {
-        ctx.addIssue({ code: "custom", message: "Invalid symbol" });
+        ctx.addIssue({ code: "custom", message: "Enter a valid stock symbol." });
         return z.NEVER;
       }
       return symbol;
@@ -184,7 +189,7 @@ export async function addHolding(
         { portfolio_id: portfolioId, symbol: sym, quantity: newQty, avg_buy_price: newAvg },
         { onConflict: "portfolio_id,symbol" }
       );
-    if (upErr) return { error: upErr.message };
+    if (upErr) return { error: toUserFacingError(upErr, GENERIC_SAVE_FAILED_MSG) };
 
     await supabase.from("transactions").insert({
       portfolio_id: portfolioId,
@@ -202,7 +207,7 @@ export async function addHolding(
     revalidatePath("/dashboard");
     return { ok: true, message: `Added ${quantity} ${sym}.` };
   } catch (e) {
-    return { error: String(e) };
+    return { error: toUserFacingError(e, GENERIC_SAVE_FAILED_MSG) };
   }
 }
 
@@ -254,7 +259,7 @@ export async function sellHolding(
     revalidatePath("/dashboard");
     return { ok: true, message: `Sold ${quantity} ${sym}.` };
   } catch (e) {
-    return { error: String(e) };
+    return { error: toUserFacingError(e, GENERIC_SAVE_FAILED_MSG) };
   }
 }
 
@@ -262,7 +267,7 @@ export async function removeHolding(formData: FormData): Promise<ActionState> {
   if (await isSampleMode()) return DEMO_BLOCK;
   const holdingId = String(formData.get("holdingId") ?? "");
   const portfolioId = String(formData.get("portfolioId") ?? "");
-  if (!holdingId || !portfolioId) return { error: "Missing parameters." };
+  if (!holdingId || !portfolioId) return { error: "Something’s missing. Refresh the page and try again." };
   try {
     const { supabase, user } = await requireUser();
     await requireOwnedPortfolio(supabase, user.id, portfolioId);
@@ -272,7 +277,7 @@ export async function removeHolding(formData: FormData): Promise<ActionState> {
     revalidatePath("/dashboard");
     return { ok: true, portfolioId };
   } catch (e) {
-    return { error: String(e) };
+    return { error: toUserFacingError(e, GENERIC_SAVE_FAILED_MSG) };
   }
 }
 
@@ -321,7 +326,7 @@ export async function importStatementTrades(
       .transform((value, ctx) => {
         const symbol = normalizeSymbol(value);
         if (!symbol) {
-          ctx.addIssue({ code: "custom", message: "Invalid symbol" });
+          ctx.addIssue({ code: "custom", message: "Enter a valid stock symbol." });
           return z.NEVER;
         }
         return symbol;
@@ -393,7 +398,7 @@ export async function importStatementTrades(
           { onConflict: "portfolio_id,symbol" }
         );
         if (upErr) {
-          errors.push(`BUY ${sym} holding: ${upErr.message}`);
+          errors.push(`Couldn’t save BUY for ${sym}.`);
         }
         const { error: txErr } = await supabase.from("transactions").insert({
           portfolio_id: portfolioId,
@@ -406,7 +411,7 @@ export async function importStatementTrades(
           transacted_at: when,
         });
         if (txErr) {
-          errors.push(`BUY ${sym} tx: ${txErr.message}`);
+          errors.push(`Couldn’t record BUY for ${sym}.`);
           continue;
         }
         imported++;
@@ -431,7 +436,7 @@ export async function importStatementTrades(
           transacted_at: when,
         });
         if (txErr) {
-          errors.push(`SELL ${sym} tx: ${txErr.message}`);
+          errors.push(`Couldn’t record SELL for ${sym}.`);
           continue;
         }
         imported++;
@@ -451,14 +456,15 @@ export async function importStatementTrades(
         imported > 0
           ? `Imported ${imported} trade${imported === 1 ? "" : "s"}.`
           : undefined,
-      error: imported === 0 ? errors[0] ?? "Nothing imported." : undefined,
+      error: imported === 0 ? errors[0] ?? "No trades were imported. Check the file and try again." : undefined,
     };
   } catch (e) {
+    const friendly = toUserFacingError(e, "We couldn’t import those trades. Please try again.");
     return {
-      error: String(e),
+      error: friendly,
       imported: 0,
       skipped: parsedRows.length,
-      errors: [String(e)],
+      errors: [friendly],
     };
   }
 }

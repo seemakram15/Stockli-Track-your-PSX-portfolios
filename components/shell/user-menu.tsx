@@ -58,7 +58,7 @@ export function UserMenu({
           )}
           {demo && (
             <span className="mt-1 w-fit rounded bg-chart-3/15 px-1.5 py-0.5 text-[10px] font-medium text-chart-3">
-              DEMO MODE
+              Guest
             </span>
           )}
         </DropdownMenuLabel>

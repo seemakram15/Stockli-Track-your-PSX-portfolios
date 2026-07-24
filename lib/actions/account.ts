@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getRequestUser } from "@/lib/auth/current-user";
 import { isDemoMode, isSupabaseAdminConfigured } from "@/lib/config";
-import { ACCOUNT_UPDATES_UNAVAILABLE_MSG } from "@/lib/user-messages";
+import {
+  ACCOUNT_UPDATES_UNAVAILABLE_MSG,
+  SIGN_IN_AGAIN_MSG,
+  toUserFacingError,
+} from "@/lib/user-messages";
 import { PROFILE_AVATAR_BUCKET, getProfileAvatarUrl } from "@/lib/profile-avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -43,23 +47,16 @@ function refreshAccountViews() {
 
 async function requireSignedInUser() {
   if (isDemoMode) {
-    return { error: ACCOUNT_UPDATES_UNAVAILABLE_MSG as const };
+    return { error: ACCOUNT_UPDATES_UNAVAILABLE_MSG };
   }
 
   const user = await getRequestUser();
-  if (!user) return { error: "Please sign in again to update your account." as const };
+  if (!user) return { error: SIGN_IN_AGAIN_MSG };
   return { user };
 }
 
 function toActionError(error: unknown, fallback: string) {
-  const message =
-    typeof error === "object" && error && "message" in error && typeof error.message === "string"
-      ? error.message
-      : "";
-  if (!message || message === "{}" || message.toLowerCase() === "internal server error") {
-    return fallback;
-  }
-  return message;
+  return toUserFacingError(error, fallback);
 }
 
 function readObjectString(record: unknown, key: string) {
@@ -129,14 +126,19 @@ export async function updateAccountProfile(
     .update({ display_name: displayName })
     .eq("id", auth.user.id);
   if (profileError) {
-    return { error: toActionError(profileError, "We could not update your name right now.") };
+    return { error: toActionError(profileError, "We couldn’t update your name right now.") };
   }
 
   const { error: authError } = await supabase.auth.updateUser({
     data: { display_name: displayName },
   });
   if (authError) {
-    return { error: toActionError(authError, "Your name changed in Stockli, but auth sync failed.") };
+    return {
+      error: toActionError(
+        authError,
+        "Your name was saved, but we couldn’t fully sync it. Try again or refresh."
+      ),
+    };
   }
 
   refreshAccountViews();
@@ -169,7 +171,7 @@ export async function updateAccountAvatar(
     .eq("id", auth.user.id)
     .maybeSingle();
   if (profileReadError) {
-    return { error: toActionError(profileReadError, "We could not load your current profile photo.") };
+    return { error: toActionError(profileReadError, "We couldn’t load your current profile photo.") };
   }
 
   const previousPath =
@@ -185,7 +187,7 @@ export async function updateAccountAvatar(
     });
   if (uploadError) {
     return {
-      error: toActionError(uploadError, "We could not upload your profile image right now."),
+      error: toActionError(uploadError, "We couldn’t upload your profile image right now."),
     };
   }
 
@@ -199,7 +201,7 @@ export async function updateAccountAvatar(
   if (authError) {
     void avatarStorage.remove([avatarPath]);
     return {
-      error: toActionError(authError, "Your image uploaded, but auth profile sync failed."),
+      error: toActionError(authError, "Photo uploaded, but we couldn’t finish updating your profile. Try again."),
     };
   }
 
@@ -211,7 +213,7 @@ export async function updateAccountAvatar(
     return {
       error: toActionError(
         profileUpdateError,
-        "Your image uploaded, but we could not finish saving it to your profile."
+        "Photo uploaded, but we couldn’t finish saving it to your profile."
       ),
     };
   }
@@ -241,7 +243,7 @@ export async function updateAccountEmail(
   const nextEmail = parsed.data.email;
   const currentEmail = (auth.user.email ?? "").trim().toLowerCase();
   if (!currentEmail) {
-    return { error: "Your current email could not be verified. Please sign in again." };
+    return { error: "We couldn’t verify your current email. Please sign in again." };
   }
   if (nextEmail === currentEmail) {
     return { ok: true, message: "Your email address is already up to date." };
@@ -250,7 +252,7 @@ export async function updateAccountEmail(
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ email: nextEmail });
   if (error) {
-    return { error: toActionError(error, "We could not start your email change right now.") };
+    return { error: toActionError(error, "We couldn’t start your email change right now.") };
   }
 
   refreshAccountViews();
@@ -281,10 +283,10 @@ export async function updateAccountPassword(
     password: parsed.data.password,
   });
   if (error) {
-    return { error: toActionError(error, "We could not update your password right now.") };
+    return { error: toActionError(error, "We couldn’t update your password right now.") };
   }
 
-  return { ok: true, message: "Your password was updated successfully." };
+  return { ok: true, message: "Your password was updated." };
 }
 
 const taxSettingsSchema = z.object({
@@ -325,7 +327,7 @@ export async function updateTaxSettings(
     .eq("id", auth.user.id);
 
   if (error) {
-    return { error: toActionError(error, "We could not update your tax settings right now.") };
+    return { error: toActionError(error, "We couldn’t update your tax settings right now.") };
   }
 
   refreshAccountViews();
