@@ -29,7 +29,7 @@ const AUTH_COPY: Record<AuthMode, { title: string; description: string }> = {
   },
   "forgot-password": {
     title: "Reset your password",
-    description: "We will email a secure password reset link to your inbox.",
+    description: "We will email a one-time reset code that expires in 10 minutes.",
   },
 };
 

@@ -147,7 +147,7 @@ function DeleteButton({
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           {demo ? (
             <AlertDialogAction
-              onClick={() => toast.error("Demo mode — add Supabase keys to delete.")}
+              onClick={() => toast.error("Sign in to delete this portfolio.")}
             >
               Delete
             </AlertDialogAction>

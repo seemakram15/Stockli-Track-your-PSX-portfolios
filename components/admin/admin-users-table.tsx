@@ -238,7 +238,7 @@ function RoleToggle({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           {demo ? (
-            <Button onClick={() => toast.error("Demo mode — connect Supabase to manage roles.")}>
+            <Button onClick={() => toast.error("This admin action isn’t available right now.")}>
               Confirm
             </Button>
           ) : (

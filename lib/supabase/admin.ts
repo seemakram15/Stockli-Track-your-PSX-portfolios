@@ -11,7 +11,7 @@ import { config, isSupabaseAdminConfigured } from "@/lib/config";
 export function createAdminClient() {
   if (!isSupabaseAdminConfigured) {
     throw new Error(
-      "Supabase admin client is not configured (demo mode or missing service role key)."
+      "Account administration isn’t available right now."
     );
   }
   return createSupabaseClient(config.supabase.url, config.supabase.serviceRoleKey, {

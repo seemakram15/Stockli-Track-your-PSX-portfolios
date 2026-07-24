@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
     <meta name="supported-color-schemes" content="light" />
-    <title>Confirm your MyStockli account</title>
+    <title>Confirm your Stockli account</title>
     <style>
       body,
       table,
@@ -75,7 +75,7 @@
         color: transparent;
       "
     >
-      Confirm your email address to activate your MyStockli portfolio workspace.
+      Your Stockli confirmation code is {{ .Token }}. It expires in 10 minutes.
     </div>
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
@@ -114,18 +114,31 @@
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                         <tr>
                           <td style="vertical-align: middle">
-<img
-                              src="https://mystockli.com/brand/mystockli-email-header-green.png"
-                              width="220"
-                              height="42"
-                              alt="MyStockli"
-                              style="
-                                display: block;
-                                width: 220px;
-                                height: auto;
-                                max-width: 70%;
-                              "
-                            />
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                              <tr>
+                                <td style="vertical-align: middle; padding-right: 10px">
+                                  <img
+                                    src="https://mystockli.com/brand/mystockli-icon-green.png"
+                                    width="36"
+                                    height="40"
+                                    alt=""
+                                    style="display: block; width: 36px; height: 40px"
+                                  />
+                                </td>
+                                <td
+                                  style="
+                                    vertical-align: middle;
+                                    color: #ffffff;
+                                    font-size: 22px;
+                                    font-weight: 800;
+                                    letter-spacing: -0.03em;
+                                    line-height: 1;
+                                  "
+                                >
+                                  <span style="color: #5dffb0">Stockli</span>
+                                </td>
+                              </tr>
+                            </table>
                           </td>
                           <td
                             align="right"
@@ -170,7 +183,7 @@
                           letter-spacing: -0.02em;
                         "
                       >
-                        Confirm your email address
+                        Enter your confirmation code
                       </h1>
                       <p
                         style="
@@ -180,8 +193,9 @@
                           line-height: 28px;
                         "
                       >
-                        Welcome to MyStockli. Confirm this email address so we can secure
-                        your account and open your portfolio workspace.
+                        Welcome to Stockli. Enter this one-time code on the signup screen to
+                        confirm <strong style="color: #0b171a">{{ .Email }}</strong>. The code
+                        expires in <strong style="color: #0b171a">10 minutes</strong>.
                       </p>
 
                       <table
@@ -192,95 +206,54 @@
                         border="0"
                         style="
                           margin: 28px 0;
-                          border: 1px solid #dcece7;
+                          border: 1px solid #b7e5d3;
                           border-radius: 18px;
-                          background: #f6fbf9;
+                          background: #f3fbf7;
                         "
                       >
                         <tr>
-                          <td style="padding: 18px 20px">
+                          <td align="center" style="padding: 28px 20px">
                             <p
                               style="
-                                margin: 0 0 6px;
+                                margin: 0 0 10px;
                                 color: #718188;
                                 font-size: 12px;
                                 font-weight: 800;
-                                letter-spacing: 0.1em;
+                                letter-spacing: 0.12em;
                                 text-transform: uppercase;
                               "
                             >
-                              Account email
+                              Confirmation code
                             </p>
                             <p
                               style="
                                 margin: 0;
-                                color: #0b171a;
-                                font-size: 16px;
-                                font-weight: 700;
-                                word-break: break-word;
-                              "
-                            >
-                              {{ .Email }}
-                            </p>
-                          </td>
-                        </tr>
-                      </table>
-
-                      <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                        <tr>
-                          <td
-                            align="center"
-                            style="border-radius: 14px; background: #009966"
-                          >
-                            <a
-                              class="button"
-                              href="{{ .ConfirmationURL }}"
-                              target="_blank"
-                              style="
-                                display: inline-block;
-                                padding: 15px 24px;
-                                border-radius: 14px;
-                                color: #ffffff;
-                                font-size: 16px;
+                                color: #009663;
+                                font-size: 40px;
                                 font-weight: 800;
-                                line-height: 20px;
-                                text-decoration: none;
+                                letter-spacing: 0.28em;
+                                line-height: 1.1;
+                                font-family:
+                                  ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                                  'Liberation Mono', 'Courier New', monospace;
                               "
                             >
-                              Confirm email and continue
-                            </a>
+                              {{ .Token }}
+                            </p>
                           </td>
                         </tr>
                       </table>
 
                       <p
                         style="
-                          margin: 26px 0 0;
+                          margin: 0;
                           color: #728087;
                           font-size: 14px;
                           line-height: 23px;
                         "
                       >
-                        This secure link can only be used to confirm your MyStockli signup.
+                        Return to Stockli, enter the code, then sign in with your password.
                         If you did not create this account, you can safely ignore this email.
-                      </p>
-
-                      <p
-                        style="
-                          margin: 18px 0 0;
-                          color: #8a989e;
-                          font-size: 12px;
-                          line-height: 20px;
-                          word-break: break-all;
-                        "
-                      >
-                        Button not working? Copy and paste this link into your browser:
-                        <br />
-                        <a
-                          href="{{ .ConfirmationURL }}"
-                          style="color: #008f61; text-decoration: underline"
-                          >{{ .ConfirmationURL }}</a
-                        >
                       </p>
                     </td>
                   </tr>
@@ -298,7 +271,7 @@
                   line-height: 20px;
                 "
               >
-                MyStockli helps you track portfolios, live P/L, alerts and market movement
+                Stockli helps you track portfolios, live P/L, alerts and market movement
                 in one workspace.
               </td>
             </tr>

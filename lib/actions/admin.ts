@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isDemoMode } from "@/lib/config";
+import { ADMIN_ACTION_UNAVAILABLE_MSG } from "@/lib/user-messages";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/services/system-notifications";
@@ -68,7 +69,7 @@ export async function setUserRole(
   formData: FormData
 ): Promise<AdminActionState> {
   if (isDemoMode)
-    return { error: "Demo mode — connect Supabase to manage roles." };
+    return { error: ADMIN_ACTION_UNAVAILABLE_MSG };
 
   const parsed = schema.safeParse({
     userId: formData.get("userId"),
@@ -114,7 +115,7 @@ export async function sendBroadcastNotification(
   formData: FormData
 ): Promise<AdminActionState> {
   if (isDemoMode)
-    return { error: "Demo mode — connect Supabase to send notifications." };
+    return { error: ADMIN_ACTION_UNAVAILABLE_MSG };
 
   const parsed = broadcastSchema.safeParse({
     type: formData.get("type"),
@@ -156,7 +157,7 @@ export async function deleteUserAccount(
   formData: FormData
 ): Promise<AdminActionState> {
   if (isDemoMode)
-    return { error: "Demo mode — connect Supabase to manage user accounts." };
+    return { error: ADMIN_ACTION_UNAVAILABLE_MSG };
 
   const parsed = deleteUserSchema.safeParse({
     userId: formData.get("userId"),

@@ -5,7 +5,7 @@ import { buildPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = buildPageMetadata({
   title: "PSX stock fundamentals & comparison",
   description:
-    "Compare PSX company fundamentals, financial statements, ratios and peers. Research Pakistan stocks on MyStockli.",
+    "Compare PSX company fundamentals, financial statements, ratios and peers. Research Pakistan stocks on Stockli.",
   path: "/analysis/fundamentals",
   keywords: [
     "PSX fundamentals",

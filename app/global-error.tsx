@@ -58,8 +58,8 @@ export default function GlobalError({
             >
               !
             </div>
-            <p style={{ margin: "20px 0 0", color: "#0a9b72", fontWeight: 800 }}>
-              MyStockli
+            <p style={{ margin: "20px 0 0", fontWeight: 800, letterSpacing: "-0.03em", fontSize: 22, color: "#009663" }}>
+              Stockli
             </p>
             <h1 style={{ margin: "14px 0 0", fontSize: 28, lineHeight: 1.2 }}>
               Something went wrong

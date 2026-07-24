@@ -175,7 +175,7 @@ function RemoveWatchItem({ symbol, demo }: { symbol: string; demo?: boolean }) {
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           {demo ? (
-            <AlertDialogAction onClick={() => toast.error("Demo mode — add Supabase keys to edit watchlists.")}>
+            <AlertDialogAction onClick={() => toast.error("Sign in to edit your watchlist.")}>
               Remove
             </AlertDialogAction>
           ) : (

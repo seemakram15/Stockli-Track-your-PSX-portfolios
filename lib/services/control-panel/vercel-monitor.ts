@@ -94,7 +94,7 @@ export async function getVercelMonitorSnapshot(): Promise<VercelMonitorSnapshot>
   if (!token) missing.push("VERCEL_TOKEN");
   if (!projectId) missing.push("VERCEL_STOCKLI_PROJECT_ID");
   if (missing.length) {
-    return emptySnapshot(scannedAt, missing, ["Add Vercel API credentials to .env.local."]);
+    return emptySnapshot(scannedAt, missing, ["Vercel API credentials are not set up for monitoring yet."]);
   }
 
   const headers = { Authorization: `Bearer ${token}` };

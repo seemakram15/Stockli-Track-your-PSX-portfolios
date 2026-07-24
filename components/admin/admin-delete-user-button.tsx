@@ -145,7 +145,7 @@ export function AdminDeleteUserButton({
                 type="button"
                 variant="destructive"
                 onClick={() =>
-                  toast.error("Demo mode — connect Supabase to manage user accounts.")
+                  toast.error("This admin action isn’t available right now.")
                 }
               >
                 Delete user

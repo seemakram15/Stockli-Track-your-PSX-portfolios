@@ -127,7 +127,7 @@ function ToggleActionButton({
         size="icon"
         className="size-8"
         aria-label={label}
-        onClick={() => toast.error("Demo mode — add Supabase keys to manage alerts.")}
+        onClick={() => toast.error("Sign in to manage alerts.")}
       >
         {active ? <BellOff className="size-4" /> : <Bell className="size-4" />}
       </Button>
@@ -187,7 +187,7 @@ function DeleteActionButton({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           {demo ? (
-            <AlertDialogAction onClick={() => toast.error("Demo mode — add Supabase keys to manage alerts.")}>
+            <AlertDialogAction onClick={() => toast.error("Sign in to manage alerts.")}>
               Delete
             </AlertDialogAction>
           ) : (

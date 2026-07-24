@@ -50,14 +50,14 @@ export async function generateMetadata({
   if (!fund) {
     return buildPageMetadata({
       title: "Fund profile",
-      description: "Pakistan mutual fund profile on MyStockli.",
+      description: "Pakistan mutual fund profile on Stockli.",
       path: `/market/mutual-funds/${fundId}`,
       index: false,
     });
   }
   return buildPageMetadata({
     title: fund.name,
-    description: `${fund.name} by ${fund.amc} — NAV, category, returns, net assets and holdings on MyStockli.`,
+    description: `${fund.name} by ${fund.amc} — NAV, category, returns, net assets and holdings on Stockli.`,
     path: `/market/mutual-funds/${fundId}`,
     keywords: [fund.name, fund.amc, "Pakistan mutual fund", "MUFAP"],
   });

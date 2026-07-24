@@ -7,8 +7,10 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 /**
- * OAuth / email-confirmation callback. Supabase redirects here with a `code`
- * which we exchange for a session cookie, then forward to the app.
+ * OAuth / legacy email-link callback.
+ *
+ * Confirm signup and password reset now use email OTP codes entered in the app.
+ * This route still supports Google OAuth and any older token_hash links.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -18,6 +20,19 @@ export async function GET(request: Request) {
   const tokenHash = searchParams.get("token_hash");
   const type = normalizeOtpType(searchParams.get("type"));
   const supabase = await createClient();
+
+  // Prefer token_hash (email templates) — works across browsers/devices.
+  if (tokenHash && type) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type,
+    });
+    if (!error) {
+      return redirectAfterSuccess(supabase, siteUrl, type, next, data.user?.email);
+    }
+    console.error("[auth/callback] verifyOtp failed", { type, message: error.message });
+    return redirectToLoginWithError(siteUrl, callbackErrorMessage(type));
+  }
 
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -30,18 +45,14 @@ export async function GET(request: Request) {
         data.user?.email ?? data.session?.user?.email
       );
     }
-    return redirectToLoginWithError(siteUrl, "We could not complete that sign-in link. Please try again.");
-  }
-
-  if (tokenHash && type) {
-    const { data, error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
+    console.error("[auth/callback] exchangeCodeForSession failed", {
       type,
+      message: error.message,
     });
-    if (!error) {
-      return redirectAfterSuccess(supabase, siteUrl, type, next, data.user?.email);
-    }
-    return redirectToLoginWithError(siteUrl, callbackErrorMessage(type));
+    return redirectToLoginWithError(
+      siteUrl,
+      "That email link is invalid or expired. Request a fresh confirmation or reset email and open it once."
+    );
   }
 
   return redirectToLoginWithError(
@@ -70,11 +81,12 @@ async function redirectAfterSuccess(
   next: string,
   email?: string | null
 ) {
-  if (type === "signup") {
+  // Signup confirmation (and legacy "email" OTP) — confirm then require password sign-in.
+  if (type === "signup" || type === "email") {
     await supabase.auth.signOut();
     return redirectToLoginWithMessage(
       siteUrl,
-      "Email verified successfully. Sign in to continue to your MyStockli portfolio.",
+      "Email verified successfully. Sign in to continue to your Stockli portfolio.",
       email
     );
   }

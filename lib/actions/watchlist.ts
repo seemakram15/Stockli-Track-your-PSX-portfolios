@@ -37,7 +37,7 @@ export async function toggleWatchlist(
   const symbol = normalizeSymbol(formData.get("symbol"));
   const watching = String(formData.get("watching") ?? "") === "true";
   if (await isSampleMode())
-    return { error: "Sign in to save changes — you're viewing sample data." };
+    return { error: "Sign in to save changes. You’re browsing as a guest right now." };
   if (!symbol) return { error: "Invalid symbol" };
 
   try {

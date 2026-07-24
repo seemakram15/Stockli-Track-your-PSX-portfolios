@@ -38,7 +38,7 @@ export type {
 
 const FUNDAMENTALS_BASE = config.fundamentals.baseUrl.replace(/\/+$/, "");
 const REQUEST_TIMEOUT_MS = 10_000;
-const USER_AGENT = "MyStockli/1.0 (+https://mystockli.com)";
+const USER_AGENT = "Stockli/1.0 (+https://mystockli.com)";
 const PROFILE_TTL_SECONDS = 24 * 60 * 60;
 const PROFILE_STALE_SECONDS = 30 * 24 * 60 * 60;
 const PAYOUT_TTL_SECONDS = 6 * 60 * 60;

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getRequestUser } from "@/lib/auth/current-user";
 import { isDemoMode, isSupabaseAdminConfigured } from "@/lib/config";
+import { ACCOUNT_UPDATES_UNAVAILABLE_MSG } from "@/lib/user-messages";
 import { PROFILE_AVATAR_BUCKET, getProfileAvatarUrl } from "@/lib/profile-avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -42,7 +43,7 @@ function refreshAccountViews() {
 
 async function requireSignedInUser() {
   if (isDemoMode) {
-    return { error: "Demo mode is active, so account updates are disabled." as const };
+    return { error: ACCOUNT_UPDATES_UNAVAILABLE_MSG as const };
   }
 
   const user = await getRequestUser();
@@ -135,7 +136,7 @@ export async function updateAccountProfile(
     data: { display_name: displayName },
   });
   if (authError) {
-    return { error: toActionError(authError, "Your name changed in MyStockli, but auth sync failed.") };
+    return { error: toActionError(authError, "Your name changed in Stockli, but auth sync failed.") };
   }
 
   refreshAccountViews();

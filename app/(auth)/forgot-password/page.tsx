@@ -22,7 +22,7 @@ export default async function ForgotPasswordPage({
       accent="amber"
       icon={<KeyRound />}
       title="Reset your password"
-      description="We'll email a secure password reset link to your inbox."
+      description="We'll email a one-time reset code that expires in 10 minutes."
     >
       <AuthScreen
         mode="forgot-password"

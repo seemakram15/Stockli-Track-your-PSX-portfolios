@@ -5,9 +5,9 @@ import { buildPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = buildPageMetadata({
   title: "PSX YouTube channels",
   description:
-    "Follow Pakistan stock market YouTubers and market video creators tracked on MyStockli.",
+    "Follow Pakistan stock market YouTubers and market video creators tracked on Stockli.",
   path: "/youtubers",
-  keywords: ["PSX YouTube", "Pakistan stock market YouTube", "MyStockli youtubers"],
+  keywords: ["PSX YouTube", "Pakistan stock market YouTube", "Stockli youtubers"],
 });
 
 export default function YoutubersPage() {

@@ -103,7 +103,7 @@ export async function getStockProfileDescriptionAi({
           preferredModel: model,
           schema: descriptionSchema,
           system:
-            "You are MyStockli's company profile editor for Pakistan Stock Exchange listings. Rewrite the supplied source text into clear investor-friendly prose. Stay factual. Never invent numbers, dates, products, people, or claims that are not grounded in the source. Never output markdown or bullet lists.",
+            "You are Stockli's company profile editor for Pakistan Stock Exchange listings. Rewrite the supplied source text into clear investor-friendly prose. Stay factual. Never invent numbers, dates, products, people, or claims that are not grounded in the source. Never output markdown or bullet lists.",
           prompt: buildPrompt({ symbol, companyName: name, source }),
         });
 

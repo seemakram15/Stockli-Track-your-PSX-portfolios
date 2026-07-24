@@ -130,7 +130,7 @@ export async function runBackendWarmup({
       includePublicCaches,
       includeFundamentalsArchive,
     });
-    result.note = "Demo mode is active. We refreshed the available market data, but nothing was saved to the database.";
+    result.note = "Market data was refreshed for browsing. Nothing was saved to your account.";
     return result;
   }
 

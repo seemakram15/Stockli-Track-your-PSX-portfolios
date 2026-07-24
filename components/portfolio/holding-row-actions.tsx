@@ -129,7 +129,7 @@ function RemoveItem({
           {demo ? (
             <AlertDialogAction
               onClick={() =>
-                toast.error("Demo mode — add Supabase keys to remove positions.")
+                toast.error("Sign in to remove positions.")
               }
             >
               Remove

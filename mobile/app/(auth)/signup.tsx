@@ -9,6 +9,8 @@ export default function SignupScreen() {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [otp, setOtp] = React.useState("");
+  const [step, setStep] = React.useState<"form" | "otp">("form");
   const [showPass, setShowPass] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [focused, setFocused] = React.useState<"name" | "email" | "password" | null>(null);
@@ -17,13 +19,46 @@ export default function SignupScreen() {
     if (!name.trim() || !email.trim() || password.length < 8) return;
     setLoading(true);
     const { error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password,
       options: { data: { display_name: name.trim() } },
     });
     setLoading(false);
     if (error) Alert.alert("Sign up failed", error.message);
-    else Alert.alert("Almost there!", "Check your email to confirm your account.");
+    else setStep("otp");
+  }
+
+  async function handleVerifyOtp() {
+    const token = otp.replace(/\D/g, "");
+    if (token.length < 6) {
+      Alert.alert("Missing code", "Enter the full confirmation code from your email.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token,
+      type: "signup",
+    });
+    if (!error) await supabase.auth.signOut();
+    setLoading(false);
+    if (error) {
+      Alert.alert("Invalid code", error.message);
+      return;
+    }
+    Alert.alert("Email verified", "Sign in with your password to continue.");
+    router.replace("/(auth)/login");
+  }
+
+  async function handleResendOtp() {
+    setLoading(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim().toLowerCase(),
+    });
+    setLoading(false);
+    if (error) Alert.alert("Could not resend", error.message);
+    else Alert.alert("Code sent", "A fresh 10-minute confirmation code is on the way.");
   }
 
   const canSubmit = name.trim().length > 0 && email.trim().length > 0 && password.length >= 8;
@@ -60,15 +95,64 @@ export default function SignupScreen() {
               {/* Logo */}
               <View style={{ alignItems: "center", marginBottom: 34 }}>
                 <Image source={require("../../assets/images/icon.png")} style={{ width: 76, height: 76, borderRadius: 20, marginBottom: 14 }} />
-                <Text style={{ fontSize: 12, fontWeight: "700", color: "#7a9098", letterSpacing: 2.5, textTransform: "uppercase" }}>MyStockli</Text>
+                <Text style={{ fontSize: 22, fontWeight: "800", letterSpacing: -0.6, color: "#009663" }}>
+                  Stockli
+                </Text>
               </View>
 
               {/* Heading */}
               <View style={{ marginBottom: 28 }}>
-                <Text style={{ fontSize: 34, fontWeight: "800", color: "#eef3f2", letterSpacing: -1, marginBottom: 8 }}>Create account</Text>
-                <Text style={{ fontSize: 15, color: "#7a9098", lineHeight: 24 }}>Join thousands of PSX investors today</Text>
+                <Text style={{ fontSize: 34, fontWeight: "800", color: "#eef3f2", letterSpacing: -1, marginBottom: 8 }}>
+                  {step === "form" ? "Create account" : "Enter confirmation code"}
+                </Text>
+                <Text style={{ fontSize: 15, color: "#7a9098", lineHeight: 24 }}>
+                  {step === "form"
+                    ? "Join thousands of PSX investors today"
+                    : `We emailed a 10-minute code to ${email.trim().toLowerCase()}`}
+                </Text>
               </View>
 
+              {step === "otp" ? (
+                <View style={{ gap: 16, marginBottom: 24 }}>
+                  <TextInput
+                    value={otp}
+                    onChangeText={setOtp}
+                    keyboardType="number-pad"
+                    maxLength={8}
+                    placeholder="12345678"
+                    placeholderTextColor="#3a5058"
+                    autoComplete="one-time-code"
+                    style={{
+                      height: 56,
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      borderColor: "rgba(255,255,255,0.14)",
+                      backgroundColor: "rgba(255,255,255,0.05)",
+                      color: "#eef3f2",
+                      fontSize: 22,
+                      letterSpacing: 8,
+                      textAlign: "center",
+                      fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }),
+                    }}
+                  />
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleVerifyOtp}
+                    disabled={loading || otp.replace(/\D/g, "").length < 6}
+                    style={{ backgroundColor: "#34d399", paddingVertical: 17, borderRadius: 16, alignItems: "center" }}
+                  >
+                    <Text style={{ fontSize: 16, fontWeight: "700", color: "#04100d" }}>
+                      {loading ? "Verifying…" : "Verify email"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity activeOpacity={0.7} onPress={handleResendOtp} disabled={loading}>
+                    <Text style={{ textAlign: "center", fontSize: 14, fontWeight: "700", color: "#34d399" }}>
+                      Resend code
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+              <>
               {/* Fields */}
               <View style={{ gap: 16, marginBottom: 24 }}>
                 <View>
@@ -113,7 +197,11 @@ export default function SignupScreen() {
                   {loading ? "Creating account…" : "Create account"}
                 </Text>
               </TouchableOpacity>
+              </>
+              )}
 
+              {step === "form" ? (
+              <>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 24 }}>
                 <View style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.09)" }} />
                 <Text style={{ fontSize: 12, color: "#4a6068" }}>or</Text>
@@ -126,6 +214,8 @@ export default function SignupScreen() {
                   <Text style={{ fontSize: 14, fontWeight: "700", color: "#34d399" }}>Sign in</Text>
                 </TouchableOpacity>
               </View>
+              </>
+              ) : null}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

@@ -279,7 +279,7 @@ export function AccountSettingsPanel({
             ) : null}
             {demo ? (
               <p className="text-sm text-muted-foreground">
-                Demo mode is active, so profile updates are disabled until real auth is connected.
+                Account updates aren’t available while you’re browsing as a guest.
               </p>
             ) : null}
           </form>

@@ -213,7 +213,7 @@ export function ImportStatementModal({ open, onOpenChange, portfolioId, userId }
           <DialogTitle>Import broker statement</DialogTitle>
           <DialogDescription>
             Extract BUY/SELL trades from your broker Statement of Account PDF. Files are parsed in
-            memory and never stored on MyStockli.
+            memory and never stored on Stockli.
           </DialogDescription>
         </DialogHeader>
 

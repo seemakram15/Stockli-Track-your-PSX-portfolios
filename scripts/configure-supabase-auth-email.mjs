@@ -9,6 +9,17 @@ const productionSiteUrl = "https://mystockli.com";
 const legacyProductionSiteUrl = "https://mystockli.qzz.io";
 const localSiteUrl = "http://localhost:3001";
 
+function stripEnvQuotes(value) {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 async function loadDotEnv(relativePath) {
   try {
     const file = await readFile(path.join(repoRoot, relativePath), "utf8");
@@ -18,7 +29,7 @@ async function loadDotEnv(relativePath) {
       const match = line.match(/^([A-Z0-9_]+)=(.*)$/);
       if (!match) continue;
       const [, key, value] = match;
-      if (!process.env[key]) process.env[key] = value;
+      if (!process.env[key]) process.env[key] = stripEnvQuotes(value);
     }
   } catch {
     // Optional local env file.
@@ -26,7 +37,9 @@ async function loadDotEnv(relativePath) {
 }
 
 function getEnv(name, fallback = "") {
-  return process.env[name]?.trim() || fallback;
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  return stripEnvQuotes(raw) || fallback;
 }
 
 function requireEnv(name) {
@@ -41,8 +54,8 @@ function parseProjectRef() {
   const explicit = getEnv("SUPABASE_PROJECT_REF");
   if (explicit) return explicit;
 
-  const supabaseUrl = getEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const match = supabaseUrl.match(/^https:\/\/([a-z0-9-]+)\.supabase\.co\/?$/i);
+  const supabaseUrl = getEnv("NEXT_PUBLIC_SUPABASE_URL").replace(/\/+$/, "");
+  const match = supabaseUrl.match(/^https:\/\/([a-z0-9-]+)\.supabase\.co(?:\/.*)?$/i);
   if (!match) {
     throw new Error(
       "Unable to infer SUPABASE_PROJECT_REF from NEXT_PUBLIC_SUPABASE_URL. Set SUPABASE_PROJECT_REF explicitly."
@@ -72,11 +85,14 @@ async function main() {
   const smtpUser = getEnv("SUPABASE_AUTH_SMTP_USER");
   const smtpPass = getEnv("SUPABASE_AUTH_SMTP_PASS");
   const smtpAdminEmail = getEnv("SUPABASE_AUTH_SMTP_ADMIN_EMAIL");
-  const smtpSenderName = getEnv("SUPABASE_AUTH_SMTP_SENDER_NAME", "MyStockli");
+  // Always default to Stockli; override only via SUPABASE_AUTH_SMTP_SENDER_NAME.
+  const smtpSenderName = getEnv("SUPABASE_AUTH_SMTP_SENDER_NAME", "Stockli");
   const rateLimitEmailSent = Number.parseInt(
     getEnv("SUPABASE_AUTH_RATE_LIMIT_EMAIL_SENT", "30"),
     10
   );
+  const hasSmtpCredentials = Boolean(smtpUser && smtpPass && smtpAdminEmail);
+  const otpExpirySeconds = Number.parseInt(getEnv("SUPABASE_AUTH_OTP_EXPIRY", "600"), 10);
 
   const confirmationTemplate = await readTemplate("supabase/templates/confirm-email.html");
   const recoveryTemplate = await readTemplate("supabase/templates/reset-password.html");
@@ -102,31 +118,35 @@ async function main() {
     external_email_enabled: true,
     mailer_autoconfirm: false,
     mailer_secure_email_change_enabled: true,
-    smtp_admin_email: smtpAdminEmail,
-    smtp_host: smtpHost,
-    smtp_port: smtpPort,
-    smtp_user: smtpUser,
-    smtp_pass: smtpPass,
     smtp_sender_name: smtpSenderName,
     rate_limit_email_sent: rateLimitEmailSent,
-    mailer_subjects_confirmation: "Confirm your MyStockli account",
+    otp_expiry: Number.isFinite(otpExpirySeconds) ? otpExpirySeconds : 600,
+    mailer_subjects_confirmation: "Your Stockli confirmation code",
     mailer_templates_confirmation_content: confirmationTemplate,
-    mailer_subjects_recovery: "Reset your MyStockli password",
+    mailer_subjects_recovery: "Your Stockli password reset code",
     mailer_templates_recovery_content: recoveryTemplate,
     mailer_notifications_password_changed_enabled: true,
-    mailer_subjects_password_changed_notification: "Your MyStockli password was changed",
+    mailer_subjects_password_changed_notification: "Your Stockli password was changed",
     mailer_templates_password_changed_notification_content: passwordChangedTemplate,
   };
 
+  if (hasSmtpCredentials) {
+    payload.smtp_admin_email = smtpAdminEmail;
+    payload.smtp_host = smtpHost;
+    payload.smtp_port = smtpPort;
+    payload.smtp_user = smtpUser;
+    payload.smtp_pass = smtpPass;
+  }
+
   if (isDryRun) {
     const missing = [];
-    for (const key of [
-      "SUPABASE_AUTH_SMTP_USER",
-      "SUPABASE_AUTH_SMTP_PASS",
-      "SUPABASE_AUTH_SMTP_ADMIN_EMAIL",
-      "SUPABASE_ACCESS_TOKEN",
-    ]) {
-      if (!getEnv(key)) missing.push(key);
+    if (!getEnv("SUPABASE_ACCESS_TOKEN")) missing.push("SUPABASE_ACCESS_TOKEN");
+    if (!hasSmtpCredentials) {
+      missing.push(
+        "SUPABASE_AUTH_SMTP_USER",
+        "SUPABASE_AUTH_SMTP_PASS",
+        "SUPABASE_AUTH_SMTP_ADMIN_EMAIL"
+      );
     }
 
     console.log(
@@ -134,6 +154,7 @@ async function main() {
         {
           mode: "dry-run",
           projectRef,
+          smtpMode: hasSmtpCredentials ? "update-smtp" : "templates-and-urls-only",
           smtp: {
             host: smtpHost,
             port: smtpPort,
@@ -143,6 +164,7 @@ async function main() {
             senderName: smtpSenderName,
           },
           rateLimitEmailSent,
+          otpExpirySeconds: Number.isFinite(otpExpirySeconds) ? otpExpirySeconds : 600,
           templates: {
             confirmationBytes: Buffer.byteLength(confirmationTemplate),
             recoveryBytes: Buffer.byteLength(recoveryTemplate),
@@ -151,6 +173,9 @@ async function main() {
           siteUrl: productionSiteUrl,
           additionalRedirectUrls: payload.additional_redirect_urls,
           missing,
+          note: hasSmtpCredentials
+            ? null
+            : "SMTP credentials missing — apply will update templates, subjects, sender name, and redirect URLs only (existing SMTP settings stay as configured in Supabase).",
         },
         null,
         2
@@ -160,15 +185,14 @@ async function main() {
   }
 
   const accessToken = requireEnv("SUPABASE_ACCESS_TOKEN");
-  requireEnv("SUPABASE_AUTH_SMTP_USER");
-  requireEnv("SUPABASE_AUTH_SMTP_PASS");
-  requireEnv("SUPABASE_AUTH_SMTP_ADMIN_EMAIL");
 
   const response = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/config/auth`, {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
+      "User-Agent":
+        "Mozilla/5.0 (compatible; StockliAuthEmailConfig/1.0; +https://mystockli.com)",
     },
     body: JSON.stringify(payload),
   });
@@ -184,10 +208,12 @@ async function main() {
       {
         updated: true,
         projectRef,
-        smtpHost,
-        smtpPort,
-        smtpAdminEmail,
+        smtpMode: hasSmtpCredentials ? "update-smtp" : "templates-and-urls-only",
+        smtpHost: hasSmtpCredentials ? smtpHost : "(unchanged)",
+        smtpPort: hasSmtpCredentials ? smtpPort : "(unchanged)",
+        smtpAdminEmail: hasSmtpCredentials ? smtpAdminEmail : "(unchanged)",
         smtpSenderName,
+        otpExpirySeconds: result.otp_expiry ?? payload.otp_expiry,
         siteUrl: result.site_url ?? productionSiteUrl,
         additionalRedirectUrls: result.additional_redirect_urls ?? payload.additional_redirect_urls,
         confirmationSubject: result.mailer_subjects_confirmation,
@@ -201,6 +227,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error.message);
+  console.error(error instanceof Error ? error.message : error);
   process.exit(1);
 });

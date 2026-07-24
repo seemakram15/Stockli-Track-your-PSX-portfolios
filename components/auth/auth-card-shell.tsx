@@ -26,7 +26,7 @@ export function AuthCardShell({
   description?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  /** login/signup → auth (green); reset-password → auth-reset (gold) */
+  /** login/signup/reset all use green icon + designed Stockli text */
   brandSurface?: Extract<LogoSurface, "auth" | "auth-reset" | "mobile">;
 }) {
   return (

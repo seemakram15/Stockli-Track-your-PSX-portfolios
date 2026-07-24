@@ -60,10 +60,10 @@ export function SiteFooter() {
       <div className="pointer-events-none absolute left-1/2 top-0 h-px w-[60%] -translate-x-1/2 bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
       <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-[36rem] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-3xl" />
 
-      {/* Giant brand wordmark — background layer behind the footer items */}
+      {/* Giant brand wordmark — designed text, background layer */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 flex select-none justify-center overflow-hidden" aria-hidden>
-        <span className="translate-y-[20%] bg-gradient-to-b from-white/[0.08] to-white/[0.015] bg-clip-text text-[24vw] font-bold uppercase leading-none tracking-tighter text-transparent">
-          {APP_NAME}
+        <span className="translate-y-[20%] text-[18vw] font-extrabold leading-none tracking-[-0.04em] text-white/[0.08]">
+          Stockli
         </span>
       </div>
 

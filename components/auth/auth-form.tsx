@@ -12,6 +12,7 @@ import {
   Loader2,
   Lock,
   Mail,
+  ShieldCheck,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -23,6 +24,8 @@ import {
   resendSignupConfirmation,
   signIn,
   signUp,
+  verifyRecoveryOtp,
+  verifySignupOtp,
   type AuthState,
 } from "@/lib/actions/auth";
 import { ACCOUNT_WARMUP_FLAG } from "@/components/auth/account-warmup";
@@ -78,7 +81,8 @@ export function AuthForm({
     state.email
   ) {
     return (
-      <SignupConfirmationView
+      <OtpVerificationView
+        kind="signup"
         email={state.email}
         message={state.message}
         error={state.error}
@@ -90,9 +94,12 @@ export function AuthForm({
 
   if (mode === "forgot-password" && state.nextStep === "reset-email-sent" && state.email) {
     return (
-      <ResetRequestSentView
+      <OtpVerificationView
+        kind="recovery"
         email={state.email}
         message={state.message}
+        error={state.error}
+        demo={demo}
         onModeChange={onModeChange}
       />
     );
@@ -201,16 +208,16 @@ export function AuthForm({
           ? "Sign in"
           : mode === "signup"
             ? "Create account"
-            : "Send reset link"}
+            : "Send reset code"}
       </Button>
 
       {demo && (
         <p className="rounded-lg border border-dashed border-border px-3 py-2 text-center text-xs text-muted-foreground">
-          Running in demo mode — auth is disabled. You can{" "}
+          You can{" "}
           <Link href="/dashboard" className="font-medium text-primary underline-offset-2 hover:underline">
-            open the demo dashboard
+            browse the dashboard
           </Link>{" "}
-          without an account.
+          as a guest. Sign-in may be temporarily unavailable.
         </p>
       )}
 
@@ -272,38 +279,63 @@ export function AuthForm({
   );
 }
 
-function SignupConfirmationView({
+function OtpVerificationView({
+  kind,
   email,
   message,
   error,
   demo,
   onModeChange,
 }: {
+  kind: "signup" | "recovery";
   email: string;
   message?: string;
   error?: string;
   demo?: boolean;
   onModeChange?: (mode: "login" | "signup" | "forgot-password") => void;
 }) {
-  const [state, formAction, pending] = useActionState<AuthState, FormData>(
-    resendSignupConfirmation,
+  const verifyAction = kind === "signup" ? verifySignupOtp : verifyRecoveryOtp;
+  const resendAction = kind === "signup" ? resendSignupConfirmation : requestPasswordReset;
+  const [verifyState, verifyFormAction, verifyPending] = useActionState<AuthState, FormData>(
+    verifyAction,
+    {}
+  );
+  const [resendState, resendFormAction, resendPending] = useActionState<AuthState, FormData>(
+    resendAction,
     {}
   );
 
-  const note = state.message ?? message;
-  const issue = state.error ?? error;
+  const note = resendState.message ?? verifyState.message ?? message;
+  const issue = verifyState.error ?? resendState.error ?? error;
+  const isSignup = kind === "signup";
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm">
+      <div
+        className={
+          isSignup
+            ? "rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm"
+            : "rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm"
+        }
+      >
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-            <CheckCircle2 className="size-4" />
+          <span
+            className={
+              isSignup
+                ? "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white"
+                : "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+            }
+          >
+            {isSignup ? <ShieldCheck className="size-4" /> : <KeyRound className="size-4" />}
           </span>
           <div className="min-w-0">
-            <p className="font-semibold text-foreground">Confirm your email address</p>
+            <p className="font-semibold text-foreground">
+              {isSignup ? "Enter your confirmation code" : "Enter your reset code"}
+            </p>
             <p className="mt-1 text-muted-foreground">
-              We sent a secure confirmation link to <span className="font-medium text-foreground">{email}</span>.
+              We emailed a one-time code to{" "}
+              <span className="font-medium text-foreground">{email}</span>. It expires in 10
+              minutes.
             </p>
             {note ? <p className="mt-2 text-muted-foreground">{note}</p> : null}
           </div>
@@ -317,11 +349,44 @@ function SignupConfirmationView({
         </p>
       ) : null}
 
-      <form action={formAction} className="space-y-3">
+      <form action={verifyFormAction} className="space-y-3">
         <input type="hidden" name="email" value={email} />
-        <Button type="submit" variant="outline" className="h-11 w-full gap-2" disabled={pending || demo}>
-          {pending ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />}
-          Resend confirmation email
+        <div className="space-y-2">
+          <Label htmlFor="otp" className="text-[13px] font-medium tracking-tight text-foreground/85">
+            {isSignup ? "Confirmation code" : "Reset code"}
+          </Label>
+          <Input
+            id="otp"
+            name="otp"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            maxLength={8}
+            placeholder="12345678"
+            required
+            className="h-12 text-center font-mono text-xl tracking-[0.35em]"
+          />
+        </div>
+        <Button
+          type="submit"
+          disabled={verifyPending || demo}
+          className="h-11 w-full gap-2 bg-gradient-to-r from-emerald-500 to-emerald-400 text-base font-semibold text-white shadow-lg shadow-emerald-500/25"
+        >
+          {verifyPending ? <Loader2 className="size-4 animate-spin" /> : null}
+          {isSignup ? "Verify email" : "Continue to new password"}
+        </Button>
+      </form>
+
+      <form action={resendFormAction}>
+        <input type="hidden" name="email" value={email} />
+        <Button
+          type="submit"
+          variant="outline"
+          className="h-11 w-full gap-2"
+          disabled={resendPending || demo}
+        >
+          {resendPending ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />}
+          Resend code
         </Button>
       </form>
 
@@ -330,56 +395,9 @@ function SignupConfirmationView({
           type="button"
           variant="ghost"
           className="h-11"
-          onClick={() => onModeChange?.("signup")}
+          onClick={() => onModeChange?.(isSignup ? "signup" : "forgot-password")}
         >
           Use another email
-        </Button>
-        <Button
-          type="button"
-          className="h-11"
-          onClick={() => onModeChange?.("login")}
-        >
-          I already confirmed
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ResetRequestSentView({
-  email,
-  message,
-  onModeChange,
-}: {
-  email: string;
-  message?: string;
-  onModeChange?: (mode: "login" | "signup" | "forgot-password") => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <KeyRound className="size-4" />
-          </span>
-          <div className="min-w-0">
-            <p className="font-semibold text-foreground">Check your email</p>
-            <p className="mt-1 text-muted-foreground">
-              Password reset instructions were sent for <span className="font-medium text-foreground">{email}</span>.
-            </p>
-            {message ? <p className="mt-2 text-muted-foreground">{message}</p> : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11"
-          onClick={() => onModeChange?.("forgot-password")}
-        >
-          Send another link
         </Button>
         <Button type="button" className="h-11" onClick={() => onModeChange?.("login")}>
           Back to sign in

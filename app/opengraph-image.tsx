@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "MyStockli — Track every market portfolio";
+export const alt = "Stockli — Track every market portfolio";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -78,20 +78,16 @@ export default function OGImage() {
           {/* Top row */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 16,
-                  background: "linear-gradient(135deg, #22c55e, #15803d)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <span style={{ color: "#fff", fontSize: 28, fontWeight: 900, lineHeight: "1" }}>M</span>
+              <img
+                src="https://mystockli.com/brand/mystockli-icon-green.png"
+                width={56}
+                height={62}
+                alt=""
+                style={{ width: 56, height: 62, objectFit: "contain" }}
+              />
+              <div style={{ display: "flex", fontSize: 34, fontWeight: 800, letterSpacing: "-0.03em", color: "#009663" }}>
+                Stockli
               </div>
-              <span style={{ color: "#f0fdf4", fontSize: 34, fontWeight: 700 }}>MyStockli</span>
             </div>
             <div
               style={{

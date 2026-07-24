@@ -16,7 +16,7 @@ export interface ActionState {
 }
 
 const DEMO_BLOCK: ActionState = {
-  error: "Sign in to save changes — you're viewing sample data.",
+  error: "Sign in to save changes. You’re browsing as a guest right now.",
 };
 
 async function requireUser() {

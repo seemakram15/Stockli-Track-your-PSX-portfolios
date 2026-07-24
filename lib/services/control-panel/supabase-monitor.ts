@@ -234,6 +234,6 @@ function emptySnapshot(scannedAt: string, missing: string[]): SupabaseMonitorSna
       totals: { auth: 0, rest: 0, realtime: 0, storage: 0, total: 0 },
     },
     database: { sizeBytes: null, sizeLabel: "—", note: null },
-    notes: ["Add SUPABASE_ACCESS_TOKEN to enable Supabase monitoring."],
+    notes: ["Supabase monitoring credentials are not set up yet."],
   };
 }

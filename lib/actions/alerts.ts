@@ -34,7 +34,7 @@ export async function createAlert(
   formData: FormData
 ): Promise<AlertActionState> {
   if (await isSampleMode())
-    return { error: "Sign in to save changes — you're viewing sample data." };
+    return { error: "Sign in to save changes. You’re browsing as a guest right now." };
   const parsed = alertSchema.safeParse({
     symbol: formData.get("symbol"),
     condition: formData.get("condition"),

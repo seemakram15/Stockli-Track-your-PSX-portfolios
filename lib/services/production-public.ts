@@ -43,7 +43,7 @@ export async function fetchProductionPublicData<T>({
       headers: {
         Accept: "application/json",
         "User-Agent":
-          "Mozilla/5.0 (compatible; MyStockliLocal/1.0; +https://mystockli.com)",
+          "Mozilla/5.0 (compatible; StockliLocal/1.0; +https://mystockli.com)",
         Origin: PRODUCTION_SITE_URL,
         Referer: `${PRODUCTION_SITE_URL}${refererPath.startsWith("/") ? refererPath : `/${refererPath}`}`,
         "Sec-Fetch-Site": "same-origin",

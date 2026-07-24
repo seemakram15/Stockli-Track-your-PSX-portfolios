@@ -3,6 +3,10 @@
 import { redirect } from "next/navigation";
 import { isDemoMode, isSupabaseAdminConfigured } from "@/lib/config";
 import {
+  AUTH_UNAVAILABLE_MSG,
+  ACCOUNT_DELETE_UNAVAILABLE_MSG,
+} from "@/lib/user-messages";
+import {
   enforceRateLimit,
   formatRetryAfter,
   getRequestClientIp,
@@ -24,12 +28,13 @@ export interface DeleteAccountState {
   error?: string;
 }
 
-const DEMO_MSG =
-  "Auth is disabled in demo mode. Add your Supabase keys to .env.local to enable sign-in.";
+const DEMO_MSG = AUTH_UNAVAILABLE_MSG;
 
 const LOGIN_WINDOW_SECONDS = 10 * 60;
 const EMAIL_FLOW_WINDOW_SECONDS = 30 * 60;
+const OTP_VERIFY_WINDOW_SECONDS = 10 * 60;
 const DELETE_ACCOUNT_WINDOW_SECONDS = 60 * 60;
+const OTP_EXPIRY_MINUTES = 10;
 
 type AuthErrorLike =
   | string
@@ -52,13 +57,23 @@ function authErrorMessage(error: AuthErrorLike) {
     return "We could not complete that auth request right now. Please try again in a minute.";
   }
   if (normalized.includes("rate limit") || normalized.includes("too many")) {
-    return "Too many confirmation emails were requested. Please wait a few minutes before trying again, or sign in if your account is already confirmed.";
+    return "Too many emails were requested. Please wait a few minutes before trying again.";
   }
   if (normalized.includes("email not confirmed")) {
-    return "Please confirm your email first. Check your inbox and click the confirmation link before signing in.";
+    return "Please confirm your email first. Enter the one-time code we sent, then sign in.";
   }
   if (normalized.includes("user already registered")) {
     return "This email is already registered. Try signing in or reset your password if you forgot it.";
+  }
+  if (
+    normalized.includes("otp_expired") ||
+    normalized.includes("otp is invalid") ||
+    normalized.includes("invalid otp") ||
+    normalized.includes("token has expired") ||
+    normalized.includes("email link is invalid") ||
+    normalized.includes("token is expired")
+  ) {
+    return "That code is invalid or expired. Request a fresh code and try again within 10 minutes.";
   }
   return message;
 }
@@ -81,7 +96,13 @@ function buildLoginUrl(
 }
 
 async function checkAuthRateLimit(
-  action: "login" | "signup" | "resend-signup" | "forgot-password",
+  action:
+    | "login"
+    | "signup"
+    | "resend-signup"
+    | "forgot-password"
+    | "verify-signup-otp"
+    | "verify-recovery-otp",
   email: string
 ) {
   const ip = await getRequestClientIp();
@@ -123,10 +144,29 @@ async function checkAuthRateLimit(
           { key: `email:${rateLimitKeyPart(email)}`, limit: 5 },
         ],
       });
+    case "verify-signup-otp":
+    case "verify-recovery-otp":
+      return enforceRateLimit({
+        scope: `auth:${action}`,
+        windowSeconds: OTP_VERIFY_WINDOW_SECONDS,
+        buckets: [
+          { key: `ip:${rateLimitKeyPart(ip)}`, limit: 20 },
+          { key: `email:${rateLimitKeyPart(email)}`, limit: 10 },
+        ],
+      });
   }
 }
 
-function authRateLimitMessage(action: "login" | "signup" | "resend-signup" | "forgot-password", retryAfterSeconds: number) {
+function authRateLimitMessage(
+  action:
+    | "login"
+    | "signup"
+    | "resend-signup"
+    | "forgot-password"
+    | "verify-signup-otp"
+    | "verify-recovery-otp",
+  retryAfterSeconds: number
+) {
   const wait = formatRetryAfter(retryAfterSeconds);
   if (action === "login") {
     return `Too many sign-in attempts were made from this device. Please wait ${wait} before trying again.`;
@@ -137,11 +177,18 @@ function authRateLimitMessage(action: "login" | "signup" | "resend-signup" | "fo
   if (action === "resend-signup") {
     return `Too many confirmation emails were requested. Please wait ${wait} before asking for another one.`;
   }
+  if (action === "verify-signup-otp" || action === "verify-recovery-otp") {
+    return `Too many code attempts were made. Please wait ${wait} before trying again.`;
+  }
   return `Too many password reset requests were made recently. Please wait ${wait} before trying again.`;
 }
 
 function normalizeEmail(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
+}
+
+function normalizeOtp(value: unknown) {
+  return String(value ?? "").replace(/\D/g, "").slice(0, 8);
 }
 
 export async function signIn(
@@ -198,8 +245,7 @@ export async function signUp(
 
   return {
     email,
-    message:
-      "We emailed your confirmation link. Open it to activate your account and continue securely.",
+    message: `We emailed a ${OTP_EXPIRY_MINUTES}-minute confirmation code. Enter it below to activate your account.`,
     nextStep: "confirm-signup",
   };
 }
@@ -242,9 +288,60 @@ export async function resendSignupConfirmation(
 
   return {
     email,
-    message: "A fresh confirmation email is on the way.",
+    message: `A fresh confirmation code is on the way. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
     nextStep: "confirm-signup",
   };
+}
+
+export async function verifySignupOtp(
+  _prev: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  if (isDemoMode) return { error: DEMO_MSG, nextStep: "confirm-signup" };
+
+  const email = normalizeEmail(formData.get("email"));
+  const token = normalizeOtp(formData.get("otp"));
+  if (!email) return { error: "Email is required.", nextStep: "confirm-signup" };
+  if (token.length < 6) {
+    return {
+      error: "Enter the full confirmation code from your email.",
+      email,
+      nextStep: "confirm-signup",
+    };
+  }
+
+  const rateLimit = await checkAuthRateLimit("verify-signup-otp", email);
+  if (!rateLimit.allowed) {
+    return {
+      error: authRateLimitMessage("verify-signup-otp", rateLimit.retryAfterSeconds),
+      email,
+      nextStep: "confirm-signup",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "signup",
+  });
+  if (error) {
+    return {
+      error: authErrorMessage(error),
+      email,
+      nextStep: "confirm-signup",
+    };
+  }
+
+  await supabase.auth.signOut();
+  const siteUrl = await resolveAuthSiteUrl();
+  redirect(
+    buildLoginUrl(
+      siteUrl,
+      "Email verified successfully. Sign in to continue to your Stockli portfolio.",
+      email
+    )
+  );
 }
 
 export async function requestPasswordReset(
@@ -264,8 +361,7 @@ export async function requestPasswordReset(
     };
   }
 
-  const genericResetMessage =
-    "If this email belongs to a MyStockli account, we just sent the next step. Please check your inbox, spam, junk, or promotions within 1 to 2 minutes.";
+  const genericResetMessage = `If this email belongs to a Stockli account, we just sent a ${OTP_EXPIRY_MINUTES}-minute reset code. Check inbox, spam, junk, or promotions.`;
   const siteUrl = await resolveAuthSiteUrl();
   if (isSupabaseAdminConfigured) {
     const admin = createAdminClient();
@@ -295,8 +391,8 @@ export async function requestPasswordReset(
 
         return {
           email,
-          message: genericResetMessage,
-          nextStep: "reset-email-sent",
+          message: `This account still needs email confirmation. Enter the ${OTP_EXPIRY_MINUTES}-minute code we just emailed, then you can reset your password.`,
+          nextStep: "confirm-signup",
         };
       }
     }
@@ -314,6 +410,49 @@ export async function requestPasswordReset(
     message: genericResetMessage,
     nextStep: "reset-email-sent",
   };
+}
+
+export async function verifyRecoveryOtp(
+  _prev: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  if (isDemoMode) return { error: DEMO_MSG, nextStep: "reset-email-sent" };
+
+  const email = normalizeEmail(formData.get("email"));
+  const token = normalizeOtp(formData.get("otp"));
+  if (!email) return { error: "Email is required.", nextStep: "reset-email-sent" };
+  if (token.length < 6) {
+    return {
+      error: "Enter the full reset code from your email.",
+      email,
+      nextStep: "reset-email-sent",
+    };
+  }
+
+  const rateLimit = await checkAuthRateLimit("verify-recovery-otp", email);
+  if (!rateLimit.allowed) {
+    return {
+      error: authRateLimitMessage("verify-recovery-otp", rateLimit.retryAfterSeconds),
+      email,
+      nextStep: "reset-email-sent",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "recovery",
+  });
+  if (error) {
+    return {
+      error: authErrorMessage(error),
+      email,
+      nextStep: "reset-email-sent",
+    };
+  }
+
+  redirect("/reset-password");
 }
 
 export async function updatePassword(
@@ -340,7 +479,7 @@ export async function updatePassword(
   } = await supabase.auth.getUser();
   if (!user) {
     return {
-      error: "This reset link is invalid or expired. Request a fresh password reset email.",
+      error: "Your reset session is invalid or expired. Request a fresh reset code.",
     };
   }
 
@@ -393,7 +532,7 @@ export async function deleteAccount(
 ): Promise<DeleteAccountState> {
   if (isDemoMode) return { error: DEMO_MSG };
   if (!isSupabaseAdminConfigured) {
-    return { error: "Secure account deletion is not configured yet. Please contact support." };
+    return { error: ACCOUNT_DELETE_UNAVAILABLE_MSG };
   }
 
   const supabase = await createClient();

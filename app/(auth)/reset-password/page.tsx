@@ -17,7 +17,7 @@ export default async function ResetPasswordPage() {
       brandSurface="auth-reset"
       icon={<KeyRound />}
       title="Set a new password"
-      description="Create a fresh password to secure your MyStockli account."
+      description="Create a fresh password to secure your Stockli account."
     >
       {user ? (
         <ResetPasswordForm email={user.email ?? null} />
@@ -29,15 +29,15 @@ export default async function ResetPasswordPage() {
                 <AlertCircle className="size-4" />
               </span>
               <div>
-                <p className="font-semibold text-foreground">Reset link unavailable</p>
+                <p className="font-semibold text-foreground">Reset session unavailable</p>
                 <p className="mt-1 text-muted-foreground">
-                  This password reset link is missing, expired, or was already used. Request a fresh one to continue.
+                  Your reset code is missing, expired, or was already used. Request a fresh code to continue.
                 </p>
               </div>
             </div>
           </div>
           <Button asChild className="h-11 w-full">
-            <Link href="/forgot-password">Request a new reset link</Link>
+            <Link href="/forgot-password">Request a new reset code</Link>
           </Button>
         </div>
       )}

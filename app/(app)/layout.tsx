@@ -91,9 +91,8 @@ export default async function AppLayout({
               </div>
             </header>
 
-            {isDemoMode && <DemoBanner variant="demo" />}
-            {!isDemoMode && isGuest && <DemoBanner variant="guest" />}
-            {isGuest && guestPopupEnabled && <GuestSignupNudge />}
+            {(isDemoMode || isGuest) && <DemoBanner />}
+            {(isDemoMode || (isGuest && guestPopupEnabled)) && <GuestSignupNudge />}
 
             <main className="min-w-0 flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
               <RouteTransitionViewport>{children}</RouteTransitionViewport>
