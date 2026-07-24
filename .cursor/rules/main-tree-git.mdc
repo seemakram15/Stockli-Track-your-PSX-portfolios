@@ -1,0 +1,13 @@
+---
+description: Work and commit only in Documents main repo; no Cursor worktrees or Co-authored-by
+alwaysApply: true
+---
+
+# Main-tree git workflow
+
+- Work only in the main local repo: `/Users/tk-lpt-1153/Documents/Projects/stock-portfolio`.
+- Do **not** create Cursor worktrees or edit a separate worktree for day-to-day changes.
+- Stage and commit **directly** on local `main` there (`git add` then `git commit -m "..."`).
+- Never add `Co-authored-by: Cursor <cursoragent@cursor.com>` (or any Cursor co-author trailer) to commits.
+- If a commit tool auto-appends that trailer, amend immediately to remove it when the commit was just created in this turn and has not been pushed.
+- Prefer Terminal.app / full permissions when Documents TCC blocks sandbox access.
